@@ -1,0 +1,38 @@
+# Empacotamento (RF-16, PRD 8.6): instalador Windows unico, sem
+# pre-requisito externo. Nao ha modulo nativo no projeto (o banco usa
+# node:sqlite, embutido no Node/Electron; o hash de senha usa hash-wasm,
+# que e WASM puro) - por isso nao precisa de electron-rebuild nem de
+# asarUnpack para .node.
+appId: com.oticasuite.app
+productName: Ótica Suite
+copyright: Copyright © 2026
+
+directories:
+  output: release
+  buildResources: resources
+
+files:
+  - out/**/*
+  # empacotado tambem como arquivo (nao so como fonte do icone do
+  # instalador): o processo main resolve o icone da janela em runtime via
+  # caminho relativo (`../../resources/icon.png` a partir de out/main/),
+  # que so existe no pacote final se este arquivo estiver aqui listado.
+  - resources/icon.png
+  - package.json
+
+asar: true
+
+win:
+  target:
+    - target: nsis
+      arch: [x64]
+  # electron-builder converte o PNG (2000x2000, resources/icon.png) para
+  # .ico automaticamente na hora de empacotar - nao precisa de um .ico
+  # pronto no repositorio nem de ferramenta externa de conversao.
+  icon: resources/icon.png
+
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+  createStartMenuShortcut: true

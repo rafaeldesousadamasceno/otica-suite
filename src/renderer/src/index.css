@@ -1,0 +1,98 @@
+@import 'tailwindcss';
+@import '@fontsource/inter/400.css';
+@import '@fontsource/inter/500.css';
+@import '@fontsource/inter/600.css';
+@import '@fontsource/inter/700.css';
+@import '@fontsource/jetbrains-mono/400.css';
+@import '@fontsource/jetbrains-mono/500.css';
+
+/*
+ * Paleta e tokens do produto (PRD secao 12.2).
+ *
+ * --accent e o UNICO token que muda em runtime, por otica: RF-01 deixa a
+ * cor de destaque configuravel, e ela e aplicada aqui via
+ * `document.documentElement.style.setProperty('--accent', ...)`
+ * (ver state/empresaStore.ts). Tudo o mais e fixo pelo tema claro/escuro.
+ */
+:root {
+  --accent: #0d6a70;
+  --accent-ink: #ffffff;
+
+  --bg: #f4f7f7;
+  --surface: #ffffff;
+  --surface-2: #eaf0f0;
+  --ink: #17242a;
+  --ink-2: #43585f;
+  --ink-3: #6e858c;
+  --rule: #d5e0e0;
+  --rule-strong: #b6c7c7;
+
+  --danger: #9e2f2a;
+  --danger-wash: #f8e7e5;
+  --warn: #8a6414;
+  --warn-wash: #f6eedc;
+  --ok: #2e6b45;
+  --ok-wash: #e4f0e8;
+
+  color-scheme: light;
+}
+
+:root[data-theme='escuro'] {
+  --bg: #0e1619;
+  --surface: #152125;
+  --surface-2: #1c2b30;
+  --ink: #e4eded;
+  --ink-2: #a8bec1;
+  --ink-3: #7d9498;
+  --rule: #26383d;
+  --rule-strong: #354c52;
+
+  --danger: #e08078;
+  --danger-wash: #2e1917;
+  --warn: #c79a3e;
+  --warn-wash: #2b2417;
+  --ok: #7cc095;
+  --ok-wash: #16281d;
+
+  color-scheme: dark;
+}
+
+* {
+  border-color: var(--rule);
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family:
+    'Inter',
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    'Segoe UI',
+    sans-serif;
+  font-size: 14px;
+  -webkit-font-smoothing: antialiased;
+}
+
+.font-mono-tab {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-variant-numeric: tabular-nums;
+}
+
+::selection {
+  background: color-mix(in srgb, var(--accent) 30%, transparent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition: none !important;
+    animation: none !important;
+  }
+}

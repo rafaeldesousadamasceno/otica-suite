@@ -1,0 +1,147 @@
+import { type ReactNode, useState } from 'react'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { Card, CardBody } from '@renderer/components/ui/Card'
+import { Badge } from '@renderer/components/ui/Badge'
+import { Button } from '@renderer/components/ui/Button'
+import { unwrap, ApiCallError } from '@renderer/lib/ipc'
+import { toast } from '@renderer/state/toastStore'
+import type { EstadoLicenca } from '@shared/types'
+
+function formatarDataBr(iso: string): string {
+  const [ano, mes, dia] = iso.split('-')
+  return `${dia}/${mes}/${ano}`
+}
+
+const TOM_ESTADO: Record<EstadoLicenca, 'neutral' | 'ok' | 'warn' | 'danger'> = {
+  nao_ativada: 'neutral',
+  ativa: 'ok',
+  proxima_vencimento: 'warn',
+  carencia: 'warn',
+  vencida: 'danger'
+}
+
+const ROTULO_ESTADO: Record<EstadoLicenca, string> = {
+  nao_ativada: 'Licença não ativada',
+  ativa: 'Licença ativa',
+  proxima_vencimento: 'Próxima do vencimento',
+  carencia: 'Em carência',
+  vencida: 'Licença vencida'
+}
+
+export function LicencaPage(): ReactNode {
+  const queryClient = useQueryClient()
+  const [chave, setChave] = useState('')
+  const [erro, setErro] = useState<string | null>(null)
+
+  const status = useQuery({
+    queryKey: ['licencaStatus'],
+    queryFn: () => unwrap(window.api.licenca.status())
+  })
+
+  const ativar = useMutation({
+    mutationFn: () => unwrap(window.api.licenca.ativar({ chave })),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['licencaStatus'] })
+      toast.ok('Licença ativada.')
+      setChave('')
+      setErro(null)
+    },
+    onError: (err) => setErro(err instanceof ApiCallError || err instanceof Error ? err.message : 'Erro inesperado.')
+  })
+
+  const info = status.data
+
+  return (
+    <div className="flex flex-col gap-4">
+      <h1 className="text-xl font-semibold text-[var(--ink)]">Licença</h1>
+
+      {info && (
+        <Card>
+          <CardBody className="flex flex-col gap-2">
+            <Badge tone={TOM_ESTADO[info.estado]}>{ROTULO_ESTADO[info.estado]}</Badge>
+            <DescricaoEstado
+              estado={info.estado}
+              oticaNome={info.oticaNome}
+              validade={info.validade}
+              diasParaVencer={info.diasParaVencer}
+            />
+          </CardBody>
+        </Card>
+      )}
+
+      {info && (
+        <div className="flex flex-col gap-1.5">
+          <p className="text-sm text-[var(--ink-2)]">Informe este código para gerar sua chave de licença.</p>
+          <div className="rounded-md bg-[var(--surface-2)] p-3">
+            <p className="break-all font-mono-tab text-sm text-[var(--ink)]">{info.fingerprint}</p>
+          </div>
+        </div>
+      )}
+
+      <Card>
+        <CardBody className="flex flex-col gap-3">
+          <div className="flex flex-col gap-1.5">
+            <label htmlFor="chave-licenca" className="text-sm font-medium text-[var(--ink-2)]">
+              Chave de licença
+            </label>
+            <textarea
+              id="chave-licenca"
+              className="min-h-24 w-full rounded-md border border-[var(--rule-strong)] bg-[var(--surface)] px-3 py-2 font-mono-tab text-xs text-[var(--ink)] focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-[var(--accent)]"
+              value={chave}
+              onChange={(e) => setChave(e.target.value)}
+              placeholder="Cole aqui a chave recebida"
+              rows={4}
+            />
+            {erro && <p className="text-sm text-[var(--danger)]">{erro}</p>}
+          </div>
+          <div className="flex justify-end">
+            <Button onClick={() => ativar.mutate()} loading={ativar.isPending} disabled={chave.trim().length === 0}>
+              Ativar
+            </Button>
+          </div>
+        </CardBody>
+      </Card>
+    </div>
+  )
+}
+
+function DescricaoEstado({
+  estado,
+  oticaNome,
+  validade,
+  diasParaVencer
+}: {
+  estado: EstadoLicenca
+  oticaNome: string | null
+  validade: string | null
+  diasParaVencer: number | null
+}): ReactNode {
+  switch (estado) {
+    case 'nao_ativada':
+      return <p className="text-sm text-[var(--ink-2)]">Ative a licença informando a chave recebida do fornecedor.</p>
+    case 'ativa':
+      return (
+        <p className="text-sm text-[var(--ink-2)]">
+          {oticaNome ?? '—'} · {validade ? formatarDataBr(validade) : 'Licença perpétua, sem vencimento'}
+        </p>
+      )
+    case 'proxima_vencimento':
+      return <p className="text-sm text-[var(--ink-2)]">Vence em {diasParaVencer} dias.</p>
+    case 'carencia':
+      return (
+        <p className="text-sm text-[var(--ink-2)]">
+          Licença vencida há {Math.abs(diasParaVencer ?? 0)} dias — período de carência. Em breve o sistema entrará em
+          modo somente leitura caso a licença não seja renovada.
+        </p>
+      )
+    case 'vencida':
+      return (
+        <p className="text-sm text-[var(--ink-2)]">
+          Licença vencida — o sistema está em modo somente leitura. Cadastros e vendas estão bloqueados até renovar
+          (backups continuam funcionando normalmente).
+        </p>
+      )
+    default:
+      return null
+  }
+}

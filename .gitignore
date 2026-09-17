@@ -1,0 +1,26 @@
+node_modules/
+out/
+dist/
+release/
+*.log
+.DS_Store
+.env
+.env.local
+
+# Banco local e artefatos de execucao gerados em dev (ver src/main/paths.ts)
+*.db
+*.db-shm
+*.db-wal
+
+# RF-13.4: chave PRIVADA usada pela ferramenta de emissao de licencas
+# (tools/gerar-licenca.mjs) - NUNCA pode ser distribuida com o app nem
+# versionada. So a chave PUBLICA (embutida em src/main/license/chave.ts)
+# vai para o codigo-fonte.
+tools/chave-privada.pem
+
+# Estado local do harness do Claude Code (nao e conteudo do projeto)
+.claude/
+
+# Logo do sistema anterior (MD Óculos), sem uso no app novo - so ficava
+# solto na raiz por heranca da migracao de pastas
+logoMDOculos.png
