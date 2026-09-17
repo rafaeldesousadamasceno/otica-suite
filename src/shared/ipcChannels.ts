@@ -136,6 +136,22 @@ export const IPC = {
   },
   relatorios: {
     ordemServico: 'relatorios:ordemServico',
-    protocoloSaida: 'relatorios:protocoloSaida'
+    protocoloSaida: 'relatorios:protocoloSaida',
+    comprovanteVenda: 'relatorios:comprovanteVenda',
+    carneParcelas: 'relatorios:carneParcelas',
+    aniversariantes: 'relatorios:aniversariantes',
+    receitasDespesas: 'relatorios:receitasDespesas',
+    fluxoCaixa: 'relatorios:fluxoCaixa',
+    lucroPrejuizo: 'relatorios:lucroPrejuizo',
+    inadimplencia: 'relatorios:inadimplencia',
+    posicaoEstoque: 'relatorios:posicaoEstoque',
+    produtosAbaixoMinimo: 'relatorios:produtosAbaixoMinimo',
+    curvaAbc: 'relatorios:curvaAbc',
+    vendasPorVendedor: 'relatorios:vendasPorVendedor',
+    rankingVendedores: 'relatorios:rankingVendedores',
+    comissoes: 'relatorios:comissoes'
+  },
+  sistema: {
+    info: 'sistema:info'
   }
 } as const

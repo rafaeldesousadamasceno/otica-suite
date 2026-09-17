@@ -29,7 +29,8 @@ import type {
   LicencaInfo,
   MigracaoResultado,
   CaixaAberto,
-  CaixaResumo
+  CaixaResumo,
+  SistemaInfo
 } from '@shared/types'
 import type {
   SetupInput,
@@ -220,6 +221,22 @@ interface Api {
   relatorios: {
     ordemServico: (input: IdInput) => Promise<ApiResult<{ caminho: string } | null>>
     protocoloSaida: (input: OrdensServicoQuery) => Promise<ApiResult<{ caminho: string } | null>>
+    comprovanteVenda: (input: IdInput) => Promise<ApiResult<{ caminho: string } | null>>
+    carneParcelas: (input: IdInput) => Promise<ApiResult<{ caminho: string } | null>>
+    aniversariantes: (input: AniversariantesQuery) => Promise<ApiResult<{ caminho: string } | null>>
+    receitasDespesas: (input: PeriodoQuery) => Promise<ApiResult<{ caminho: string } | null>>
+    fluxoCaixa: (input: PeriodoQuery) => Promise<ApiResult<{ caminho: string } | null>>
+    lucroPrejuizo: (input: PeriodoQuery) => Promise<ApiResult<{ caminho: string } | null>>
+    inadimplencia: () => Promise<ApiResult<{ caminho: string } | null>>
+    posicaoEstoque: (input: EstoqueListQuery) => Promise<ApiResult<{ caminho: string } | null>>
+    produtosAbaixoMinimo: () => Promise<ApiResult<{ caminho: string } | null>>
+    curvaAbc: (input: PeriodoQuery) => Promise<ApiResult<{ caminho: string } | null>>
+    vendasPorVendedor: (input: PeriodoQuery) => Promise<ApiResult<{ caminho: string } | null>>
+    rankingVendedores: (input: PeriodoQuery) => Promise<ApiResult<{ caminho: string } | null>>
+    comissoes: (input: PeriodoQuery) => Promise<ApiResult<{ caminho: string } | null>>
+  }
+  sistema: {
+    info: () => Promise<ApiResult<SistemaInfo>>
   }
 }
 

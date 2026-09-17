@@ -32,10 +32,16 @@ export function LicencaPage(): ReactNode {
   const queryClient = useQueryClient()
   const [chave, setChave] = useState('')
   const [erro, setErro] = useState<string | null>(null)
+  const [notasAbertas, setNotasAbertas] = useState(false)
 
   const status = useQuery({
     queryKey: ['licencaStatus'],
     queryFn: () => unwrap(window.api.licenca.status())
+  })
+
+  const sistema = useQuery({
+    queryKey: ['sistemaInfo'],
+    queryFn: () => unwrap(window.api.sistema.info())
   })
 
   const ativar = useMutation({
@@ -54,6 +60,31 @@ export function LicencaPage(): ReactNode {
   return (
     <div className="flex flex-col gap-4">
       <h1 className="text-xl font-semibold text-[var(--ink)]">Licença</h1>
+
+      {sistema.data && (
+        <Card>
+          <CardBody className="flex flex-col gap-2">
+            <div className="flex items-center justify-between">
+              <p className="text-sm text-[var(--ink-2)]">
+                Versão instalada: <span className="font-mono-tab text-[var(--ink)]">{sistema.data.versao}</span>
+              </p>
+              <Button variant="ghost" onClick={() => setNotasAbertas((v) => !v)}>
+                {notasAbertas ? 'Ocultar notas de versão' : 'Ver notas de versão'}
+              </Button>
+            </div>
+            {notasAbertas && (
+              <pre className="whitespace-pre-wrap rounded-md bg-[var(--surface-2)] p-3 text-xs text-[var(--ink-2)]">
+                {sistema.data.notas}
+              </pre>
+            )}
+            <p className="text-xs text-[var(--ink-3)]">
+              Verificação automática de atualização ainda não está disponível — quando houver uma versão nova, ela
+              será distribuída como um novo instalador para você executar manualmente. A migração do banco de dados
+              acontece sozinha na primeira abertura após a atualização, com backup automático antes de migrar.
+            </p>
+          </CardBody>
+        </Card>
+      )}
 
       {info && (
         <Card>

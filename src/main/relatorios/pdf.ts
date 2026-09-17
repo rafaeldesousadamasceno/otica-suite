@@ -39,7 +39,7 @@ async function renderizarPdf(html: string): Promise<Buffer> {
  * depois de salvo) e grava o arquivo. Devolve `null` se a pessoa cancelar
  * o dialogo - nunca um erro, cancelar nao e uma falha.
  */
-export async function gerarESalvarPdf(html: string, nomeArquivoSugerido: string): Promise<string | null> {
+export async function gerarESalvarPdf(html: string, nomeArquivoSugerido: string): Promise<{ caminho: string } | null> {
   const { canceled, filePath } = await dialog.showSaveDialog({
     title: 'Salvar relatório',
     defaultPath: nomeArquivoSugerido,
@@ -49,5 +49,5 @@ export async function gerarESalvarPdf(html: string, nomeArquivoSugerido: string)
 
   const pdf = await renderizarPdf(html)
   writeFileSync(filePath, pdf)
-  return filePath
+  return { caminho: filePath }
 }

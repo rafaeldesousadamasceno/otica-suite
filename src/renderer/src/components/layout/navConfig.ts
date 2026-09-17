@@ -19,7 +19,8 @@ import {
   DatabaseBackup,
   DatabaseZap,
   KeyRound,
-  Landmark
+  Landmark,
+  FileText
 } from 'lucide-react'
 import type { Perfil } from '@shared/types'
 
@@ -33,10 +34,7 @@ export interface NavItem {
  * Navegacao lateral por modulo (PRD secao 12.1) - a barra muda conforme
  * quem esta logado, nao so os botoes dentro da tela.
  *
- * So aparecem aqui os destinos que existem hoje. Caixa/Fluxo/Lucro-Prejuizo
- * e Relatórios (RF-11.3, RF-11.4, RF-12) entram nesta lista quando a fase
- * F5 do roadmap implementar as telas - o acesso a eles ja esta modelado em
- * shared/permissions.ts, so falta a rota.
+ * So aparecem aqui os destinos que existem hoje.
  */
 export const NAV_ITEMS: Record<Perfil, NavItem[]> = {
   admin: [
@@ -49,6 +47,7 @@ export const NAV_ITEMS: Record<Perfil, NavItem[]> = {
     { label: 'Caixa', path: '/caixa', icon: Landmark },
     { label: 'Fluxo de Caixa', path: '/fluxo-caixa', icon: ArrowLeftRight },
     { label: 'Lucro / Prejuízo', path: '/lucro-prejuizo', icon: PiggyBank },
+    { label: 'Relatórios', path: '/relatorios', icon: FileText },
     { label: 'Produtos', path: '/produtos', icon: Package },
     { label: 'Estoque', path: '/estoque', icon: Boxes },
     { label: 'Fornecedores', path: '/fornecedores', icon: Truck },

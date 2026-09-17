@@ -1,9 +1,12 @@
 import { type ReactNode, useState } from 'react'
-import { useQuery } from '@tanstack/react-query'
+import { useMutation, useQuery } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
+import { Printer } from 'lucide-react'
 import { Card } from '@renderer/components/ui/Card'
 import { Select } from '@renderer/components/ui/Select'
-import { unwrap } from '@renderer/lib/ipc'
+import { Button } from '@renderer/components/ui/Button'
+import { unwrap, ApiCallError } from '@renderer/lib/ipc'
+import { toast } from '@renderer/state/toastStore'
 import { MESES } from '@shared/types'
 
 function formatarDataBr(iso: string | null): string {
@@ -21,22 +24,35 @@ export function AniversariantesPage(): ReactNode {
     queryFn: () => unwrap(window.api.clientes.aniversariantes({ mes }))
   })
 
+  const imprimir = useMutation({
+    mutationFn: () => unwrap(window.api.relatorios.aniversariantes({ mes })),
+    onSuccess: (resultado) => {
+      if (resultado) toast.ok(`PDF salvo em ${resultado.caminho}`)
+    },
+    onError: (err) => toast.error(err instanceof ApiCallError || err instanceof Error ? err.message : 'Erro inesperado.')
+  })
+
   return (
     <div className="flex flex-col gap-4">
       <div className="flex items-center justify-between gap-3">
         <h1 className="text-xl font-semibold text-[var(--ink)]">Aniversariantes</h1>
-        <Select
-          className="w-48"
-          value={mes ?? ''}
-          onChange={(e) => setMes(e.target.value ? Number(e.target.value) : null)}
-        >
-          <option value="">Todos os meses</option>
-          {MESES.map((m, i) => (
-            <option key={m} value={i + 1}>
-              {m}
-            </option>
-          ))}
-        </Select>
+        <div className="flex items-center gap-2">
+          <Select
+            className="w-48"
+            value={mes ?? ''}
+            onChange={(e) => setMes(e.target.value ? Number(e.target.value) : null)}
+          >
+            <option value="">Todos os meses</option>
+            {MESES.map((m, i) => (
+              <option key={m} value={i + 1}>
+                {m}
+              </option>
+            ))}
+          </Select>
+          <Button variant="secondary" loading={imprimir.isPending} onClick={() => imprimir.mutate()}>
+            <Printer className="size-4" /> Imprimir
+          </Button>
+        </div>
       </div>
 
       <Card className="overflow-hidden">

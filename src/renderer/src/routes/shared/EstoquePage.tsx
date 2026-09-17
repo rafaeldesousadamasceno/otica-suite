@@ -1,14 +1,16 @@
 import { type ReactNode, useState } from 'react'
-import { useQuery } from '@tanstack/react-query'
-import { Search, ClipboardEdit } from 'lucide-react'
+import { useMutation, useQuery } from '@tanstack/react-query'
+import { Search, ClipboardEdit, Printer } from 'lucide-react'
 import { Card } from '@renderer/components/ui/Card'
 import { Input } from '@renderer/components/ui/Input'
 import { Select } from '@renderer/components/ui/Select'
 import { Badge } from '@renderer/components/ui/Badge'
-import { unwrap } from '@renderer/lib/ipc'
+import { Button } from '@renderer/components/ui/Button'
+import { unwrap, ApiCallError } from '@renderer/lib/ipc'
 import { useDebouncedValue } from '@renderer/lib/useDebouncedValue'
 import { AjustarEstoqueDialog } from '@renderer/components/AjustarEstoqueDialog'
 import { useAuthStore } from '@renderer/state/authStore'
+import { toast } from '@renderer/state/toastStore'
 import { possuiPermissao } from '@shared/permissions'
 import type { CategoriaProduto, EstoqueItem } from '@shared/types'
 
@@ -33,9 +35,22 @@ export function EstoquePage(): ReactNode {
     queryFn: () => unwrap(window.api.estoque.list({ busca: buscaDebounced, categoria, situacao }))
   })
 
+  const imprimir = useMutation({
+    mutationFn: () => unwrap(window.api.relatorios.posicaoEstoque({ busca: buscaDebounced, categoria, situacao })),
+    onSuccess: (resultado) => {
+      if (resultado) toast.ok(`PDF salvo em ${resultado.caminho}`)
+    },
+    onError: (err) => toast.error(err instanceof ApiCallError || err instanceof Error ? err.message : 'Erro inesperado.')
+  })
+
   return (
     <div className="flex flex-col gap-4">
-      <h1 className="text-xl font-semibold text-[var(--ink)]">Estoque</h1>
+      <div className="flex items-center justify-between gap-3">
+        <h1 className="text-xl font-semibold text-[var(--ink)]">Estoque</h1>
+        <Button variant="secondary" loading={imprimir.isPending} onClick={() => imprimir.mutate()}>
+          <Printer className="size-4" /> Imprimir posição de estoque
+        </Button>
+      </div>
 
       <div className="flex flex-wrap items-center gap-3">
         <div className="relative w-64">
