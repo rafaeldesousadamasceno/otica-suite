@@ -1,6 +1,6 @@
 import { type ReactNode, useEffect, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Ban, CircleDollarSign } from 'lucide-react'
+import { Ban, CircleDollarSign, Printer } from 'lucide-react'
 import { Dialog } from '@renderer/components/ui/Dialog'
 import { Badge } from '@renderer/components/ui/Badge'
 import { Button } from '@renderer/components/ui/Button'
@@ -80,6 +80,22 @@ export function VendaDetailDialog({ vendaId, onClose }: Props): ReactNode {
     }
   })
 
+  const imprimirComprovante = useMutation({
+    mutationFn: () => unwrap(window.api.relatorios.comprovanteVenda({ id: vendaId! })),
+    onSuccess: (resultado) => {
+      if (resultado) toast.ok(`PDF salvo em ${resultado.caminho}`)
+    },
+    onError: (err) => toast.error(err instanceof ApiCallError || err instanceof Error ? err.message : 'Erro inesperado.')
+  })
+
+  const imprimirCarne = useMutation({
+    mutationFn: () => unwrap(window.api.relatorios.carneParcelas({ id: vendaId! })),
+    onSuccess: (resultado) => {
+      if (resultado) toast.ok(`PDF salvo em ${resultado.caminho}`)
+    },
+    onError: (err) => toast.error(err instanceof ApiCallError || err instanceof Error ? err.message : 'Erro inesperado.')
+  })
+
   if (vendaId === null || !venda.data) return null
   const v = venda.data
 
@@ -93,7 +109,20 @@ export function VendaDetailDialog({ vendaId, onClose }: Props): ReactNode {
               {formatarDataBr(v.data)} · vendedor(a) {v.vendedorNome}
             </p>
           </div>
-          <Badge tone={v.situacao === 'CANCELADA' ? 'danger' : 'ok'}>{v.situacao}</Badge>
+          <div className="flex items-center gap-2">
+            <Badge tone={v.situacao === 'CANCELADA' ? 'danger' : 'ok'}>{v.situacao}</Badge>
+          </div>
+        </div>
+
+        <div className="flex flex-wrap gap-2">
+          <Button variant="secondary" loading={imprimirComprovante.isPending} onClick={() => imprimirComprovante.mutate()}>
+            <Printer className="size-4" /> Comprovante
+          </Button>
+          {v.parcelas.length > 0 && (
+            <Button variant="secondary" loading={imprimirCarne.isPending} onClick={() => imprimirCarne.mutate()}>
+              <Printer className="size-4" /> Carnê de parcelas
+            </Button>
+          )}
         </div>
 
         {v.autorizadoPorNome && (

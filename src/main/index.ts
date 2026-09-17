@@ -1,7 +1,8 @@
-import { app, BrowserWindow, shell } from 'electron'
+import { app, BrowserWindow, dialog, shell } from 'electron'
 import { join } from 'node:path'
 import { electronApp, is, optimizer } from '@electron-toolkit/utils'
 import { getDb, closeDb } from '@main/db/connection'
+import { MigrationError } from '@main/db/migrator'
 import { registerAllIpc } from '@main/ipc/registerIpc'
 import { iniciarAgendadorBackup } from '@main/services/backupService'
 // Icone do sistema (janela em dev, taskbar) - o instalador em si usa
@@ -65,7 +66,20 @@ app.whenReady().then(() => {
   // Abre a conexao e roda as migrations pendentes antes de qualquer janela
   // ou handler de IPC existir - garante que o schema esta pronto quando a
   // UI fizer a primeira chamada.
-  getDb()
+  //
+  // RF-16, CA2: se a atualizacao de versao trouxe uma migration que falha,
+  // o banco ja foi restaurado ao estado anterior dentro de getDb() - aqui
+  // so falta avisar a pessoa (nao ha janela/React de pe ainda para isso) e
+  // encerrar, em vez de deixar a excecao virar um crash silencioso.
+  try {
+    getDb()
+  } catch (err) {
+    const mensagem = err instanceof MigrationError ? err.message : `Erro inesperado ao abrir o banco de dados: ${(err as Error).message}`
+    dialog.showErrorBox('Não foi possível iniciar o Ótica Suite', mensagem)
+    app.quit()
+    return
+  }
+
   registerAllIpc()
   iniciarAgendadorBackup()
 

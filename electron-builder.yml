@@ -18,6 +18,7 @@ files:
   # caminho relativo (`../../resources/icon.png` a partir de out/main/),
   # que so existe no pacote final se este arquivo estiver aqui listado.
   - resources/icon.png
+  - CHANGELOG.md
   - package.json
 
 asar: true

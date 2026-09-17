@@ -139,7 +139,23 @@ const api = {
   },
   relatorios: {
     ordemServico: (input: unknown) => ipcRenderer.invoke(IPC.relatorios.ordemServico, input),
-    protocoloSaida: (input: unknown) => ipcRenderer.invoke(IPC.relatorios.protocoloSaida, input)
+    protocoloSaida: (input: unknown) => ipcRenderer.invoke(IPC.relatorios.protocoloSaida, input),
+    comprovanteVenda: (input: unknown) => ipcRenderer.invoke(IPC.relatorios.comprovanteVenda, input),
+    carneParcelas: (input: unknown) => ipcRenderer.invoke(IPC.relatorios.carneParcelas, input),
+    aniversariantes: (input: unknown) => ipcRenderer.invoke(IPC.relatorios.aniversariantes, input),
+    receitasDespesas: (input: unknown) => ipcRenderer.invoke(IPC.relatorios.receitasDespesas, input),
+    fluxoCaixa: (input: unknown) => ipcRenderer.invoke(IPC.relatorios.fluxoCaixa, input),
+    lucroPrejuizo: (input: unknown) => ipcRenderer.invoke(IPC.relatorios.lucroPrejuizo, input),
+    inadimplencia: () => ipcRenderer.invoke(IPC.relatorios.inadimplencia),
+    posicaoEstoque: (input: unknown) => ipcRenderer.invoke(IPC.relatorios.posicaoEstoque, input),
+    produtosAbaixoMinimo: () => ipcRenderer.invoke(IPC.relatorios.produtosAbaixoMinimo),
+    curvaAbc: (input: unknown) => ipcRenderer.invoke(IPC.relatorios.curvaAbc, input),
+    vendasPorVendedor: (input: unknown) => ipcRenderer.invoke(IPC.relatorios.vendasPorVendedor, input),
+    rankingVendedores: (input: unknown) => ipcRenderer.invoke(IPC.relatorios.rankingVendedores, input),
+    comissoes: (input: unknown) => ipcRenderer.invoke(IPC.relatorios.comissoes, input)
+  },
+  sistema: {
+    info: () => ipcRenderer.invoke(IPC.sistema.info)
   }
 }
 

@@ -22,6 +22,7 @@ import { registerCaixaIpc } from './caixaIpc'
 import { registerRelatoriosIpc } from './relatoriosIpc'
 import { registerListasValorIpc } from './listasValorIpc'
 import { registerAuditoriaIpc } from './auditoriaIpc'
+import { registerSistemaIpc } from './sistemaIpc'
 
 export function registerAllIpc(): void {
   registerBootstrapIpc()
@@ -48,4 +49,5 @@ export function registerAllIpc(): void {
   registerRelatoriosIpc()
   registerListasValorIpc()
   registerAuditoriaIpc()
+  registerSistemaIpc()
 }

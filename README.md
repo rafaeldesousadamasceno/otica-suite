@@ -58,7 +58,7 @@ segurança — o DevTools contornaria isso. `src/shared/permissions.ts` é dado
 código — acrescentar um perfil novo (Gerente, Caixa) é editar um arquivo, não
 reescrever telas.
 
-## O que já funciona (F0–F4 e F7 completas; F5 quase completo; F6 em andamento)
+## O que já funciona (F0–F7 completas, dentro do escopo decidido — ver RF-16 abaixo)
 
 - **RF-02** Setup inicial (empresa + Administrador)
 - **RF-03** Login com Argon2id, bloqueio progressivo, troca de senha
@@ -212,23 +212,44 @@ reescrever telas.
   inclui o movimento do dia inteiro. Também não distingue forma de
   pagamento (dinheiro vs. cartão/PIX), então quem fecha o caixa ainda
   precisa saber separar isso na hora de contar o dinheiro físico
-- **RF-12 (parcial)** Relatórios em PDF: os dois mais aguardados desde o F2
-  — **OS/receita óptica** e **Protocolo de Saída** — agora imprimem de
-  verdade, usando o próprio Chromium do Electron (`webContents.printToPDF`
-  numa janela oculta) em vez de instalar o Puppeteer inteiro (que baixaria
-  um segundo Chromium). Layout novo (não é cópia pixel-a-pixel do Jasper
-  antigo, que não está disponível), cobrindo os mesmos campos: cabeçalho da
-  ótica, grade OD/OE completa, linha de assinatura do cliente na entrega.
-  Os outros ~12 relatórios do PRD (comprovante de venda, carnê de parcelas,
-  fluxo de caixa impresso, inadimplência, curva ABC etc.) ainda não existem
+- **RF-12** Relatórios em PDF, completo: os 14 relatórios do PRD, todos
+  usando o mesmo mecanismo (`webContents.printToPDF` do próprio Chromium do
+  Electron, numa janela oculta — nunca o Puppeteer inteiro). **OS/receita
+  óptica** e **Protocolo de Saída** preservam o layout do Jasper antigo,
+  campo a campo; os 12 novos (comprovante de venda, carnê de parcelas,
+  aniversariantes, receitas e despesas, fluxo de caixa impresso,
+  lucro/prejuízo, inadimplência, posição de estoque, produtos abaixo do
+  mínimo, curva ABC, vendas por vendedor, ranking de vendedores e
+  comissões) usam um layout tabular genérico novo
+  (`src/main/relatorios/htmlUtils.ts`), para não repetir HTML/CSS em cada
+  arquivo de template. Aparecem numa tela **Relatórios** nova (Admin, com
+  filtro de período) e, os que fazem mais sentido por item, direto onde já
+  se usa o dado (Estoque, Aniversariantes, detalhe da venda)
+- **RF-16 (parcial, decisão deliberada)** Atualização do app: a
+  **verificação online de nova versão** continua fora de escopo por ora —
+  decisão explícita do Rafael, não limitação técnica: a atualização é
+  distribuída como um novo instalador para rodar manualmente (o próprio
+  PRD já trata isso como alternativa aceitável). O que importava de
+  verdade do RF-16 está pronto: `runMigrations` (`src/main/db/migrator.ts`)
+  agora tira um backup completo (`VACUUM INTO`) antes de aplicar qualquer
+  migration pendente **quando a instalação já tinha migrations aplicadas
+  antes** (ou seja, é uma atualização de versão, não a primeira execução);
+  se qualquer migration da leva falhar, o banco inteiro é restaurado a
+  esse snapshot antes de propagar o erro — nunca fica num estado
+  parcialmente migrado. Como isso acontece antes de qualquer janela existir
+  (`main/index.ts`, antes de `createWindow()`), uma falha usa
+  `dialog.showErrorBox` nativo do Electron para avisar a pessoa, em vez de
+  um crash silencioso. Tela **Licença** ganhou um card "Sobre o sistema"
+  com a versão instalada (`app.getVersion()`) e as notas de versão
+  (`CHANGELOG.md`, empacotado junto com o app do mesmo jeito que
+  `resources/icon.png`)
+- **F7** concluído (ver abaixo)
 
 ## O que ainda não está implementado
 
-- **F6 (restante)**: RF-16 Atualização do app — verificação online de nova
-  versão (não há servidor/feed de release hospedado ainda, então isso é
-  puramente teórico por ora); a migração automática com backup obrigatório
-  antes e o rollback documentado também não foram amarrados ao fluxo de boot
-- **F7** concluído (ver abaixo)
+- **F6**: nada pendente pelo escopo decidido — ver a nota de RF-16 acima
+  sobre a verificação online de atualização ficar de fora por decisão do
+  Rafael, não por limitação técnica
 
 ## Decisões que valem registrar
 

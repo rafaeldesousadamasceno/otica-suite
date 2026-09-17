@@ -1,4 +1,5 @@
 import type { Empresa, OrdemServico } from '@shared/types'
+import { escapeHtml, formatarDataBr, montarLetterhead, texto } from './htmlUtils'
 
 /**
  * RF-06/RF-12: reproduz o "Protocolo de Saída" ("Protocolo.jasper" no
@@ -9,43 +10,6 @@ import type { Empresa, OrdemServico } from '@shared/types'
  * compra", que nao existe como campo direto em `OrdemServico` no sistema
  * novo - usamos `dataAbertura` (data de abertura da OS) no lugar dela.
  */
-
-function formatarDataBr(iso: string | null): string {
-  if (!iso) return '—'
-  const [ano, mes, dia] = iso.split('-')
-  return `${dia}/${mes}/${ano}`
-}
-
-function escapeHtml(valor: string): string {
-  return valor
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-}
-
-function texto(valor: string | null | undefined): string {
-  return valor && valor.trim() ? escapeHtml(valor) : '—'
-}
-
-function montarLetterhead(empresa: Empresa): string {
-  const logo = empresa.logoPath
-    ? `<img src="${empresa.logoPath}" alt="Logo" class="logo" />`
-    : ''
-  const contatos = [empresa.telefone, empresa.whatsapp, empresa.email]
-    .filter((v): v is string => Boolean(v && v.trim()))
-    .join(' · ')
-
-  return `
-    <div class="letterhead">
-      ${logo}
-      <div class="empresa-info">
-        <div class="empresa-nome">${escapeHtml(empresa.nomeFantasia)}</div>
-        ${contatos ? `<div class="empresa-detalhe">${escapeHtml(contatos)}</div>` : ''}
-      </div>
-    </div>
-  `
-}
 
 function montarFiltroTexto(filtro: { dataInicio?: string | null; dataFim?: string | null; situacao?: string }): string {
   const partes: string[] = []

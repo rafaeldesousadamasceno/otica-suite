@@ -14,15 +14,30 @@ let db: DatabaseSync | null = null
 export function getDb(): DatabaseSync {
   if (db) return db
 
-  db = new DatabaseSync(paths.database())
-  db.exec(`
+  const caminhoDb = paths.database()
+  const conexao = new DatabaseSync(caminhoDb)
+  conexao.exec(`
     PRAGMA journal_mode = WAL;
     PRAGMA synchronous = NORMAL;
     PRAGMA foreign_keys = ON;
     PRAGMA busy_timeout = 5000;
   `)
 
-  runMigrations(db)
+  try {
+    runMigrations(conexao, caminhoDb)
+  } catch (err) {
+    // RF-16: em falha de migracao a conexao pode ja ter sido fechada
+    // dentro de runMigrations (para restaurar o backup por baixo dela) -
+    // o try/catch aqui so garante que nunca fica presa aberta.
+    try {
+      conexao.close()
+    } catch {
+      // ja fechada
+    }
+    throw err
+  }
+
+  db = conexao
   return db
 }
 

@@ -28,6 +28,7 @@ import { BackupPage } from '@renderer/routes/admin/BackupPage'
 import { ImportarDadosPage } from '@renderer/routes/admin/ImportarDadosPage'
 import { LicencaPage } from '@renderer/routes/admin/LicencaPage'
 import { AniversariantesPage } from '@renderer/routes/shared/AniversariantesPage'
+import { RelatoriosPage } from '@renderer/routes/admin/RelatoriosPage'
 
 function aplicarTemaEAcento(cor: string, tema: 'claro' | 'escuro' | 'sistema'): void {
   document.documentElement.style.setProperty('--accent', cor)
@@ -134,6 +135,7 @@ export default function App(): ReactNode {
               <Route path="/caixa" element={<CaixaPage />} />
               <Route path="/fluxo-caixa" element={<FluxoCaixaPage />} />
               <Route path="/lucro-prejuizo" element={<LucroPrejuizoPage />} />
+              <Route path="/relatorios" element={<RelatoriosPage />} />
               <Route path="/fornecedores" element={<FornecedoresPage />} />
               <Route path="/compras" element={<ComprasPage />} />
               <Route path="/usuarios" element={<UsuariosPage />} />

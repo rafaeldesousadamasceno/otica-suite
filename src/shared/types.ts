@@ -466,6 +466,12 @@ export interface LicencaInfo {
   diasParaVencer: number | null
 }
 
+/** RF-16: versao instalada e notas de versao (CHANGELOG.md empacotado com o app). */
+export interface SistemaInfo {
+  versao: string
+  notas: string
+}
+
 // ---------------------------------------------------------------------
 // Caixa (RF-11.3 - fase F5)
 // ---------------------------------------------------------------------
