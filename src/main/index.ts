@@ -30,7 +30,10 @@ function createWindow(): void {
     }
   })
 
-  win.on('ready-to-show', () => win.show())
+  win.on('ready-to-show', () => {
+    win.maximize()
+    win.show()
+  })
 
   // Diagnostico temporario: qualquer falha ao carregar o preload ou erro
   // de console do renderer aparece aqui, no log do processo main.
