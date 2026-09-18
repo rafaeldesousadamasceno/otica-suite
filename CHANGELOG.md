@@ -1,4 +1,4 @@
-# Notas de versão — Ótica Suite
+# Notas de versão — OptiAleph
 
 ## 0.1.0
 

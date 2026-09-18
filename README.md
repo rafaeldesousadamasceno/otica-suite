@@ -1,4 +1,4 @@
-# Ótica Suite
+# OptiAleph
 
 Sistema de gestão desktop, white-label, para óticas — construído a partir do
 PRD em [`../docs/PRD-Sistema-Otica.md`](../docs/PRD-Sistema-Otica.md), que por

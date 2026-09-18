@@ -4,7 +4,7 @@
 # que e WASM puro) - por isso nao precisa de electron-rebuild nem de
 # asarUnpack para .node.
 appId: com.oticasuite.app
-productName: Ótica Suite
+productName: OptiAleph
 copyright: Copyright © 2026
 
 directories:

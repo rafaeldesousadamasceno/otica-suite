@@ -57,7 +57,7 @@ export function SetupWizardPage({ onDone }: Props): ReactNode {
           <div className="mb-3 flex size-12 items-center justify-center rounded-full bg-[var(--accent)]/12 text-[var(--accent)]">
             <Glasses className="size-6" />
           </div>
-          <h1 className="text-lg font-semibold text-[var(--ink)]">Bem-vindo(a) à Ótica Suite</h1>
+          <h1 className="text-lg font-semibold text-[var(--ink)]">Bem-vindo(a) ao OptiAleph</h1>
           <p className="mt-1 text-sm text-[var(--ink-3)]">
             Vamos configurar o sistema para a sua ótica. Isso leva menos de 5 minutos.
           </p>

@@ -29,7 +29,7 @@ export function Sidebar(): ReactNode {
           </div>
         )}
         <div className="min-w-0">
-          <p className="truncate text-sm font-semibold text-[var(--ink)]">{empresa.data?.nomeFantasia ?? 'Ótica Suite'}</p>
+          <p className="truncate text-sm font-semibold text-[var(--ink)]">{empresa.data?.nomeFantasia ?? 'OptiAleph'}</p>
           <p className="truncate text-xs text-[var(--ink-3)]">
             {sessao.usuario.perfil === 'admin' ? 'Administrador' : 'Vendedor'}
           </p>
