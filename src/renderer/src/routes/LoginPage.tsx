@@ -39,7 +39,7 @@ export function LoginPage({ empresa, onLogin }: Props): ReactNode {
               <Glasses className="size-6" />
             </div>
           )}
-          <h1 className="text-lg font-semibold text-[var(--ink)]">{empresa?.nomeFantasia ?? 'Ótica Suite'}</h1>
+          <h1 className="text-lg font-semibold text-[var(--ink)]">{empresa?.nomeFantasia ?? 'OptiAleph'}</h1>
           <p className="mt-1 text-sm text-[var(--ink-3)]">Entre com seu usuário e senha.</p>
         </div>
 

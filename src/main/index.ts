@@ -78,7 +78,7 @@ app.whenReady().then(() => {
     getDb()
   } catch (err) {
     const mensagem = err instanceof MigrationError ? err.message : `Erro inesperado ao abrir o banco de dados: ${(err as Error).message}`
-    dialog.showErrorBox('Não foi possível iniciar o Ótica Suite', mensagem)
+    dialog.showErrorBox('Não foi possível iniciar o OptiAleph', mensagem)
     app.quit()
     return
   }
