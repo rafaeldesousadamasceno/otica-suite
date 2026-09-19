@@ -153,5 +153,14 @@ export const IPC = {
   },
   sistema: {
     info: 'sistema:info'
+  },
+  relacionamento: {
+    listar: 'relacionamento:listar',
+    semContato: 'relacionamento:semContato',
+    abrirWhatsapp: 'relacionamento:abrirWhatsapp',
+    marcarContatado: 'relacionamento:marcarContatado',
+    definirAceitaContato: 'relacionamento:definirAceitaContato',
+    modelosObter: 'relacionamento:modelosObter',
+    modelosSalvar: 'relacionamento:modelosSalvar'
   }
 } as const

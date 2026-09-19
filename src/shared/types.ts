@@ -403,6 +403,35 @@ export interface RankingVendedorItem {
   totalCentavos: number
 }
 
+/** Total vendido num dia ('YYYY-MM-DD'); a serie do grafico e sempre continua, com 0 nos dias sem venda. */
+export interface VendaDiaItem {
+  data: string
+  totalCentavos: number
+}
+
+/** Receitas e despesas de um mes ('YYYY-MM'), regime de caixa - a mesma definicao do card "Saldo do mes". */
+export interface FluxoMesItem {
+  mes: string
+  receitasCentavos: number
+  despesasCentavos: number
+}
+
+/** 'outros' agrupa itens vendidos sem produto cadastrado (ex.: itens importados do sistema antigo). */
+export type CategoriaVenda = CategoriaProduto | 'outros'
+
+export interface VendaCategoriaItem {
+  categoria: CategoriaVenda
+  totalCentavos: number
+}
+
+/** So as etapas em andamento - ENTREGUE e CANCELADA nao entram no funil. */
+export type EtapaOS = 'EM ABERTO' | 'LABORATÓRIO' | 'CHEGOU'
+
+export interface OsEtapaItem {
+  situacao: EtapaOS
+  quantidade: number
+}
+
 export interface DashboardAdmin {
   vendasHojeCentavos: number
   vendasMesCentavos: number
@@ -417,6 +446,10 @@ export interface DashboardAdmin {
   osAtrasadas: number
   aniversariantesSemana: number
   rankingVendedores: RankingVendedorItem[]
+  vendasPorDia: VendaDiaItem[]
+  fluxoMensal: FluxoMesItem[]
+  vendasPorCategoria: VendaCategoriaItem[]
+  osPorEtapa: OsEtapaItem[]
 }
 
 export interface DashboardVendedor {
@@ -426,6 +459,8 @@ export interface DashboardVendedor {
   osResponsavel: number
   osAguardandoRetirada: number
   aniversariantesSemana: number
+  vendasPorDia: VendaDiaItem[]
+  osPorEtapa: OsEtapaItem[]
 }
 
 /** O service decide o formato pelo perfil da sessao - nunca pelo que o renderer pede. */
@@ -574,3 +609,37 @@ export interface BootstrapState {
   /** false = ainda nao rodou o wizard (RF-02); a UI mostra o setup. */
   configurado: boolean
 }
+
+// ---------------------------------------------------------------------
+// Relacionamento (lista "quem chamar hoje" + atalho para o WhatsApp)
+// ---------------------------------------------------------------------
+
+/** Ordem de exibicao = ordem de prioridade do dia. */
+export const MOTIVOS_CONTATO = ['RETIRADA', 'COBRANCA', 'ANIVERSARIO', 'POS_VENDA', 'RENOVACAO'] as const
+export type MotivoContato = (typeof MOTIVOS_CONTATO)[number]
+
+export interface ContatoPendente {
+  /** `${motivo}:${clienteId}:${referencia}` - unica por ocorrencia, serve de key na lista. */
+  chave: string
+  motivo: MotivoContato
+  clienteId: number
+  clienteNome: string
+  celular: string | null
+  /** Identifica a OCORRENCIA (ano do aniversario, id da OS, da parcela, da receita). */
+  referencia: string
+  /** Frase pronta para a tela: "Óculos da OS 2026-00012 chegaram há 5 dias". */
+  detalhe: string
+  /** Data ISO do evento, so para ordenar dentro do motivo. */
+  data: string
+  /** false quando nao ha celular valido para abrir o WhatsApp. */
+  temWhatsapp: boolean
+}
+
+export interface ClienteSemContato {
+  id: number
+  nome: string
+  celular: string | null
+}
+
+/** Uma mensagem por motivo, com placeholders como {nome} e {otica}. */
+export type ModelosMensagem = Record<MotivoContato, string>

@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { MOTIVOS_CONTATO } from './types'
 
 /**
  * Contrato de IPC: os nomes de canal moram em `ipcChannels.ts` (sem
@@ -597,3 +598,36 @@ export const listaValorTipoSchema = z.object({
   ])
 })
 export type ListaValorTipoInput = z.infer<typeof listaValorTipoSchema>
+
+// ---------------------------------------------------------------------
+// Relacionamento (lista "quem chamar hoje" + atalho para o WhatsApp)
+// ---------------------------------------------------------------------
+
+/** Identifica uma ocorrencia pendente. A tela so manda ids - nunca um link: o link e montado no main. */
+export const contatoRefSchema = z.object({
+  clienteId: z.number().int().positive(),
+  motivo: z.enum(MOTIVOS_CONTATO),
+  referencia: z.string().trim().min(1).max(40)
+})
+export type ContatoRefInput = z.infer<typeof contatoRefSchema>
+
+export const contatoMarcarSchema = contatoRefSchema.extend({
+  observacao: z.string().trim().max(300).optional()
+})
+export type ContatoMarcarInput = z.infer<typeof contatoMarcarSchema>
+
+export const aceitaContatoSchema = z.object({
+  clienteId: z.number().int().positive(),
+  aceita: z.boolean()
+})
+export type AceitaContatoInput = z.infer<typeof aceitaContatoSchema>
+
+const modeloMensagem = z.string().trim().min(1, 'A mensagem não pode ficar vazia').max(700, 'Mensagem longa demais (máximo 700 caracteres)')
+export const modelosMensagemSchema = z.object({
+  RETIRADA: modeloMensagem,
+  COBRANCA: modeloMensagem,
+  ANIVERSARIO: modeloMensagem,
+  POS_VENDA: modeloMensagem,
+  RENOVACAO: modeloMensagem
+})
+export type ModelosMensagemInput = z.infer<typeof modelosMensagemSchema>

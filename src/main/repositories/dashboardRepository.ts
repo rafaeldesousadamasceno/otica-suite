@@ -1,10 +1,120 @@
 import { getDb } from '@main/db/connection'
 import { listarComSaldo } from './estoqueRepository'
 import { ordemServicoRepository } from './ordemServicoRepository'
-import type { DashboardAdmin, DashboardVendedor, RankingVendedorItem } from '@shared/types'
+import { FLUXO_SITUACAO_OS } from '@shared/types'
+import type {
+  CategoriaVenda,
+  DashboardAdmin,
+  DashboardVendedor,
+  EtapaOS,
+  FluxoMesItem,
+  OsEtapaItem,
+  RankingVendedorItem,
+  VendaCategoriaItem,
+  VendaDiaItem
+} from '@shared/types'
+
+const DIAS_GRAFICO = 30
+const MESES_GRAFICO = 6
+const ETAPAS_EM_ANDAMENTO = FLUXO_SITUACAO_OS.slice(0, 3) as unknown as EtapaOS[]
 
 function hoje(): string {
   return new Date().toISOString().slice(0, 10)
+}
+
+/**
+ * Datas 'YYYY-MM-DD' dos ultimos `n` dias, terminando hoje. Em UTC de
+ * proposito: e o mesmo criterio de `hoje()` e de `venda.data`, entao a barra
+ * de hoje do grafico bate com o card "Vendas hoje".
+ */
+function ultimosDias(n: number): string[] {
+  const [ano, mes, dia] = hoje().split('-').map(Number)
+  const base = Date.UTC(ano, mes - 1, dia)
+  return Array.from({ length: n }, (_, i) => new Date(base - (n - 1 - i) * 86_400_000).toISOString().slice(0, 10))
+}
+
+/** Meses 'YYYY-MM' dos ultimos `n` meses, terminando no mes corrente. */
+function ultimosMeses(n: number): string[] {
+  const [ano, mes] = hoje().split('-').map(Number)
+  return Array.from({ length: n }, (_, i) => new Date(Date.UTC(ano, mes - 1 - (n - 1 - i), 1)).toISOString().slice(0, 7))
+}
+
+/** `vendedorId` ausente = a loja toda (so o Administrador chega aqui sem filtro). */
+function vendasPorDia(db: ReturnType<typeof getDb>, vendedorId?: number): VendaDiaItem[] {
+  const dias = ultimosDias(DIAS_GRAFICO)
+  const rows = db
+    .prepare(
+      `SELECT data, SUM(total_centavos) AS total
+       FROM venda
+       WHERE situacao != 'CANCELADA' AND data >= :inicio AND data <= :fim
+         AND (:vendedorId = 0 OR vendedor_id = :vendedorId)
+       GROUP BY data`
+    )
+    .all({ inicio: dias[0], fim: dias[dias.length - 1], vendedorId: vendedorId ?? 0 }) as unknown as {
+    data: string
+    total: number
+  }[]
+  const porDia = new Map(rows.map((r) => [r.data, r.total]))
+  return dias.map((data) => ({ data, totalCentavos: porDia.get(data) ?? 0 }))
+}
+
+/** Mesma definicao do card "Saldo do mes" (todos os lancamentos), para os numeros baterem na tela. */
+function fluxoMensal(db: ReturnType<typeof getDb>): FluxoMesItem[] {
+  const meses = ultimosMeses(MESES_GRAFICO)
+  const rows = db
+    .prepare(
+      `SELECT substr(data, 1, 7) AS mes, tipo, SUM(valor_centavos) AS total
+       FROM lancamento
+       WHERE data >= :inicio AND data <= :fim
+       GROUP BY substr(data, 1, 7), tipo`
+    )
+    .all({ inicio: `${meses[0]}-01`, fim: hoje() }) as unknown as {
+    mes: string
+    tipo: 'RECEITA' | 'DESPESA'
+    total: number
+  }[]
+
+  return meses.map((mes) => ({
+    mes,
+    receitasCentavos: rows.find((r) => r.mes === mes && r.tipo === 'RECEITA')?.total ?? 0,
+    despesasCentavos: rows.find((r) => r.mes === mes && r.tipo === 'DESPESA')?.total ?? 0
+  }))
+}
+
+function vendasPorCategoria(db: ReturnType<typeof getDb>, inicioDoMes: string): VendaCategoriaItem[] {
+  const rows = db
+    .prepare(
+      `SELECT COALESCE(p.categoria, 'outros') AS categoria, SUM(vi.total_centavos) AS total
+       FROM venda_item vi
+       INNER JOIN venda v ON v.id = vi.venda_id
+       LEFT JOIN produto p ON p.id = vi.produto_id
+       WHERE v.situacao != 'CANCELADA' AND v.data >= :inicioMes AND v.data <= :hoje
+       GROUP BY COALESCE(p.categoria, 'outros')
+       ORDER BY total DESC`
+    )
+    .all({ inicioMes: inicioDoMes, hoje: hoje() }) as unknown as { categoria: CategoriaVenda; total: number }[]
+  return rows.map((r) => ({ categoria: r.categoria, totalCentavos: r.total }))
+}
+
+/** Sempre devolve as tres etapas, na ordem do fluxo, com 0 nas vazias - o funil nao "pula" etapa. */
+function osPorEtapa(db: ReturnType<typeof getDb>, vendedorId?: number): OsEtapaItem[] {
+  const rows = db
+    .prepare(
+      `SELECT situacao, COUNT(*) AS qtd
+       FROM ordem_servico
+       WHERE situacao IN (:e0, :e1, :e2) AND (:vendedorId = 0 OR criado_por = :vendedorId)
+       GROUP BY situacao`
+    )
+    .all({
+      e0: ETAPAS_EM_ANDAMENTO[0],
+      e1: ETAPAS_EM_ANDAMENTO[1],
+      e2: ETAPAS_EM_ANDAMENTO[2],
+      vendedorId: vendedorId ?? 0
+    }) as unknown as { situacao: EtapaOS; qtd: number }[]
+  return ETAPAS_EM_ANDAMENTO.map((situacao) => ({
+    situacao,
+    quantidade: rows.find((r) => r.situacao === situacao)?.qtd ?? 0
+  }))
 }
 
 function inicioMes(): string {
@@ -155,7 +265,11 @@ export const dashboardRepository = {
       produtosAbaixoMinimo,
       osAtrasadas,
       aniversariantesSemana,
-      rankingVendedores
+      rankingVendedores,
+      vendasPorDia: vendasPorDia(db),
+      fluxoMensal: fluxoMensal(db),
+      vendasPorCategoria: vendasPorCategoria(db, dataInicioMes),
+      osPorEtapa: osPorEtapa(db)
     }
   },
 
@@ -203,7 +317,9 @@ export const dashboardRepository = {
       comissaoAcumuladaCentavos: comissao.soma,
       osResponsavel: osResponsavel.qtd,
       osAguardandoRetirada: osAguardandoRetirada.qtd,
-      aniversariantesSemana
+      aniversariantesSemana,
+      vendasPorDia: vendasPorDia(db, vendedorId),
+      osPorEtapa: osPorEtapa(db, vendedorId)
     }
   }
 }

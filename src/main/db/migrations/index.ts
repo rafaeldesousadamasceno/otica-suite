@@ -4,6 +4,7 @@ import entradaSql from './003_forma_pagamento_entrada.sql?raw'
 import estoqueConfigSql from './004_estoque_config.sql?raw'
 import logoFormatoSql from './005_empresa_logo_formato.sql?raw'
 import migracaoSql from './006_migracao.sql?raw'
+import relacionamentoSql from './007_relacionamento.sql?raw'
 
 export interface Migration {
   version: number
@@ -21,5 +22,6 @@ export const MIGRATIONS: Migration[] = [
   { version: 3, name: 'forma_pagamento_entrada', sql: entradaSql },
   { version: 4, name: 'estoque_config', sql: estoqueConfigSql },
   { version: 5, name: 'empresa_logo_formato', sql: logoFormatoSql },
-  { version: 6, name: 'migracao', sql: migracaoSql }
+  { version: 6, name: 'migracao', sql: migracaoSql },
+  { version: 7, name: 'relacionamento', sql: relacionamentoSql }
 ]

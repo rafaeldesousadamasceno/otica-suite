@@ -139,7 +139,16 @@ reescrever telas.
   comparativo, saldo do mês, contas a receber/pagar vencendo, produtos
   abaixo do mínimo, OS atrasadas, aniversariantes da semana, ranking de
   vendedores) e do Vendedor (vendas próprias, comissão acumulada, OSs sob
-  responsabilidade) — cada indicador é clicável e leva à tela correspondente
+  responsabilidade) — cada indicador é clicável e leva à tela correspondente.
+  **Gráficos** abaixo dos cards (SVG próprio, sem biblioteca nova): vendas
+  dos últimos 30 dias, receitas × despesas dos últimos 6 meses, ranking de
+  vendedores, vendas por categoria e OSs em andamento por etapa; o painel do
+  Vendedor traz só as versões dele (vendas próprias e OSs próprias). Todo
+  gráfico tem tooltip, navegação por teclado e uma visão em tabela dos
+  mesmos dados. Cores de série fixas e validadas (contraste e daltonismo),
+  de propósito independentes da cor de destaque que cada ótica escolhe. As
+  séries saem de `dashboardRepository.ts` e são cobertas por teste contra um
+  SQLite em memória com o schema real das migrations
 - Todo o F5 acima (fluxo de caixa, lucro/prejuízo, dashboard) foi
   **implementado com 3 agentes em paralelo**: um cuidou do backend
   financeiro (a parte com julgamento contábil), outro do backend do
@@ -243,6 +252,27 @@ reescrever telas.
   com a versão instalada (`app.getVersion()`) e as notas de versão
   (`CHANGELOG.md`, empacotado junto com o app do mesmo jeito que
   `resources/icon.png`)
+- **Relacionamento** (CRM leve): tela "quem chamar hoje" que junta, a partir
+  dos dados que o sistema já tem, os clientes que merecem contato — óculos que
+  chegaram e aguardam retirada, parcela vencida, aniversário (hoje e próximos
+  7 dias), pós-venda (entregue há 7–30 dias) e renovação (último exame há
+  12–15 meses, sem compra desde então). As janelas são de propósito: sem elas,
+  os clientes importados do sistema antigo inundariam a lista no primeiro dia.
+  O botão **WhatsApp** abre a conversa **do próprio usuário** (`wa.me`) com a
+  mensagem do motivo já preenchida; depois ele marca **Contatado** e o cliente
+  sai da lista *daquela ocorrência* (a chave é cliente + motivo + ocorrência:
+  ano do aniversário, id da OS, da parcela mais antiga, da receita). O
+  Administrador edita as mensagens (`{nome}`, `{otica}`, `{numero_os}`,
+  `{valor}`, `{vencimento}`); quem pede para não ser contatado (opt-out, LGPD)
+  sai de todas as listas e volta com um clique. **Decisão deliberada: o sistema
+  não envia nem recebe mensagens** — isso exigiria a API oficial da Meta
+  (servidor público para webhooks, número por ótica, custo por mensagem) ou
+  bibliotecas não oficiais, que violam os termos do WhatsApp e arriscam banir
+  o número da ótica. O link é montado no main a partir de ids (a tela nunca
+  informa uma URL) e só `https://wa.me/` é aberto. Celular ambíguo nunca é
+  "consertado": `(09) 98765-4321` não vira DDD 99, porque a mensagem iria para
+  outra pessoa. Migration 007 (tabela `contato`, coluna `cliente.aceita_contato`
+  e mensagens padrão)
 - **F7** concluído (ver abaixo)
 
 ## O que ainda não está implementado

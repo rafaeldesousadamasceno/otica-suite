@@ -22,6 +22,16 @@ describe('matriz de permissoes (PRD secao 7.4)', () => {
     expect(possuiPermissao('vendedor', 'vendas.desconto_sem_limite', 'ver')).toBe(false)
   })
 
+  it('relacionamento: os dois perfis chamam clientes, so o admin edita as mensagens', () => {
+    for (const perfil of ['admin', 'vendedor'] as const) {
+      expect(possuiPermissao(perfil, 'relacionamento', 'ver')).toBe(true)
+      expect(possuiPermissao(perfil, 'relacionamento', 'criar')).toBe(true)
+    }
+    expect(possuiPermissao('admin', 'relacionamento.modelos', 'editar')).toBe(true)
+    expect(possuiPermissao('vendedor', 'relacionamento.modelos', 'ver')).toBe(false)
+    expect(possuiPermissao('vendedor', 'relacionamento.modelos', 'editar')).toBe(false)
+  })
+
   it('recurso nao mapeado para o perfil nunca autoriza', () => {
     expect(possuiPermissao('vendedor', 'usuarios', 'ver')).toBe(false)
     expect(possuiPermissao('vendedor', 'auditoria', 'ver')).toBe(false)
