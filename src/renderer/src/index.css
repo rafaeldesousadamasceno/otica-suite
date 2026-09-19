@@ -34,6 +34,18 @@
   --ok: #2e6b45;
   --ok-wash: #e4f0e8;
 
+  /*
+   * Cores dos graficos: paleta fixa e validada (contraste, daltonismo), de
+   * proposito independente do --accent, que cada otica troca. --viz-1/2 sao
+   * as duas series categoricas; --viz-ord-* e a rampa ordinal do funil de OS
+   * (etapa 1 -> 3). Validadas contra --surface de cada tema.
+   */
+  --viz-1: #2a78d6;
+  --viz-2: #eb6834;
+  --viz-ord-1: #86b6ef;
+  --viz-ord-2: #3987e5;
+  --viz-ord-3: #1c5cab;
+
   color-scheme: light;
 }
 
@@ -53,6 +65,12 @@
   --warn-wash: #2b2417;
   --ok: #7cc095;
   --ok-wash: #16281d;
+
+  --viz-1: #3987e5;
+  --viz-2: #d95926;
+  --viz-ord-1: #1c5cab;
+  --viz-ord-2: #3987e5;
+  --viz-ord-3: #86b6ef;
 
   color-scheme: dark;
 }

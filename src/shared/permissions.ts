@@ -20,6 +20,8 @@ export type Recurso =
   | 'ordens_servico'
   | 'protocolo_saida'
   | 'aniversariantes'
+  | 'relacionamento'
+  | 'relacionamento.modelos'
   | 'vendas'
   | 'vendas.cancelar'
   | 'vendas.desconto_sem_limite'
@@ -56,6 +58,8 @@ export const PERMISSOES: MatrizPermissoes = {
     ordens_servico: TUDO,
     protocolo_saida: TUDO,
     aniversariantes: SO_VER,
+    relacionamento: VER_CRIAR_EDITAR,
+    'relacionamento.modelos': ['ver', 'editar'],
     vendas: TUDO,
     'vendas.cancelar': SO_VER,
     'vendas.desconto_sem_limite': SO_VER,
@@ -82,6 +86,7 @@ export const PERMISSOES: MatrizPermissoes = {
     ordens_servico: VER_CRIAR_EDITAR,
     protocolo_saida: SO_VER,
     aniversariantes: SO_VER,
+    relacionamento: VER_CRIAR_EDITAR,
     vendas: ['ver', 'criar'],
     produtos: SO_VER,
     estoque: SO_VER,
@@ -98,6 +103,7 @@ export function possuiPermissao(perfil: Perfil, recurso: Recurso, acao: Acao): b
 export const RECURSOS_POR_MODULO: Record<Perfil, Recurso[]> = {
   admin: [
     'clientes',
+    'relacionamento',
     'receitas_opticas',
     'ordens_servico',
     'vendas',
@@ -113,5 +119,5 @@ export const RECURSOS_POR_MODULO: Record<Perfil, Recurso[]> = {
     'backup',
     'auditoria'
   ],
-  vendedor: ['clientes', 'receitas_opticas', 'ordens_servico', 'vendas', 'contas_receber', 'estoque']
+  vendedor: ['clientes', 'relacionamento', 'receitas_opticas', 'ordens_servico', 'vendas', 'contas_receber', 'estoque']
 }

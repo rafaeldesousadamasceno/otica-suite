@@ -156,6 +156,15 @@ const api = {
   },
   sistema: {
     info: () => ipcRenderer.invoke(IPC.sistema.info)
+  },
+  relacionamento: {
+    listar: () => ipcRenderer.invoke(IPC.relacionamento.listar),
+    semContato: () => ipcRenderer.invoke(IPC.relacionamento.semContato),
+    abrirWhatsapp: (input: unknown) => ipcRenderer.invoke(IPC.relacionamento.abrirWhatsapp, input),
+    marcarContatado: (input: unknown) => ipcRenderer.invoke(IPC.relacionamento.marcarContatado, input),
+    definirAceitaContato: (input: unknown) => ipcRenderer.invoke(IPC.relacionamento.definirAceitaContato, input),
+    modelosObter: () => ipcRenderer.invoke(IPC.relacionamento.modelosObter),
+    modelosSalvar: (input: unknown) => ipcRenderer.invoke(IPC.relacionamento.modelosSalvar, input)
   }
 }
 

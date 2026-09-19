@@ -20,7 +20,8 @@ import {
   DatabaseZap,
   KeyRound,
   Landmark,
-  FileText
+  FileText,
+  MessageCircle
 } from 'lucide-react'
 import type { Perfil } from '@shared/types'
 
@@ -40,6 +41,7 @@ export const NAV_ITEMS: Record<Perfil, NavItem[]> = {
   admin: [
     { label: 'Início', path: '/', icon: LayoutDashboard },
     { label: 'Clientes', path: '/clientes', icon: Users },
+    { label: 'Relacionamento', path: '/relacionamento', icon: MessageCircle },
     { label: 'Ordens de Serviço', path: '/ordens-servico', icon: ClipboardList },
     { label: 'Vendas', path: '/vendas', icon: ShoppingCart },
     { label: 'Contas a Receber', path: '/contas-receber', icon: CircleDollarSign },
@@ -63,6 +65,7 @@ export const NAV_ITEMS: Record<Perfil, NavItem[]> = {
   vendedor: [
     { label: 'Início', path: '/', icon: LayoutDashboard },
     { label: 'Clientes', path: '/clientes', icon: Users },
+    { label: 'Relacionamento', path: '/relacionamento', icon: MessageCircle },
     { label: 'Ordens de Serviço', path: '/ordens-servico', icon: ClipboardList },
     { label: 'Vendas', path: '/vendas', icon: ShoppingCart },
     { label: 'Contas a Receber', path: '/contas-receber', icon: CircleDollarSign },

@@ -30,7 +30,10 @@ import type {
   MigracaoResultado,
   CaixaAberto,
   CaixaResumo,
-  SistemaInfo
+  SistemaInfo,
+  ContatoPendente,
+  ClienteSemContato,
+  ModelosMensagem
 } from '@shared/types'
 import type {
   SetupInput,
@@ -79,6 +82,10 @@ import type {
   ConfiguracaoOperacionalInput,
   PeriodoQuery,
   BackupRestaurarInput,
+  ContatoRefInput,
+  ContatoMarcarInput,
+  AceitaContatoInput,
+  ModelosMensagemInput,
   LicencaAtivarInput,
   MigracaoConexaoInput,
   CaixaAbrirInput,
@@ -237,6 +244,15 @@ interface Api {
   }
   sistema: {
     info: () => Promise<ApiResult<SistemaInfo>>
+  }
+  relacionamento: {
+    listar: () => Promise<ApiResult<ContatoPendente[]>>
+    semContato: () => Promise<ApiResult<ClienteSemContato[]>>
+    abrirWhatsapp: (input: ContatoRefInput) => Promise<ApiResult<null>>
+    marcarContatado: (input: ContatoMarcarInput) => Promise<ApiResult<null>>
+    definirAceitaContato: (input: AceitaContatoInput) => Promise<ApiResult<null>>
+    modelosObter: () => Promise<ApiResult<ModelosMensagem>>
+    modelosSalvar: (input: ModelosMensagemInput) => Promise<ApiResult<null>>
   }
 }
 

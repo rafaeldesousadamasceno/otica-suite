@@ -23,6 +23,7 @@ import { registerRelatoriosIpc } from './relatoriosIpc'
 import { registerListasValorIpc } from './listasValorIpc'
 import { registerAuditoriaIpc } from './auditoriaIpc'
 import { registerSistemaIpc } from './sistemaIpc'
+import { registerRelacionamentoIpc } from './relacionamentoIpc'
 
 export function registerAllIpc(): void {
   registerBootstrapIpc()
@@ -50,4 +51,5 @@ export function registerAllIpc(): void {
   registerListasValorIpc()
   registerAuditoriaIpc()
   registerSistemaIpc()
+  registerRelacionamentoIpc()
 }

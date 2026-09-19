@@ -9,11 +9,11 @@ import {
   ClipboardList,
   AlertTriangle,
   Cake,
-  Trophy,
   UserPlus,
   Wallet as WalletComissao
 } from 'lucide-react'
-import { Card, CardHeader, CardTitle, CardBody } from '@renderer/components/ui/Card'
+import { Card, CardBody } from '@renderer/components/ui/Card'
+import { AdminGraficos, VendedorGraficos } from '@renderer/components/dashboard/DashboardGraficos'
 import { Button } from '@renderer/components/ui/Button'
 import { unwrap } from '@renderer/lib/ipc'
 import { centavosParaBRL } from '@renderer/lib/dinheiro'
@@ -92,7 +92,10 @@ export function DashboardPage(): ReactNode {
       )}
 
       {dashboard.data?.perfil === 'vendedor' && (
-        <VendedorDashboard dados={dashboard.data.dados} navigate={navigate} />
+        <>
+          <VendedorDashboard dados={dashboard.data.dados} navigate={navigate} />
+          <VendedorGraficos dados={dashboard.data.dados} />
+        </>
       )}
     </div>
   )
@@ -206,32 +209,7 @@ function AdminDashboard({
         />
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Trophy className="size-4 text-[var(--warn)]" />
-            Ranking de vendedores
-          </CardTitle>
-        </CardHeader>
-        <CardBody>
-          {dados.rankingVendedores.length === 0 ? (
-            <p className="text-sm text-[var(--ink-3)]">Nenhuma venda este mês ainda.</p>
-          ) : (
-            <ol className="flex flex-col gap-2">
-              {dados.rankingVendedores.slice(0, 5).map((v, i) => (
-                <li key={v.vendedorId} className="flex items-center justify-between text-sm">
-                  <span className="text-[var(--ink)]">
-                    {i + 1}. {v.vendedorNome}
-                  </span>
-                  <span className="font-mono-tab font-medium text-[var(--ink)]">
-                    {centavosParaBRL(v.totalCentavos)}
-                  </span>
-                </li>
-              ))}
-            </ol>
-          )}
-        </CardBody>
-      </Card>
+      <AdminGraficos dados={dados} />
     </div>
   )
 }
