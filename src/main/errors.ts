@@ -30,10 +30,10 @@ export const Errors = {
    * `autorizacaoAdmin` preenchido - nao e so mais um erro de validacao.
    */
   autorizacaoAdminNecessaria: (motivo: string) => new AppError('AUTORIZACAO_ADMIN_NECESSARIA', motivo),
-  /** RF-13.4/14.3: licenca vencida alem da carencia - modo somente-leitura. */
+  /** RF-13.4/14.3: licenca vencida alem da carencia, ou teste encerrado - modo somente-leitura. */
   licencaVencida: () =>
     new AppError(
       'LICENCA_VENCIDA',
-      'A licença está vencida. O sistema está em modo somente leitura - faça backup dos dados e renove a licença para voltar a cadastrar e vender.'
+      'O sistema está em modo somente leitura (licença vencida ou período de teste encerrado) - faça backup dos dados e ative ou renove a licença para voltar a cadastrar e vender.'
     )
 }

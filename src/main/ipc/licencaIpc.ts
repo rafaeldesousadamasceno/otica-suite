@@ -4,5 +4,6 @@ import { licencaService } from '@main/services/licencaService'
 
 export function registerLicencaIpc(): void {
   handleIpc(IPC.licenca.status, null, () => licencaService.obterStatus())
+  handleIpc(IPC.licenca.banner, null, () => licencaService.obterBanner())
   handleIpc(IPC.licenca.ativar, licencaAtivarSchema, (input) => licencaService.ativar(input))
 }

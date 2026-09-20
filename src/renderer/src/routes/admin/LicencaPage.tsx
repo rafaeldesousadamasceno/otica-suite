@@ -13,7 +13,8 @@ function formatarDataBr(iso: string): string {
 }
 
 const TOM_ESTADO: Record<EstadoLicenca, 'neutral' | 'ok' | 'warn' | 'danger'> = {
-  nao_ativada: 'neutral',
+  teste: 'neutral',
+  teste_encerrado: 'danger',
   ativa: 'ok',
   proxima_vencimento: 'warn',
   carencia: 'warn',
@@ -21,7 +22,8 @@ const TOM_ESTADO: Record<EstadoLicenca, 'neutral' | 'ok' | 'warn' | 'danger'> = 
 }
 
 const ROTULO_ESTADO: Record<EstadoLicenca, string> = {
-  nao_ativada: 'Licença não ativada',
+  teste: 'Período de teste',
+  teste_encerrado: 'Teste encerrado',
   ativa: 'Licença ativa',
   proxima_vencimento: 'Próxima do vencimento',
   carencia: 'Em carência',
@@ -92,7 +94,7 @@ export function LicencaPage(): ReactNode {
             <Badge tone={TOM_ESTADO[info.estado]}>{ROTULO_ESTADO[info.estado]}</Badge>
             <DescricaoEstado
               estado={info.estado}
-              oticaNome={info.oticaNome}
+              cliente={info.cliente}
               validade={info.validade}
               diasParaVencer={info.diasParaVencer}
             />
@@ -102,7 +104,21 @@ export function LicencaPage(): ReactNode {
 
       {info && (
         <div className="flex flex-col gap-1.5">
-          <p className="text-sm text-[var(--ink-2)]">Informe este código para gerar sua chave de licença.</p>
+          <ol className="list-decimal pl-5 text-sm text-[var(--ink-2)]">
+            <li>Copie o código desta máquina abaixo e envie a quem forneceu o sistema.</li>
+            <li>Você receberá uma chave de licença: cole no campo abaixo e clique em Ativar.</li>
+            <li>
+              Pode cadastrar a chave da renovação <strong>antes do vencimento</strong>: o tempo que ainda restar é
+              somado, você não perde nenhum dia.
+            </li>
+          </ol>
+          {info.chaveRecusada && (
+            <p className="text-sm text-[var(--danger)]">
+              {info.chaveRecusada === 'outra_maquina'
+                ? 'A chave instalada foi emitida para outra máquina e está sendo ignorada. Use o código abaixo para pedir uma chave para este computador.'
+                : 'A chave instalada está corrompida ou não é uma chave válida deste sistema e está sendo ignorada.'}
+            </p>
+          )}
           <div className="rounded-md bg-[var(--surface-2)] p-3">
             <p className="break-all font-mono-tab text-sm text-[var(--ink)]">{info.fingerprint}</p>
           </div>
@@ -138,22 +154,34 @@ export function LicencaPage(): ReactNode {
 
 function DescricaoEstado({
   estado,
-  oticaNome,
+  cliente,
   validade,
   diasParaVencer
 }: {
   estado: EstadoLicenca
-  oticaNome: string | null
+  cliente: string | null
   validade: string | null
   diasParaVencer: number | null
 }): ReactNode {
   switch (estado) {
-    case 'nao_ativada':
-      return <p className="text-sm text-[var(--ink-2)]">Ative a licença informando a chave recebida do fornecedor.</p>
+    case 'teste':
+      return (
+        <p className="text-sm text-[var(--ink-2)]">
+          Período de teste: {diasParaVencer === 1 ? 'resta 1 dia' : `restam ${diasParaVencer ?? 0} dias`}. Depois disso o
+          sistema passa a ser somente leitura até ativar uma licença.
+        </p>
+      )
+    case 'teste_encerrado':
+      return (
+        <p className="text-sm text-[var(--ink-2)]">
+          O período de teste terminou — o sistema está em somente leitura e seus dados estão preservados. Ative uma
+          licença para voltar a editar.
+        </p>
+      )
     case 'ativa':
       return (
         <p className="text-sm text-[var(--ink-2)]">
-          {oticaNome ?? '—'} · {validade ? formatarDataBr(validade) : 'Licença perpétua, sem vencimento'}
+          {cliente ?? '—'} · {validade ? formatarDataBr(validade) : 'Licença perpétua, sem vencimento'}
         </p>
       )
     case 'proxima_vencimento':

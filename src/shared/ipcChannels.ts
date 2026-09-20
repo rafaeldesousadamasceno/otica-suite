@@ -120,6 +120,7 @@ export const IPC = {
   },
   licenca: {
     status: 'licenca:status',
+    banner: 'licenca:banner',
     ativar: 'licenca:ativar'
   },
   migracao: {

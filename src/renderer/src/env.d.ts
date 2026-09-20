@@ -27,6 +27,7 @@ import type {
   DashboardData,
   BackupStatus,
   LicencaInfo,
+  LicencaBanner,
   MigracaoResultado,
   CaixaAberto,
   CaixaResumo,
@@ -211,6 +212,7 @@ interface Api {
   }
   licenca: {
     status: () => Promise<ApiResult<LicencaInfo>>
+    banner: () => Promise<ApiResult<LicencaBanner>>
     ativar: (input: LicencaAtivarInput) => Promise<ApiResult<LicencaInfo>>
   }
   migracao: {

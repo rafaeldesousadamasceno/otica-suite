@@ -123,6 +123,7 @@ const api = {
   },
   licenca: {
     status: () => ipcRenderer.invoke(IPC.licenca.status),
+    banner: () => ipcRenderer.invoke(IPC.licenca.banner),
     ativar: (input: unknown) => ipcRenderer.invoke(IPC.licenca.ativar, input)
   },
   migracao: {

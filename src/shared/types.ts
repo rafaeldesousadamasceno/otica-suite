@@ -487,18 +487,56 @@ export interface BackupStatus {
   alerta: boolean
 }
 
-/** RF-13.4/14.3. */
-export type EstadoLicenca = 'nao_ativada' | 'ativa' | 'proxima_vencimento' | 'carencia' | 'vencida'
+/**
+ * Situacao da licenca (mesmo padrao do Visium). Calculada no main a partir da chave
+ * instalada + relogio; o renderer so exibe.
+ *
+ * - `teste`              avaliacao em andamento (grava normalmente)
+ * - `teste_encerrado`    avaliacao acabou e nao ha chave: somente leitura
+ * - `ativa`              chave valida, longe do vencimento
+ * - `proxima_vencimento` chave valida, perto de vencer (aviso)
+ * - `carencia`           venceu ha pouco: ainda grava, com aviso forte
+ * - `vencida`            passou da carencia: somente leitura
+ */
+export type EstadoLicenca =
+  | 'teste'
+  | 'teste_encerrado'
+  | 'ativa'
+  | 'proxima_vencimento'
+  | 'carencia'
+  | 'vencida'
+
+/** Por que uma chave instalada foi ignorada (informativo, para a tela Licenca). */
+export type MotivoChaveRecusada = 'invalida' | 'outra_maquina'
 
 export interface LicencaInfo {
   estado: EstadoLicenca
-  oticaNome: string | null
-  tipo: 'perpetua' | 'anual' | null
-  /** null = licenca perpetua, sem data de vencimento. */
+  /** Nome do cliente gravado na chave; null sem licenca. */
+  cliente: string | null
+  /** 'mensal' | 'anual' | ...; null se a chave nao traz plano. */
+  plano: string | null
+  /** Ultima data de uso; null = sem vencimento ou sem licenca. */
   validade: string | null
-  fingerprint: string
-  /** null quando nao se aplica (sem licenca ativada, ou perpetua). */
+  /** Em `teste`: dias de teste restantes. Com licenca: dias ate a validade (negativo na carencia). */
   diasParaVencer: number | null
+  /** Codigo da maquina, que o cliente informa para receber a chave. */
+  fingerprint: string
+  chaveRecusada: MotivoChaveRecusada | null
+  /** true = o main bloqueia criar/editar/excluir. */
+  somenteLeitura: boolean
+}
+
+/**
+ * O que o banner de licenca precisa. Sem fingerprint e sem nome do cliente: e o
+ * unico dado de licenca que qualquer usuario logado (inclusive o Vendedor)
+ * pode pedir - `LicencaInfo` completo continua exclusivo do Administrador.
+ */
+export interface LicencaBanner {
+  estado: EstadoLicenca
+  validade: string | null
+  diasParaVencer: number | null
+  /** Dias de edicao que ainda restam na carencia; null fora dela. */
+  carenciaRestanteDias: number | null
 }
 
 /** RF-16: versao instalada e notas de versao (CHANGELOG.md empacotado com o app). */
