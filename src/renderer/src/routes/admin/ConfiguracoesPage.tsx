@@ -4,6 +4,7 @@ import { Upload, X } from 'lucide-react'
 import { Card, CardBody, CardHeader, CardTitle } from '@renderer/components/ui/Card'
 import { Field } from '@renderer/components/ui/Field'
 import { Input } from '@renderer/components/ui/Input'
+import { mascararCep, mascararCnpj, mascararTelefone } from '@shared/mascaras'
 import { Select } from '@renderer/components/ui/Select'
 import { Button } from '@renderer/components/ui/Button'
 import { unwrap, ApiCallError } from '@renderer/lib/ipc'
@@ -58,7 +59,7 @@ export function ConfiguracoesPage(): ReactNode {
       setForm({
         nomeFantasia: empresa.data.nomeFantasia,
         razaoSocial: empresa.data.razaoSocial,
-        cnpj: empresa.data.cnpj,
+        cnpj: empresa.data.cnpj ? mascararCnpj(empresa.data.cnpj) : empresa.data.cnpj,
         ie: empresa.data.ie,
         logradouro: empresa.data.logradouro,
         numero: empresa.data.numero,
@@ -66,9 +67,9 @@ export function ConfiguracoesPage(): ReactNode {
         bairro: empresa.data.bairro,
         cidade: empresa.data.cidade,
         uf: empresa.data.uf,
-        cep: empresa.data.cep,
-        telefone: empresa.data.telefone,
-        whatsapp: empresa.data.whatsapp,
+        cep: empresa.data.cep ? mascararCep(empresa.data.cep) : empresa.data.cep,
+        telefone: empresa.data.telefone ? mascararTelefone(empresa.data.telefone) : empresa.data.telefone,
+        whatsapp: empresa.data.whatsapp ? mascararTelefone(empresa.data.whatsapp) : empresa.data.whatsapp,
         email: empresa.data.email,
         site: empresa.data.site,
         corDestaque: empresa.data.corDestaque,
@@ -187,7 +188,7 @@ export function ConfiguracoesPage(): ReactNode {
             <Input value={form.razaoSocial ?? ''} onChange={(e) => set('razaoSocial', e.target.value)} />
           </Field>
           <Field label="CNPJ">
-            <Input value={form.cnpj ?? ''} onChange={(e) => set('cnpj', e.target.value)} />
+            <Input value={form.cnpj ?? ''} onChange={(e) => set('cnpj', mascararCnpj(e.target.value))} inputMode="numeric" placeholder="00.000.000/0000-00" />
           </Field>
           <Field label="Inscrição estadual">
             <Input value={form.ie ?? ''} onChange={(e) => set('ie', e.target.value)} />
@@ -208,7 +209,7 @@ export function ConfiguracoesPage(): ReactNode {
         </CardHeader>
         <CardBody className="grid grid-cols-1 gap-3 sm:grid-cols-6">
           <Field label="CEP" className="sm:col-span-2">
-            <Input value={form.cep ?? ''} onChange={(e) => set('cep', e.target.value)} />
+            <Input value={form.cep ?? ''} onChange={(e) => set('cep', mascararCep(e.target.value))} inputMode="numeric" placeholder="00000-000" />
           </Field>
           <Field label="Logradouro" className="sm:col-span-4">
             <Input value={form.logradouro ?? ''} onChange={(e) => set('logradouro', e.target.value)} />
@@ -236,10 +237,10 @@ export function ConfiguracoesPage(): ReactNode {
             </Select>
           </Field>
           <Field label="Telefone" className="sm:col-span-2">
-            <Input value={form.telefone ?? ''} onChange={(e) => set('telefone', e.target.value)} />
+            <Input value={form.telefone ?? ''} onChange={(e) => set('telefone', mascararTelefone(e.target.value))} inputMode="tel" placeholder="(00) 0000-0000" />
           </Field>
           <Field label="WhatsApp" className="sm:col-span-2">
-            <Input value={form.whatsapp ?? ''} onChange={(e) => set('whatsapp', e.target.value)} />
+            <Input value={form.whatsapp ?? ''} onChange={(e) => set('whatsapp', mascararTelefone(e.target.value))} inputMode="tel" placeholder="(00) 00000-0000" />
           </Field>
           <Field label="E-mail" className="sm:col-span-2">
             <Input type="email" value={form.email ?? ''} onChange={(e) => set('email', e.target.value)} />

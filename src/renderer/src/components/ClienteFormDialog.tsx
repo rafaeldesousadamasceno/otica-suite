@@ -3,6 +3,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { Dialog } from '@renderer/components/ui/Dialog'
 import { Field } from '@renderer/components/ui/Field'
 import { Input } from '@renderer/components/ui/Input'
+import { mascararCep, mascararCpf, mascararTelefone } from '@shared/mascaras'
 import { Select } from '@renderer/components/ui/Select'
 import { Button } from '@renderer/components/ui/Button'
 import { unwrap, ApiCallError } from '@renderer/lib/ipc'
@@ -35,10 +36,10 @@ function clienteParaForm(c: Cliente): ClienteInput {
   return {
     nome: c.nome,
     dataNasc: c.dataNasc ?? '',
-    cpf: c.cpf ?? '',
+    cpf: mascararCpf(c.cpf),
     rg: c.rg ?? '',
-    celular: c.celular ?? '',
-    telefone: c.telefone ?? '',
+    celular: mascararTelefone(c.celular),
+    telefone: mascararTelefone(c.telefone),
     email: c.email ?? '',
     logradouro: c.logradouro ?? '',
     numero: c.numero ?? '',
@@ -46,7 +47,7 @@ function clienteParaForm(c: Cliente): ClienteInput {
     bairro: c.bairro ?? '',
     cidade: c.cidade ?? '',
     uf: c.uf ?? '',
-    cep: c.cep ?? '',
+    cep: mascararCep(c.cep),
     profissao: c.profissao ?? '',
     indicadoPor: c.indicadoPor ?? '',
     observacao: c.observacao ?? ''
@@ -122,7 +123,7 @@ export function ClienteFormDialog({ open, onClose, clienteExistente, onSaved }: 
             <Input type="date" value={form.dataNasc ?? ''} onChange={(e) => set('dataNasc', e.target.value)} />
           </Field>
           <Field label="CPF">
-            <Input value={form.cpf ?? ''} onChange={(e) => set('cpf', e.target.value)} placeholder="000.000.000-00" />
+            <Input value={form.cpf ?? ''} onChange={(e) => set('cpf', mascararCpf(e.target.value))} inputMode="numeric" placeholder="000.000.000-00" />
           </Field>
           <Field label="RG">
             <Input value={form.rg ?? ''} onChange={(e) => set('rg', e.target.value)} />
@@ -131,10 +132,10 @@ export function ClienteFormDialog({ open, onClose, clienteExistente, onSaved }: 
             <Input value={form.profissao ?? ''} onChange={(e) => set('profissao', e.target.value)} />
           </Field>
           <Field label="Celular">
-            <Input value={form.celular ?? ''} onChange={(e) => set('celular', e.target.value)} placeholder="(00) 00000-0000" />
+            <Input value={form.celular ?? ''} onChange={(e) => set('celular', mascararTelefone(e.target.value))} inputMode="tel" placeholder="(00) 00000-0000" />
           </Field>
           <Field label="Telefone">
-            <Input value={form.telefone ?? ''} onChange={(e) => set('telefone', e.target.value)} />
+            <Input value={form.telefone ?? ''} onChange={(e) => set('telefone', mascararTelefone(e.target.value))} inputMode="tel" placeholder="(00) 0000-0000" />
           </Field>
           <Field label="E-mail" className="sm:col-span-2">
             <Input type="email" value={form.email ?? ''} onChange={(e) => set('email', e.target.value)} />
@@ -146,7 +147,7 @@ export function ClienteFormDialog({ open, onClose, clienteExistente, onSaved }: 
             Endereço
           </legend>
           <Field label="CEP" className="sm:col-span-2">
-            <Input value={form.cep ?? ''} onChange={(e) => set('cep', e.target.value)} />
+            <Input value={form.cep ?? ''} onChange={(e) => set('cep', mascararCep(e.target.value))} inputMode="numeric" placeholder="00000-000" />
           </Field>
           <Field label="Logradouro" className="sm:col-span-4">
             <Input value={form.logradouro ?? ''} onChange={(e) => set('logradouro', e.target.value)} />

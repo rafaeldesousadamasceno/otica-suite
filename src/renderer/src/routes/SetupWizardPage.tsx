@@ -3,6 +3,7 @@ import { useMutation } from '@tanstack/react-query'
 import { Glasses } from 'lucide-react'
 import { Field } from '@renderer/components/ui/Field'
 import { Input } from '@renderer/components/ui/Input'
+import { mascararCnpj } from '@shared/mascaras'
 import { Button } from '@renderer/components/ui/Button'
 import { unwrap, ApiCallError } from '@renderer/lib/ipc'
 import { setupSchema, type SetupInput } from '@shared/ipc'
@@ -84,7 +85,7 @@ export function SetupWizardPage({ onDone }: Props): ReactNode {
               />
             </Field>
             <Field label="CNPJ" hint="Opcional - pode ser preenchido depois em Configurações.">
-              <Input value={form.cnpj} onChange={(e) => set('cnpj', e.target.value)} placeholder="00.000.000/0000-00" />
+              <Input value={form.cnpj} onChange={(e) => set('cnpj', mascararCnpj(e.target.value))} inputMode="numeric" placeholder="00.000.000/0000-00" />
             </Field>
           </fieldset>
 
