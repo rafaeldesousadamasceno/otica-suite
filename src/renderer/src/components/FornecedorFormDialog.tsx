@@ -3,6 +3,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { Dialog } from '@renderer/components/ui/Dialog'
 import { Field } from '@renderer/components/ui/Field'
 import { Input } from '@renderer/components/ui/Input'
+import { mascararCnpj, mascararTelefone } from '@shared/mascaras'
 import { Button } from '@renderer/components/ui/Button'
 import { unwrap, ApiCallError } from '@renderer/lib/ipc'
 import { fornecedorInputSchema, type FornecedorInput } from '@shared/ipc'
@@ -23,9 +24,9 @@ const VAZIO: FormState = { razaoSocial: '', cnpj: '', contato: '', telefone: '',
 function fornecedorParaForm(f: Fornecedor): FormState {
   return {
     razaoSocial: f.razaoSocial,
-    cnpj: f.cnpj ?? '',
+    cnpj: mascararCnpj(f.cnpj),
     contato: f.contato ?? '',
-    telefone: f.telefone ?? '',
+    telefone: mascararTelefone(f.telefone),
     email: f.email ?? '',
     prazoEntregaDias: f.prazoEntregaDias !== null ? String(f.prazoEntregaDias) : ''
   }
@@ -91,7 +92,7 @@ export function FornecedorFormDialog({ open, onClose, fornecedorExistente }: Pro
         </Field>
         <div className="grid grid-cols-2 gap-3">
           <Field label="CNPJ">
-            <Input value={form.cnpj} onChange={(e) => set('cnpj', e.target.value)} />
+            <Input value={form.cnpj} onChange={(e) => set('cnpj', mascararCnpj(e.target.value))} inputMode="numeric" placeholder="00.000.000/0000-00" />
           </Field>
           <Field label="Prazo de entrega (dias)">
             <Input className="font-mono-tab" value={form.prazoEntregaDias} onChange={(e) => set('prazoEntregaDias', e.target.value)} />
@@ -102,7 +103,7 @@ export function FornecedorFormDialog({ open, onClose, fornecedorExistente }: Pro
         </Field>
         <div className="grid grid-cols-2 gap-3">
           <Field label="Telefone">
-            <Input value={form.telefone} onChange={(e) => set('telefone', e.target.value)} />
+            <Input value={form.telefone} onChange={(e) => set('telefone', mascararTelefone(e.target.value))} inputMode="tel" placeholder="(00) 00000-0000" />
           </Field>
           <Field label="E-mail">
             <Input type="email" value={form.email} onChange={(e) => set('email', e.target.value)} />
