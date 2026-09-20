@@ -1,94 +1,107 @@
-import { readFileSync, existsSync } from 'node:fs'
-import { paths } from '@main/paths'
-import { verificarChave } from './chave'
-import { obterFingerprint } from './fingerprint'
-import type { EstadoLicenca, LicencaInfo } from '@shared/types'
+import { CARENCIA_DIAS } from '@shared/licenca'
+import type { EstadoLicenca, LicencaInfo, MotivoChaveRecusada } from '@shared/types'
+import type { LicencaPayload } from './chave'
 
-const DIAS_AVISO_VENCIMENTO = 30
-const DIAS_CARENCIA = 15
-// Cache curto: evita reler/reverificar a chave a cada chamada de IPC (esta
-// funcao e consultada por requirePermissao, ou seja, em quase toda acao de
-// escrita do sistema), sem deixar a UI mostrar um estado velho por muito tempo.
-const TTL_CACHE_MS = 5 * 60_000
+// A carência também é usada pelo renderer (texto do banner), por isso mora em `shared`.
+export { CARENCIA_DIAS }
 
-let cache: { info: LicencaInfo; expiraEm: number } | null = null
+/** Dias de avaliação a partir da primeira abertura (dia da abertura conta como o 1º). */
+export const TESTE_DIAS = 14
+/** Quantos dias antes do vencimento o aviso vermelho aparece (vale para qualquer plano). */
+export const AVISO_DIAS = 10
 
-function semLicenca(): LicencaInfo {
-  return {
-    estado: 'nao_ativada',
-    oticaNome: null,
-    tipo: null,
-    validade: null,
-    fingerprint: obterFingerprint(),
-    diasParaVencer: null
-  }
+const MS_DIA = 86_400_000
+
+/** Diferença em dias inteiros (ate − de) entre duas datas YYYY-MM-DD. */
+export function diasEntre(deIso: string, ateIso: string): number {
+  return Math.round((Date.parse(`${ateIso}T00:00:00Z`) - Date.parse(`${deIso}T00:00:00Z`)) / MS_DIA)
 }
 
-function diasEntre(hojeIso: string, dataIso: string): number {
-  const hoje = Date.parse(`${hojeIso}T00:00:00Z`)
-  const data = Date.parse(`${dataIso}T00:00:00Z`)
-  return Math.round((data - hoje) / 86_400_000)
+/** A maior de duas datas YYYY-MM-DD (comparação lexicográfica é correta neste formato). */
+export function maiorData(a: string, b: string | null | undefined): string {
+  return b && b > a ? b : a
 }
 
-function calcular(): LicencaInfo {
-  if (!existsSync(paths.licenca())) return semLicenca()
+/** Data de hoje no fuso da máquina (não UTC: às 21h no Brasil o UTC já é "amanhã"). */
+export function hojeLocalIso(agora: Date = new Date()): string {
+  const mm = String(agora.getMonth() + 1).padStart(2, '0')
+  const dd = String(agora.getDate()).padStart(2, '0')
+  return `${agora.getFullYear()}-${mm}-${dd}`
+}
 
-  const chave = readFileSync(paths.licenca(), 'utf8')
-  const payload = verificarChave(chave)
+export function estadoEhSomenteLeitura(estado: EstadoLicenca): boolean {
+  return estado === 'teste_encerrado' || estado === 'vencida'
+}
 
-  // Chave corrompida/adulterada ou emitida para outra maquina: nunca apaga
-  // o arquivo nem os dados do cliente, so deixa de reconhecer a licenca.
-  if (!payload || payload.fingerprint !== obterFingerprint()) return semLicenca()
+export interface EntradaEstado {
+  /** "Hoje" já protegido contra relógio voltado (ver service.ts). */
+  hoje: string
+  /** Fingerprint desta máquina — já normalizado. */
+  fingerprint: string
+  /** Data da primeira abertura (início do teste). */
+  inicioTeste: string
+  /** Chave instalada, JÁ verificada (assinatura + fingerprint desta máquina), ou null. */
+  licenca: LicencaPayload | null
+  chaveRecusada: MotivoChaveRecusada | null
+}
 
-  if (payload.tipo === 'perpetua' || !payload.validade) {
-    return {
-      estado: 'ativa',
-      oticaNome: payload.otica,
-      tipo: payload.tipo,
-      validade: null,
-      fingerprint: payload.fingerprint,
-      diasParaVencer: null
-    }
-  }
-
-  const hoje = new Date().toISOString().slice(0, 10)
-  const dias = diasEntre(hoje, payload.validade)
-
-  let estado: EstadoLicenca
-  if (dias < -DIAS_CARENCIA) estado = 'vencida'
-  else if (dias < 0) estado = 'carencia'
-  else if (dias <= DIAS_AVISO_VENCIMENTO) estado = 'proxima_vencimento'
-  else estado = 'ativa'
-
+function montar(
+  estado: EstadoLicenca,
+  e: EntradaEstado,
+  extra: Pick<LicencaInfo, 'cliente' | 'plano' | 'validade' | 'diasParaVencer'>
+): LicencaInfo {
   return {
     estado,
-    oticaNome: payload.otica,
-    tipo: payload.tipo,
-    validade: payload.validade,
-    fingerprint: payload.fingerprint,
-    diasParaVencer: dias
+    ...extra,
+    fingerprint: e.fingerprint,
+    chaveRecusada: e.chaveRecusada,
+    somenteLeitura: estadoEhSomenteLeitura(estado)
   }
-}
-
-export function obterLicencaInfo(): LicencaInfo {
-  const agora = Date.now()
-  if (cache && cache.expiraEm > agora) return cache.info
-  const info = calcular()
-  cache = { info, expiraEm: agora + TTL_CACHE_MS }
-  return info
-}
-
-/** Chame depois de gravar/trocar o arquivo de licenca, pra nao esperar o TTL. */
-export function invalidarCacheLicenca(): void {
-  cache = null
 }
 
 /**
- * RF-13.4/14.3: licenca vencida (alem da carencia) trava toda escrita no
- * sistema - nunca apaga dado nenhum, so impede criar/editar/excluir ate a
- * renovacao. Backup e a propria tela de licenca ficam sempre liberados
- * (PRD 14.3: "o dado e da otica, nao seu").
+ * Regra única de negócio da licença — pura (sem relógio, disco nem Electron),
+ * para poder testar todas as bordas de data.
  */
-export function emSomenteLeitura(): boolean {
-  return obterLicencaInfo().estado === 'vencida'
+export function calcularLicenca(e: EntradaEstado): LicencaInfo {
+  const chave = e.licenca
+
+  if (!chave) {
+    const decorridos = Math.max(0, diasEntre(e.inicioTeste, e.hoje))
+    const restantes = TESTE_DIAS - decorridos
+    const base = { cliente: null, plano: null, validade: null }
+    return restantes > 0
+      ? montar('teste', e, { ...base, diasParaVencer: restantes })
+      : montar('teste_encerrado', e, { ...base, diasParaVencer: 0 })
+  }
+
+  const dados = { cliente: chave.cliente, plano: chave.plano, validade: chave.validade }
+
+  if (chave.validade === null) return montar('ativa', e, { ...dados, diasParaVencer: null })
+
+  const dias = diasEntre(e.hoje, chave.validade)
+
+  let estado: EstadoLicenca
+  if (dias < -CARENCIA_DIAS) estado = 'vencida'
+  else if (dias < 0) estado = 'carencia'
+  else if (dias <= AVISO_DIAS) estado = 'proxima_vencimento'
+  else estado = 'ativa'
+
+  return montar(estado, e, { ...dados, diasParaVencer: dias })
+}
+
+/**
+ * Uma chave nova só é aceita se AUMENTAR o prazo da instalada. Junto com a Central
+ * (que emite cada renovação já encadeada — a validade nova = fim do período anterior
+ * + o período pago), isso garante que o tempo é somado e que ninguém perde dias
+ * cadastrando uma chave mais curta por engano. Sem validade = sem vencimento.
+ */
+export function estendeLicenca(
+  atual: { validade: string | null } | null,
+  nova: { validade: string | null }
+): boolean {
+  if (!atual) return true
+  if (nova.validade === null) return atual.validade !== null
+  if (atual.validade === null) return false
+  return nova.validade > atual.validade
 }

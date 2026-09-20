@@ -11,7 +11,9 @@ Primeira versão do sistema, substituindo o MD Óculos (Java Swing + MySQL).
 - Contas a receber e a pagar, fluxo de caixa e lucro/prejuízo
 - Dashboard com indicadores do dia e do mês e gráficos de vendas, receitas
   e despesas, ranking de vendedores, vendas por categoria e ordens de serviço
-- Backup automático e licenciamento offline
+- Backup automático e licenciamento offline no mesmo padrão do Visium: 14 dias de
+  teste, aviso 10 dias antes de vencer, carência de 7 dias, proteção contra
+  relógio voltado e soma do tempo restante ao cadastrar a renovação
 - Relacionamento: lista "quem chamar hoje" (retirada, cobrança, aniversário,
   pós-venda e renovação) com atalho para o WhatsApp e registro do contato
 - Importação dos dados do sistema anterior (MD Óculos)

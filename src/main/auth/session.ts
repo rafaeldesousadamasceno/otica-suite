@@ -2,7 +2,7 @@ import type { Acao, Recurso } from '@shared/permissions'
 import { possuiPermissao } from '@shared/permissions'
 import type { Sessao, Usuario } from '@shared/types'
 import { Errors } from '@main/errors'
-import { emSomenteLeitura } from '@main/license/estado'
+import { emSomenteLeitura } from '@main/license/service'
 
 /**
  * Sessao em memoria do processo main - nunca persistida em disco.

@@ -14,6 +14,7 @@
     "typecheck:web": "tsc --noEmit -p tsconfig.web.json --composite false",
     "typecheck": "npm run typecheck:node && npm run typecheck:web",
     "test": "vitest run",
+    "predist:win": "node scripts/verificar-chave-publica.mjs",
     "dist:win": "electron-vite build && electron-builder --win"
   },
   "dependencies": {
