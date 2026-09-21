@@ -5,7 +5,17 @@ import { Badge } from '@renderer/components/ui/Badge'
 import { Button } from '@renderer/components/ui/Button'
 import { unwrap, ApiCallError } from '@renderer/lib/ipc'
 import { toast } from '@renderer/state/toastStore'
+import { Copy } from 'lucide-react'
 import type { EstadoLicenca } from '@shared/types'
+
+async function copiarFingerprint(fingerprint: string): Promise<void> {
+  try {
+    await navigator.clipboard.writeText(fingerprint)
+    toast.ok('Código da máquina copiado. Agora é só colar e enviar.')
+  } catch {
+    toast.error('Não foi possível copiar. Selecione o código e copie com Ctrl+C.')
+  }
+}
 
 function formatarDataBr(iso: string): string {
   const [ano, mes, dia] = iso.split('-')
@@ -119,8 +129,11 @@ export function LicencaPage(): ReactNode {
                 : 'A chave instalada está corrompida ou não é uma chave válida deste sistema e está sendo ignorada.'}
             </p>
           )}
-          <div className="rounded-md bg-[var(--surface-2)] p-3">
-            <p className="break-all font-mono-tab text-sm text-[var(--ink)]">{info.fingerprint}</p>
+          <div className="flex items-start gap-3 rounded-md bg-[var(--surface-2)] p-3">
+            <p className="min-w-0 flex-1 break-all font-mono-tab text-sm text-[var(--ink)]">{info.fingerprint}</p>
+            <Button variant="secondary" size="sm" onClick={() => copiarFingerprint(info.fingerprint)}>
+              <Copy className="size-4" /> Copiar
+            </Button>
           </div>
         </div>
       )}

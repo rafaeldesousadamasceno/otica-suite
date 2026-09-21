@@ -10,6 +10,8 @@ export interface Usuario {
   perfil: Perfil
   ativo: boolean
   deveTrocarSenha: boolean
+  /** Cadastrado pelo admin, ainda sem senha: escolhe a propria no primeiro acesso, na tela de login. */
+  aguardandoPrimeiroAcesso: boolean
   ultimoAcesso: string | null
   criadoEm: string
 }
@@ -526,19 +528,6 @@ export interface LicencaInfo {
   somenteLeitura: boolean
 }
 
-/**
- * O que o banner de licenca precisa. Sem fingerprint e sem nome do cliente: e o
- * unico dado de licenca que qualquer usuario logado (inclusive o Vendedor)
- * pode pedir - `LicencaInfo` completo continua exclusivo do Administrador.
- */
-export interface LicencaBanner {
-  estado: EstadoLicenca
-  validade: string | null
-  diasParaVencer: number | null
-  /** Dias de edicao que ainda restam na carencia; null fora dela. */
-  carenciaRestanteDias: number | null
-}
-
 /** RF-16: versao instalada e notas de versao (CHANGELOG.md empacotado com o app). */
 export interface SistemaInfo {
   versao: string
@@ -594,6 +583,8 @@ export interface MigracaoResultado {
   examesIgnorados: number
   despesasImportadas: number
   despesasIgnoradas: number
+  /** Registros ja importados cujos acentos quebrados foram corrigidos nesta rodada. */
+  textosCorrigidos: number
   avisos: MigracaoAviso[]
 }
 

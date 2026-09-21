@@ -14,7 +14,7 @@ function validarCpfSeInformado(cpf: string | null | undefined): void {
 export const clienteService = {
   listar(query: ClientesListQuery): ClienteResumo[] {
     requireSessao()
-    return clienteRepository.listar(query.busca?.trim() ?? '', query.apenasAtivos ?? true)
+    return clienteRepository.listar(query.busca?.trim() ?? '', query.apenasAtivos ?? true, query.limite ?? 200)
   },
 
   buscarPorId(id: number): Cliente {

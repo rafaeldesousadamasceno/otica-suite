@@ -1,5 +1,5 @@
 import { type ReactNode, useState } from 'react'
-import { useQuery } from '@tanstack/react-query'
+import { keepPreviousData, useQuery } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import { Search, UserPlus, Cake } from 'lucide-react'
 import { Card } from '@renderer/components/ui/Card'
@@ -15,15 +15,19 @@ function formatarDataBr(iso: string | null): string {
   return `${dia}/${mes}/${ano}`
 }
 
+const TAMANHO_PAGINA = 200
+
 export function ClientesPage(): ReactNode {
   const [busca, setBusca] = useState('')
   const [novoOpen, setNovoOpen] = useState(false)
+  const [limite, setLimite] = useState(TAMANHO_PAGINA)
   const buscaDebounced = useDebouncedValue(busca)
   const navigate = useNavigate()
 
   const clientes = useQuery({
-    queryKey: ['clientes', { busca: buscaDebounced, apenasAtivos: true }],
-    queryFn: () => unwrap(window.api.clientes.list({ busca: buscaDebounced, apenasAtivos: true }))
+    queryKey: ['clientes', { busca: buscaDebounced, apenasAtivos: true, limite }],
+    queryFn: () => unwrap(window.api.clientes.list({ busca: buscaDebounced, apenasAtivos: true, limite })),
+    placeholderData: keepPreviousData
   })
 
   return (
@@ -48,7 +52,10 @@ export function ClientesPage(): ReactNode {
           className="pl-9"
           placeholder="Buscar por nome, CPF ou celular…"
           value={busca}
-          onChange={(e) => setBusca(e.target.value)}
+          onChange={(e) => {
+            setBusca(e.target.value)
+            setLimite(TAMANHO_PAGINA)
+          }}
         />
       </div>
 
@@ -87,6 +94,14 @@ export function ClientesPage(): ReactNode {
             </tbody>
           </table>
         </div>
+        {clientes.data && clientes.data.length >= limite && (
+          <div className="flex items-center justify-between gap-3 border-t border-[var(--rule)] px-4 py-3 text-sm text-[var(--ink-2)]">
+            <span>Mostrando os primeiros {clientes.data.length} clientes.</span>
+            <Button variant="secondary" size="sm" onClick={() => setLimite((l) => l + TAMANHO_PAGINA)}>
+              Mostrar mais
+            </Button>
+          </div>
+        )}
       </Card>
 
       <ClienteFormDialog

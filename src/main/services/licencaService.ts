@@ -1,22 +1,15 @@
-import { requirePermissao, requireSessao } from '@main/auth/session'
+import { requirePermissao } from '@main/auth/session'
 import { auditoriaRepository } from '@main/repositories/auditoriaRepository'
 import { verificarChave } from '@main/license/chave'
 import { ativarLicenca, obterLicencaInfo } from '@main/license/service'
 import { Errors } from '@main/errors'
-import { paraBanner } from '@shared/licenca'
-import type { LicencaBanner, LicencaInfo } from '@shared/types'
+import type { LicencaInfo } from '@shared/types'
 import type { LicencaAtivarInput } from '@shared/ipc'
 
 export const licencaService = {
   obterStatus(): LicencaInfo {
     requirePermissao('licenca', 'ver')
     return obterLicencaInfo()
-  },
-
-  /** Qualquer usuario logado: so o necessario para o aviso de validade (sem fingerprint). */
-  obterBanner(): LicencaBanner {
-    requireSessao()
-    return paraBanner(obterLicencaInfo())
   },
 
   ativar(input: LicencaAtivarInput): LicencaInfo {

@@ -2,9 +2,10 @@ import type { DatabaseSync } from 'node:sqlite'
 import { getDb } from '@main/db/connection'
 import { comissaoRepository } from './comissaoRepository'
 import type { ContaReceber, SituacaoContaReceber } from '@shared/types'
+import { hojeLocal } from '@shared/data'
 
 function hoje(): string {
-  return new Date().toISOString().slice(0, 10)
+  return hojeLocal()
 }
 
 const SELECT_CONTA_RECEBER = `

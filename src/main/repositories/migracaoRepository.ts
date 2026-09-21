@@ -1,5 +1,6 @@
 import { getDb } from '@main/db/connection'
 import type { SituacaoOS } from '@shared/types'
+import { temMojibake } from '@main/migracao/transformar'
 
 const SISTEMA_ORIGEM = 'mdoculos'
 
@@ -290,4 +291,74 @@ export function importarDespesa(dados: DespesaTransformada, origemId: number): n
     db.exec('ROLLBACK')
     throw err
   }
+}
+
+// ---------------------------------------------------------------------
+// Correcao de textos ja importados (acentos quebrados por codificacao)
+// ---------------------------------------------------------------------
+// So troca o valor que ainda tem cara de "acento quebrado": se alguem ja
+// corrigiu o campo a mao no sistema, a reimportacao nao sobrescreve.
+
+function corrigirCampos(tabela: string, id: number, novos: Record<string, string | null>): boolean {
+  const db = getDb()
+  const colunas = Object.keys(novos)
+  const atual = db.prepare(`SELECT ${colunas.join(', ')} FROM ${tabela} WHERE id = :id`).get({ id }) as
+    | Record<string, string | null>
+    | undefined
+  if (!atual) return false
+
+  const mudancas = colunas.filter((c) => temMojibake(atual[c]) && novos[c] && novos[c] !== atual[c])
+  if (mudancas.length === 0) return false
+
+  db.prepare(`UPDATE ${tabela} SET ${mudancas.map((c) => `${c} = :${c}`).join(', ')} WHERE id = :id`).run({
+    id,
+    ...Object.fromEntries(mudancas.map((c) => [c, novos[c]]))
+  })
+  return true
+}
+
+export function corrigirTextosCliente(
+  clienteId: number,
+  dados: Pick<ClienteTransformado, 'nome' | 'logradouro' | 'numero' | 'complemento' | 'bairro' | 'cidade'>
+): boolean {
+  return corrigirCampos('cliente', clienteId, { ...dados })
+}
+
+export function corrigirTextosExame(vendaId: number, descricaoItem: string, laboratorio: string | null, medico: string | null): boolean {
+  const db = getDb()
+  let mudou = false
+
+  const item = db.prepare(`SELECT id FROM venda_item WHERE venda_id = :vendaId ORDER BY id LIMIT 1`).get({ vendaId }) as
+    | { id: number }
+    | undefined
+  if (item) mudou = corrigirCampos('venda_item', item.id, { descricao: descricaoItem }) || mudou
+
+  const os = db.prepare(`SELECT id, receita_optica_id FROM ordem_servico WHERE venda_id = :vendaId`).get({ vendaId }) as
+    | { id: number; receita_optica_id: number | null }
+    | undefined
+  if (os) {
+    mudou = corrigirCampos('ordem_servico', os.id, { laboratorio }) || mudou
+
+    // O profissional e criado "por nome": se o nome antigo veio quebrado, a receita passa a apontar para o certo.
+    if (os.receita_optica_id && medico?.trim()) {
+      const atual = db
+        .prepare(
+          `SELECT p.nome FROM receita_optica r JOIN profissional p ON p.id = r.profissional_id WHERE r.id = :id`
+        )
+        .get({ id: os.receita_optica_id }) as { nome: string } | undefined
+      if (atual && temMojibake(atual.nome)) {
+        const profissionalId = garantirProfissional(medico)
+        db.prepare(`UPDATE receita_optica SET profissional_id = :profissionalId WHERE id = :id`).run({
+          profissionalId,
+          id: os.receita_optica_id
+        })
+        mudou = true
+      }
+    }
+  }
+  return mudou
+}
+
+export function corrigirTextosDespesa(lancamentoId: number, descricao: string): boolean {
+  return corrigirCampos('lancamento', lancamentoId, { descricao })
 }

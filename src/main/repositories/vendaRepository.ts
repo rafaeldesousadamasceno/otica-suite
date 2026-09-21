@@ -5,9 +5,10 @@ import { contaReceberRepository } from './contaReceberRepository'
 import { calcularParcelas, calcularVencimentos } from '@shared/parcelamento'
 import type { VendaCreateInput } from '@shared/ipc'
 import type { VendaDetalhada, VendaItemDetalhe, VendaPagamentoDetalhe, VendaResumo } from '@shared/types'
+import { hojeLocal } from '@shared/data'
 
 function hoje(): string {
-  return new Date().toISOString().slice(0, 10)
+  return hojeLocal()
 }
 
 interface ProdutoParaVenda {

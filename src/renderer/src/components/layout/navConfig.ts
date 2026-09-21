@@ -29,6 +29,8 @@ export interface NavItem {
   label: string
   path: string
   icon: ComponentType<{ className?: string }>
+  /** Mostra o ponto de alerta "nao lido" no item quando a licenca pede atencao. */
+  alertaLicenca?: boolean
 }
 
 /**
@@ -60,7 +62,7 @@ export const NAV_ITEMS: Record<Perfil, NavItem[]> = {
     { label: 'Auditoria', path: '/auditoria', icon: ScrollText },
     { label: 'Backup', path: '/backup', icon: DatabaseBackup },
     { label: 'Importar Dados', path: '/importar-dados', icon: DatabaseZap },
-    { label: 'Licença', path: '/licenca', icon: KeyRound }
+    { label: 'Licença', path: '/licenca', icon: KeyRound, alertaLicenca: true }
   ],
   vendedor: [
     { label: 'Início', path: '/', icon: LayoutDashboard },

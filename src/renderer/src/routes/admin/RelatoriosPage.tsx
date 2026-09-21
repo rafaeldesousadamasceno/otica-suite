@@ -7,15 +7,16 @@ import { Button } from '@renderer/components/ui/Button'
 import { unwrap, ApiCallError } from '@renderer/lib/ipc'
 import { toast } from '@renderer/state/toastStore'
 import type { PeriodoQuery } from '@shared/ipc'
+import { hojeLocal, dataLocalISO } from '@shared/data'
 
 function primeiroDiaMesAtualIso(): string {
   const hoje = new Date()
   const primeiro = new Date(hoje.getFullYear(), hoje.getMonth(), 1)
-  return primeiro.toISOString().slice(0, 10)
+  return dataLocalISO(primeiro)
 }
 
 function hojeIso(): string {
-  return new Date().toISOString().slice(0, 10)
+  return hojeLocal()
 }
 
 interface RelatorioDef {

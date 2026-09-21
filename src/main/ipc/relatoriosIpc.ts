@@ -32,8 +32,9 @@ import {
 import { montarHtmlEstoque, calcularCurvaAbc, montarHtmlCurvaAbc } from '@main/relatorios/estoqueHtml'
 import { montarHtmlVendasPorVendedor, montarHtmlRankingVendedores, montarHtmlComissoes } from '@main/relatorios/vendedoresHtml'
 import { Errors } from '@main/errors'
+import { hojeLocal } from '@shared/data'
 
-const dataHojeSufixo = (): string => new Date().toISOString().slice(0, 10)
+const dataHojeSufixo = (): string => hojeLocal()
 
 export function registerRelatoriosIpc(): void {
   handleIpc(IPC.relatorios.ordemServico, idSchema, async (input) => {

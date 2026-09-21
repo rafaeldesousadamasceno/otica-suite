@@ -21,6 +21,7 @@ const api = {
     logout: () => ipcRenderer.invoke(IPC.auth.logout),
     getSession: () => ipcRenderer.invoke(IPC.auth.getSession),
     trocarSenha: (input: unknown) => ipcRenderer.invoke(IPC.auth.trocarSenha, input),
+    primeiroAcesso: (input: unknown) => ipcRenderer.invoke(IPC.auth.primeiroAcesso, input),
     autorizarAcao: (input: unknown) => ipcRenderer.invoke(IPC.auth.autorizarAcao, input)
   },
   empresa: {
@@ -123,7 +124,6 @@ const api = {
   },
   licenca: {
     status: () => ipcRenderer.invoke(IPC.licenca.status),
-    banner: () => ipcRenderer.invoke(IPC.licenca.banner),
     ativar: (input: unknown) => ipcRenderer.invoke(IPC.licenca.ativar, input)
   },
   migracao: {

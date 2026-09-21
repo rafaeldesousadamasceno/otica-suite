@@ -27,7 +27,6 @@ import type {
   DashboardData,
   BackupStatus,
   LicencaInfo,
-  LicencaBanner,
   MigracaoResultado,
   CaixaAberto,
   CaixaResumo,
@@ -88,6 +87,7 @@ import type {
   AceitaContatoInput,
   ModelosMensagemInput,
   LicencaAtivarInput,
+  PrimeiroAcessoInput,
   MigracaoConexaoInput,
   CaixaAbrirInput,
   CaixaFecharInput,
@@ -110,6 +110,7 @@ interface Api {
     logout: () => Promise<ApiResult<void>>
     getSession: () => Promise<ApiResult<Sessao | null>>
     trocarSenha: (input: TrocarSenhaInput) => Promise<ApiResult<void>>
+    primeiroAcesso: (input: PrimeiroAcessoInput) => Promise<ApiResult<Sessao>>
     autorizarAcao: (input: AutorizarAcaoInput) => Promise<ApiResult<Usuario>>
   }
   empresa: {
@@ -212,7 +213,6 @@ interface Api {
   }
   licenca: {
     status: () => Promise<ApiResult<LicencaInfo>>
-    banner: () => Promise<ApiResult<LicencaBanner>>
     ativar: (input: LicencaAtivarInput) => Promise<ApiResult<LicencaInfo>>
   }
   migracao: {

@@ -10,5 +10,5 @@
 export const CHAVE_PUBLICA_E_PROVISORIA = false
 
 export const CHAVE_PUBLICA_PEM = `-----BEGIN PUBLIC KEY-----
-MCowBQYDK2VwAyEAN38JL3ZXzcRV+jpxtyfr94UFj62T2yBoxbUbz2AuS4M=
+MCowBQYDK2VwAyEAj/DWcVL5+ZaBhdSiUGdlcXSnlQ+m/DT+mtOg61LUXsY=
 -----END PUBLIC KEY-----`

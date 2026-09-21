@@ -6,15 +6,16 @@ import { Badge } from '@renderer/components/ui/Badge'
 import { unwrap } from '@renderer/lib/ipc'
 import { centavosParaBRL } from '@renderer/lib/dinheiro'
 import type { CategoriaProduto, LucroPrejuizoRegime } from '@shared/types'
+import { hojeLocal, dataLocalISO } from '@shared/data'
 
 function primeiroDiaMesAtualIso(): string {
   const hoje = new Date()
   const primeiro = new Date(hoje.getFullYear(), hoje.getMonth(), 1)
-  return primeiro.toISOString().slice(0, 10)
+  return dataLocalISO(primeiro)
 }
 
 function hojeIso(): string {
-  return new Date().toISOString().slice(0, 10)
+  return hojeLocal()
 }
 
 const ROTULO_CATEGORIA: Record<CategoriaProduto, string> = {

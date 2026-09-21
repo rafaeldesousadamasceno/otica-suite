@@ -3,7 +3,7 @@ import { auditoriaRepository } from '@main/repositories/auditoriaRepository'
 import { hashPassword, verifyPassword } from '@main/auth/password'
 import { encerrarSessao, getSessaoAtual, iniciarSessao, requireSessao } from '@main/auth/session'
 import { Errors } from '@main/errors'
-import type { LoginInput, TrocarSenhaInput, AutorizarAcaoInput } from '@shared/ipc'
+import type { LoginInput, TrocarSenhaInput, PrimeiroAcessoInput, AutorizarAcaoInput } from '@shared/ipc'
 import type { Sessao, Usuario } from '@shared/types'
 
 function formatarDataHora(iso: string): string {
@@ -21,6 +21,11 @@ export const authService = {
 
     if (usuario.bloqueadoAte && new Date(usuario.bloqueadoAte + 'Z').getTime() > Date.now()) {
       throw Errors.contaBloqueada(formatarDataHora(usuario.bloqueadoAte))
+    }
+
+    if (usuario.aguardandoPrimeiroAcesso) {
+      if (!usuario.ativo) throw Errors.contaInativa()
+      throw Errors.validacao('Este é o seu primeiro acesso. Clique em "Primeiro acesso" para escolher sua senha.')
     }
 
     const senhaOk = await verifyPassword(input.senha, usuario.senhaHash)
@@ -48,6 +53,36 @@ export const authService = {
     const { senhaHash: _senhaHash, tentativasLogin: _t, bloqueadoAte: _b, ...usuarioPublico } = usuario
     iniciarSessao(usuarioPublico)
     return { usuario: usuarioPublico }
+  },
+
+  /**
+   * Primeiro acesso de um usuario cadastrado pelo admin: escolhe a senha e ja
+   * entra. Mesma mensagem para "nao existe" e "ja tem senha", para nao revelar
+   * quais logins existem.
+   */
+  async primeiroAcesso(input: PrimeiroAcessoInput): Promise<Sessao> {
+    const naoPendente = (): Error =>
+      Errors.validacao('Não há primeiro acesso pendente para este login. Se você já tem senha, entre normalmente.')
+
+    const usuario = usuarioRepository.buscarPorLogin(input.login)
+    if (!usuario || !usuario.aguardandoPrimeiroAcesso) throw naoPendente()
+    if (!usuario.ativo) throw Errors.contaInativa()
+
+    const novoHash = await hashPassword(input.novaSenha)
+    if (!usuarioRepository.definirSenhaPrimeiroAcesso(usuario.id, novoHash)) throw naoPendente()
+
+    auditoriaRepository.registrar({
+      usuarioId: usuario.id,
+      acao: 'PRIMEIRO_ACESSO',
+      entidade: 'usuario',
+      entidadeId: usuario.id
+    })
+    usuarioRepository.registrarLoginSucesso(usuario.id)
+
+    const { senhaHash: _h, tentativasLogin: _t, bloqueadoAte: _b, ...usuarioPublico } = usuario
+    const publico = { ...usuarioPublico, aguardandoPrimeiroAcesso: false, deveTrocarSenha: false }
+    iniciarSessao(publico)
+    return { usuario: publico }
   },
 
   logout(): void {

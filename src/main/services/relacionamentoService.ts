@@ -8,9 +8,10 @@ import { MOTIVOS_CONTATO } from '@shared/types'
 import { montarLinkWhatsapp, normalizarCelularBR, preencherModelo } from '@shared/whatsapp'
 import type { ClienteSemContato, ContatoPendente, ModelosMensagem, MotivoContato } from '@shared/types'
 import type { AceitaContatoInput, ContatoMarcarInput, ContatoRefInput, ModelosMensagemInput } from '@shared/ipc'
+import { hojeLocal } from '@shared/data'
 
 function hoje(): string {
-  return new Date().toISOString().slice(0, 10)
+  return hojeLocal()
 }
 
 function chaveModelo(motivo: MotivoContato): string {
