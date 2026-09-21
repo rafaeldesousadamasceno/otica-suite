@@ -5,6 +5,7 @@ import { useAuthStore } from '@renderer/state/authStore'
 import { unwrap } from '@renderer/lib/ipc'
 import { NAV_ITEMS } from './navConfig'
 import { cn } from '@renderer/lib/cn'
+import { licencaPedeAtencao } from '@shared/licenca'
 
 export function Sidebar(): ReactNode {
   const sessao = useAuthStore((s) => s.sessao)
@@ -13,7 +14,17 @@ export function Sidebar(): ReactNode {
     queryFn: () => unwrap(window.api.empresa.get())
   })
 
+  // Mesma chave da tela Licenca: ao ativar uma chave nova o ponto some junto.
+  const licenca = useQuery({
+    queryKey: ['licencaStatus'],
+    queryFn: () => unwrap(window.api.licenca.status()),
+    enabled: sessao?.usuario.perfil === 'admin',
+    // O main guarda 5 min de cache; reconsultar cobre a virada do dia com o app aberto.
+    refetchInterval: 10 * 60 * 1000
+  })
+
   if (!sessao) return null
+  const licencaAlerta = licenca.data ? licencaPedeAtencao(licenca.data.estado) : false
   const items = NAV_ITEMS[sessao.usuario.perfil]
 
   return (
@@ -53,6 +64,13 @@ export function Sidebar(): ReactNode {
           >
             <item.icon className="size-4.5" />
             {item.label}
+            {item.alertaLicenca && licencaAlerta && (
+              <span
+                role="img"
+                aria-label="A licença precisa de atenção"
+                className="ml-auto size-2 shrink-0 rounded-full bg-[var(--danger)]"
+              />
+            )}
           </NavLink>
         ))}
       </nav>

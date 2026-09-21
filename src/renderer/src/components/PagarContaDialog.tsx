@@ -10,6 +10,7 @@ import { unwrap, ApiCallError } from '@renderer/lib/ipc'
 import { centavosParaBRL, centavosParaTexto, textoParaCentavos } from '@renderer/lib/dinheiro'
 import { toast } from '@renderer/state/toastStore'
 import type { ContaPagar } from '@shared/types'
+import { hojeLocal } from '@shared/data'
 
 interface Props {
   conta: ContaPagar | null
@@ -35,7 +36,7 @@ export function PagarContaDialog({ conta, onClose }: Props): ReactNode {
   useEffect(() => {
     if (conta) {
       setValorTexto(centavosParaTexto(conta.valorCentavos - conta.valorPagoCentavos))
-      setData(new Date().toISOString().slice(0, 10))
+      setData(hojeLocal())
       setErro(null)
     }
   }, [conta])

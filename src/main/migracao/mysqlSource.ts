@@ -1,5 +1,6 @@
 import mysql from 'mysql2/promise'
 import type { MigracaoConexaoInput } from '@shared/ipc'
+import { repararMojibake } from './transformar'
 
 export interface ClienteOrigemRow {
   id_cliente: number
@@ -59,6 +60,15 @@ export interface DespesaOrigemRow {
   tipo: string | null
 }
 
+/** Repara os textos de cada linha lida (colunas numericas e datas passam como estao). */
+function repararLinhas<T>(rows: unknown): T[] {
+  return (rows as Record<string, unknown>[]).map((row) =>
+    Object.fromEntries(
+      Object.entries(row).map(([k, v]) => [k, typeof v === 'string' ? repararMojibake(v) : v])
+    )
+  ) as T[]
+}
+
 /**
  * RF-02/F7 (CA3): a conexao com o banco antigo e so LEITURA - nenhuma
  * funcao aqui executa INSERT/UPDATE/DELETE contra o MySQL de origem.
@@ -91,7 +101,7 @@ export async function lerClientes(config: MigracaoConexaoInput): Promise<Cliente
   const conexao = await conectar(config)
   try {
     const [rows] = await conexao.query('SELECT * FROM clientes')
-    return rows as ClienteOrigemRow[]
+    return repararLinhas<ClienteOrigemRow>(rows)
   } finally {
     await conexao.end()
   }
@@ -101,7 +111,7 @@ export async function lerExames(config: MigracaoConexaoInput): Promise<ExameOrig
   const conexao = await conectar(config)
   try {
     const [rows] = await conexao.query('SELECT * FROM exames')
-    return rows as ExameOrigemRow[]
+    return repararLinhas<ExameOrigemRow>(rows)
   } finally {
     await conexao.end()
   }
@@ -111,7 +121,7 @@ export async function lerDespesas(config: MigracaoConexaoInput): Promise<Despesa
   const conexao = await conectar(config)
   try {
     const [rows] = await conexao.query('SELECT * FROM receitas_despesas')
-    return rows as DespesaOrigemRow[]
+    return repararLinhas<DespesaOrigemRow>(rows)
   } finally {
     await conexao.end()
   }

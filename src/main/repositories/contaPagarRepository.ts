@@ -1,8 +1,9 @@
 import { getDb } from '@main/db/connection'
 import type { ContaPagar, SituacaoContaPagar } from '@shared/types'
+import { hojeLocal } from '@shared/data'
 
 function hoje(): string {
-  return new Date().toISOString().slice(0, 10)
+  return hojeLocal()
 }
 
 /** "2026-01-31" -> "2026-02-28" (o overflow de dia inexistente rola para o mes seguinte - limitacao aceita para o v1). */

@@ -6,13 +6,14 @@ import * as migracaoRepository from '@main/repositories/migracaoRepository'
 import { Errors } from '@main/errors'
 import type { MigracaoAviso, MigracaoResultado } from '@shared/types'
 import type { MigracaoConexaoInput } from '@shared/ipc'
+import { hojeLocal } from '@shared/data'
 
 function mensagemErro(err: unknown): string {
   return err instanceof Error ? err.message : 'Erro desconhecido'
 }
 
 function hoje(): string {
-  return new Date().toISOString().slice(0, 10)
+  return hojeLocal()
 }
 
 /**
@@ -43,6 +44,7 @@ export const migracaoService = {
     let examesIgnorados = 0
     let despesasImportadas = 0
     let despesasIgnoradas = 0
+    let textosCorrigidos = 0
 
     // --------------------------- clientes ---------------------------
     let clientesOrigem
@@ -53,8 +55,21 @@ export const migracaoService = {
     }
 
     for (const c of clientesOrigem) {
-      if (migracaoRepository.jaImportado('clientes', c.id_cliente) !== null) {
+      const clienteJaId = migracaoRepository.jaImportado('clientes', c.id_cliente)
+      if (clienteJaId !== null) {
         clientesIgnorados++
+        if (
+          migracaoRepository.corrigirTextosCliente(clienteJaId, {
+            nome: transformar.normalizarNomeProprio(c.nome),
+            logradouro: c.logradouro,
+            numero: c.numero,
+            complemento: c.complemento,
+            bairro: c.bairro,
+            cidade: c.cidade
+          })
+        ) {
+          textosCorrigidos++
+        }
         continue
       }
       try {
@@ -91,8 +106,13 @@ export const migracaoService = {
     }
 
     for (const e of examesOrigem) {
-      if (migracaoRepository.jaImportado('exames', e.id_exame) !== null) {
+      const vendaJaId = migracaoRepository.jaImportado('exames', e.id_exame)
+      if (vendaJaId !== null) {
         examesIgnorados++
+        const descricao =
+          [e.armacao, e.lentes, e.tratamentos].filter((v) => v?.trim()).join(' · ') ||
+          'Item importado do sistema anterior'
+        if (migracaoRepository.corrigirTextosExame(vendaJaId, descricao, e.laboratorio, e.med_opto)) textosCorrigidos++
         continue
       }
       try {
@@ -173,8 +193,10 @@ export const migracaoService = {
     }
 
     for (const d of despesasOrigem) {
-      if (migracaoRepository.jaImportado('receitas_despesas', d.id) !== null) {
+      const lancamentoJaId = migracaoRepository.jaImportado('receitas_despesas', d.id)
+      if (lancamentoJaId !== null) {
         despesasIgnoradas++
+        if (migracaoRepository.corrigirTextosDespesa(lancamentoJaId, d.descricao)) textosCorrigidos++
         continue
       }
       try {
@@ -208,6 +230,7 @@ export const migracaoService = {
       examesIgnorados,
       despesasImportadas,
       despesasIgnoradas,
+      textosCorrigidos,
       avisos
     }
   }

@@ -1,6 +1,7 @@
 import { getDb } from '@main/db/connection'
 import type { OrdemServico, SituacaoOS } from '@shared/types'
 import type { OrdemServicoCreateInput, OrdensServicoQuery } from '@shared/ipc'
+import { hojeLocal } from '@shared/data'
 
 interface OrdemServicoRow {
   id: number
@@ -21,7 +22,7 @@ interface OrdemServicoRow {
 }
 
 function hoje(): string {
-  return new Date().toISOString().slice(0, 10)
+  return hojeLocal()
 }
 
 function toDomain(row: OrdemServicoRow): OrdemServico {

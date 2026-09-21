@@ -1,8 +1,9 @@
 import { getDb } from '@main/db/connection'
 import type { CaixaResumo } from '@shared/types'
+import { hojeLocal } from '@shared/data'
 
 function hoje(): string {
-  return new Date().toISOString().slice(0, 10)
+  return hojeLocal()
 }
 
 interface CaixaAbertoRow {

@@ -43,6 +43,12 @@ export const trocarSenhaSchema = z.object({
 })
 export type TrocarSenhaInput = z.infer<typeof trocarSenhaSchema>
 
+export const primeiroAcessoSchema = z.object({
+  login: z.string().trim().min(1, 'Informe o login'),
+  novaSenha: z.string().min(8, 'A senha precisa de pelo menos 8 caracteres')
+})
+export type PrimeiroAcessoInput = z.infer<typeof primeiroAcessoSchema>
+
 /** RF-03.4: autoriza uma acao pontual do vendedor com credencial de Admin. */
 export const autorizarAcaoSchema = z.object({
   loginAdmin: z.string().trim().min(1),
@@ -93,7 +99,6 @@ export type EmpresaLogoUploadInput = z.infer<typeof empresaLogoUploadSchema>
 export const usuarioCreateSchema = z.object({
   nome: z.string().trim().min(1, 'Informe o nome'),
   login: z.string().trim().min(3, 'O login precisa de pelo menos 3 caracteres'),
-  senha: z.string().min(8, 'A senha precisa de pelo menos 8 caracteres'),
   perfil: z.enum(['admin', 'vendedor'])
 })
 export type UsuarioCreateInput = z.infer<typeof usuarioCreateSchema>
@@ -142,7 +147,9 @@ export type ClienteInput = z.infer<typeof clienteInputSchema>
 
 export const clientesListQuerySchema = z.object({
   busca: z.string().trim().optional(),
-  apenasAtivos: z.boolean().optional()
+  apenasAtivos: z.boolean().optional(),
+  /** Quantos clientes devolver (padrao 200). A tela de Clientes pede mais em blocos. */
+  limite: z.number().int().min(1).max(5000).optional()
 })
 export type ClientesListQuery = z.infer<typeof clientesListQuerySchema>
 

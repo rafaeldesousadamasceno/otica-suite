@@ -16,6 +16,7 @@ import { VendaFormDialog } from '@renderer/components/VendaFormDialog'
 import { VendaDetailDialog } from '@renderer/components/VendaDetailDialog'
 import { TOM_SITUACAO_OS } from '@renderer/lib/situacaoOSTone'
 import { toast } from '@renderer/state/toastStore'
+import { dataLocalDeTimestampUtc } from '@shared/data'
 
 function formatarDataBr(iso: string | null): string {
   if (!iso) return '—'
@@ -84,7 +85,7 @@ export function ClienteDetailPage(): ReactNode {
           </Button>
           <div>
             <h1 className="text-xl font-semibold text-[var(--ink)]">{c.nome}</h1>
-            <p className="text-sm text-[var(--ink-3)]">Cliente desde {formatarDataBr(c.criadoEm.slice(0, 10))}</p>
+            <p className="text-sm text-[var(--ink-3)]">Cliente desde {formatarDataBr(dataLocalDeTimestampUtc(c.criadoEm))}</p>
           </div>
         </div>
         <div className="flex gap-2">

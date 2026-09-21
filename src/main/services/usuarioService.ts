@@ -19,8 +19,8 @@ export const usuarioService = {
       throw Errors.conflito('Já existe um usuário com este login.')
     }
 
-    const senhaHash = await hashPassword(input.senha)
-    const id = usuarioRepository.criar(input.nome.trim(), input.login.trim(), senhaHash, input.perfil)
+    // Sem senha: quem vai usar escolhe a propria no primeiro acesso.
+    const id = usuarioRepository.criarSemSenha(input.nome.trim(), input.login.trim(), input.perfil)
 
     auditoriaRepository.registrar({
       usuarioId: sessao.usuario.id,

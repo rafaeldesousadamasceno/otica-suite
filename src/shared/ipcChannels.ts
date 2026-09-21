@@ -18,6 +18,7 @@ export const IPC = {
     logout: 'auth:logout',
     getSession: 'auth:getSession',
     trocarSenha: 'auth:trocarSenha',
+    primeiroAcesso: 'auth:primeiroAcesso',
     autorizarAcao: 'auth:autorizarAcao'
   },
   empresa: {
@@ -120,7 +121,6 @@ export const IPC = {
   },
   licenca: {
     status: 'licenca:status',
-    banner: 'licenca:banner',
     ativar: 'licenca:ativar'
   },
   migracao: {

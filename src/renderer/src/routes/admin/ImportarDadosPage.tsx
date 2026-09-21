@@ -140,6 +140,7 @@ export function ImportarDadosPage(): ReactNode {
               <ResumoItem label="Receitas ópticas e vendas ignoradas" valor={resultado.examesIgnorados} />
               <ResumoItem label="Despesas importadas" valor={resultado.despesasImportadas} />
               <ResumoItem label="Despesas ignoradas" valor={resultado.despesasIgnoradas} />
+              <ResumoItem label="Registros com acentos corrigidos" valor={resultado.textosCorrigidos} />
             </div>
 
             {resultado.avisos.length > 0 && (

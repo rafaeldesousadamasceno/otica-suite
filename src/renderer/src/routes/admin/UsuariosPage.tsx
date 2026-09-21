@@ -17,19 +17,17 @@ import type { Usuario } from '@shared/types'
 function NovoUsuarioDialog({ open, onClose }: { open: boolean; onClose: () => void }): ReactNode {
   const [nome, setNome] = useState('')
   const [login, setLogin] = useState('')
-  const [senha, setSenha] = useState('')
   const [perfil, setPerfil] = useState<'admin' | 'vendedor'>('vendedor')
   const [erro, setErro] = useState<string | null>(null)
   const queryClient = useQueryClient()
 
   const mutation = useMutation({
-    mutationFn: () => unwrap(window.api.usuarios.create(usuarioCreateSchema.parse({ nome, login, senha, perfil }))),
+    mutationFn: () => unwrap(window.api.usuarios.create(usuarioCreateSchema.parse({ nome, login, perfil }))),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['usuarios'] })
       toast.ok('Usuário criado.')
       setNome('')
       setLogin('')
-      setSenha('')
       setPerfil('vendedor')
       onClose()
     },
@@ -51,15 +49,17 @@ function NovoUsuarioDialog({ open, onClose }: { open: boolean; onClose: () => vo
         <Field label="Login" required hint="Pelo menos 3 caracteres.">
           <Input value={login} onChange={(e) => setLogin(e.target.value)} required />
         </Field>
-        <Field label="Senha provisória" required hint="O usuário será obrigado a trocar no primeiro acesso.">
-          <Input type="password" value={senha} onChange={(e) => setSenha(e.target.value)} required />
-        </Field>
         <Field label="Módulo de acesso" required>
           <Select value={perfil} onChange={(e) => setPerfil(e.target.value as 'admin' | 'vendedor')}>
             <option value="vendedor">Vendedor</option>
             <option value="admin">Administrador</option>
           </Select>
         </Field>
+
+        <p className="text-sm text-[var(--ink-3)]">
+          Você não define a senha. No primeiro acesso, na tela de login, a pessoa clica em <strong>Primeiro acesso</strong>{' '}
+          e escolhe a própria senha.
+        </p>
 
         {erro && <p className="text-sm text-[var(--danger)]">{erro}</p>}
 
@@ -180,7 +180,10 @@ export function UsuariosPage(): ReactNode {
                   </Badge>
                 </td>
                 <td className="px-4 py-2.5">
-                  <Badge tone={u.ativo ? 'ok' : 'danger'}>{u.ativo ? 'Ativo' : 'Inativo'}</Badge>
+                  <div className="flex flex-wrap gap-1.5">
+                    <Badge tone={u.ativo ? 'ok' : 'danger'}>{u.ativo ? 'Ativo' : 'Inativo'}</Badge>
+                    {u.aguardandoPrimeiroAcesso && <Badge tone="warn">Aguardando primeiro acesso</Badge>}
+                  </div>
                 </td>
                 <td className="px-4 py-2.5">
                   <div className="flex justify-end gap-1.5">

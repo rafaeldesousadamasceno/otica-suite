@@ -13,19 +13,21 @@ import type {
   VendaCategoriaItem,
   VendaDiaItem
 } from '@shared/types'
+import { dataLocalISO, hojeLocal } from '@shared/data'
 
 const DIAS_GRAFICO = 30
 const MESES_GRAFICO = 6
 const ETAPAS_EM_ANDAMENTO = FLUXO_SITUACAO_OS.slice(0, 3) as unknown as EtapaOS[]
 
 function hoje(): string {
-  return new Date().toISOString().slice(0, 10)
+  return hojeLocal()
 }
 
 /**
- * Datas 'YYYY-MM-DD' dos ultimos `n` dias, terminando hoje. Em UTC de
- * proposito: e o mesmo criterio de `hoje()` e de `venda.data`, entao a barra
- * de hoje do grafico bate com o card "Vendas hoje".
+ * Datas 'YYYY-MM-DD' dos ultimos `n` dias, terminando hoje. Usa o
+ * mesmo `hoje()` (data local) de `venda.data`, entao a barra de hoje do
+ * grafico bate com o card "Vendas hoje". A conta em UTC abaixo e so de
+ * calendario, sem fuso.
  */
 function ultimosDias(n: number): string[] {
   const [ano, mes, dia] = hoje().split('-').map(Number)
@@ -147,7 +149,7 @@ function proximosSeteDiasMD(): string[] {
 function em7dias(): string {
   const d = new Date()
   d.setDate(d.getDate() + 6)
-  return d.toISOString().slice(0, 10)
+  return dataLocalISO(d)
 }
 
 function contarAniversariantesSemana(): number {

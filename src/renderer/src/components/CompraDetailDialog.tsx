@@ -10,6 +10,7 @@ import { unwrap, ApiCallError } from '@renderer/lib/ipc'
 import { centavosParaBRL } from '@renderer/lib/dinheiro'
 import { toast } from '@renderer/state/toastStore'
 import type { SituacaoCompra } from '@shared/types'
+import { hojeLocal } from '@shared/data'
 
 function formatarDataBr(iso: string): string {
   const [ano, mes, dia] = iso.split('-')
@@ -39,7 +40,7 @@ export function CompraDetailDialog({ compraId, onClose }: Props): ReactNode {
   })
 
   useEffect(() => {
-    setVencimento(new Date().toISOString().slice(0, 10))
+    setVencimento(hojeLocal())
     setErro(null)
   }, [compraId])
 

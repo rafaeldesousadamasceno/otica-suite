@@ -2,9 +2,10 @@ import { getDb } from '@main/db/connection'
 import { registrarMovimento, saldoAtual } from './estoqueRepository'
 import type { CompraCreateInput } from '@shared/ipc'
 import type { CompraDetalhada, CompraItemDetalhe, CompraResumo, SituacaoCompra } from '@shared/types'
+import { hojeLocal } from '@shared/data'
 
 function hoje(): string {
-  return new Date().toISOString().slice(0, 10)
+  return hojeLocal()
 }
 
 const SELECT_RESUMO = `

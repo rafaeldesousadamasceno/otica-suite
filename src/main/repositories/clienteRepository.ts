@@ -56,7 +56,7 @@ function normalizar(campo: string | null | undefined): string | null {
 }
 
 export const clienteRepository = {
-  listar(busca: string, apenasAtivos: boolean): ClienteResumo[] {
+  listar(busca: string, apenasAtivos: boolean, limite = 200): ClienteResumo[] {
     const termo = `%${busca}%`
     const rows = getDb()
       .prepare(
@@ -65,9 +65,9 @@ export const clienteRepository = {
          WHERE (:apenasAtivos = 0 OR ativo = 1)
            AND (nome LIKE :termo OR cpf LIKE :termo OR celular LIKE :termo)
          ORDER BY nome
-         LIMIT 200`
+         LIMIT :limite`
       )
-      .all({ termo, apenasAtivos: apenasAtivos ? 1 : 0 }) as {
+      .all({ termo, apenasAtivos: apenasAtivos ? 1 : 0, limite }) as {
       id: number
       nome: string
       celular: string | null
