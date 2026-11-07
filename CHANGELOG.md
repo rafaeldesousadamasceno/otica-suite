@@ -2,8 +2,11 @@
 
 ## Próxima versão
 
-- Receita óptica: o Enter dentro de um campo agora só passa para o próximo campo
-  e não salva mais sem querer; a receita só é salva pelo botão.
+- Formulários: o Enter dentro de um campo agora só passa para o próximo campo e
+  não salva mais sem querer. Vale para receita, cliente, venda, compra, produto,
+  fornecedor, ordem de serviço, contas, caixa, usuários, ajuste de estoque e
+  baixas; o salvamento fica só no botão. Login, troca de senha, autorização de
+  administrador e configuração inicial continuam enviando com Enter.
 - Receita óptica: botão "Editar" em cada receita da ficha do cliente, para
   corrigir um dado digitado errado ou uma receita salva sem querer. A correção
   vale no mesmo registro (as OS ligadas a ela passam a mostrar o valor

@@ -24,7 +24,9 @@ export function enterAvancaCampo(e: KeyboardEvent<HTMLFormElement>): void {
 
   e.preventDefault()
   const campos = Array.from(e.currentTarget.querySelectorAll<HTMLElement>(CAMPOS)).filter(utilizavel)
-  const proximo = campos[campos.indexOf(alvo) + 1]
+  // O primeiro campo que vem DEPOIS do atual na ordem da tela (funciona tambem
+  // quando o atual e um checkbox, que nao esta na lista de campos de texto).
+  const proximo = campos.find((c) => alvo.compareDocumentPosition(c) & Node.DOCUMENT_POSITION_FOLLOWING)
   proximo?.focus()
   if (proximo instanceof HTMLInputElement) proximo.select()
 }

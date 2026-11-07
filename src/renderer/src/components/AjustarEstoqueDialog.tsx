@@ -8,6 +8,7 @@ import { Button } from '@renderer/components/ui/Button'
 import { unwrap, ApiCallError } from '@renderer/lib/ipc'
 import { toast } from '@renderer/state/toastStore'
 import type { EstoqueItem } from '@shared/types'
+import { enterAvancaCampo } from '@renderer/lib/enterAvancaCampo'
 
 interface Props {
   item: EstoqueItem | null
@@ -52,6 +53,8 @@ export function AjustarEstoqueDialog({ item, onClose }: Props): ReactNode {
   return (
     <Dialog open onClose={onClose} title={`Ajustar estoque - ${item.descricao}`} className="max-w-sm">
       <form
+        // Enter só passa para o próximo campo: o formulário só envia pelo botão.
+        onKeyDown={enterAvancaCampo}
         className="flex flex-col gap-4"
         onSubmit={(e) => {
           e.preventDefault()

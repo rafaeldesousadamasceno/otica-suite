@@ -10,6 +10,7 @@ import { unwrap, ApiCallError } from '@renderer/lib/ipc'
 import { centavosParaBRL, centavosParaTexto, textoParaCentavos } from '@renderer/lib/dinheiro'
 import { toast } from '@renderer/state/toastStore'
 import type { CaixaAberto, CaixaResumo } from '@shared/types'
+import { enterAvancaCampo } from '@renderer/lib/enterAvancaCampo'
 
 function formatarDataHoraBr(iso: string | null): string {
   if (!iso) return '—'
@@ -149,6 +150,8 @@ function AbrirCaixaCard(): ReactNode {
       <CardBody className="flex flex-col gap-4">
         <p className="text-sm text-[var(--ink-2)]">Nenhum caixa aberto.</p>
         <form
+          // Enter só passa para o próximo campo: o formulário só envia pelo botão.
+          onKeyDown={enterAvancaCampo}
           className="flex items-end gap-3"
           onSubmit={(e) => {
             e.preventDefault()
@@ -262,6 +265,8 @@ function MovimentoDialog({ tipo, onClose, onSuccess }: MovimentoDialogProps): Re
   return (
     <Dialog open={tipo !== null} onClose={onClose} title={tipo === 'sangria' ? 'Sangria' : 'Suprimento'} className="max-w-md">
       <form
+        // Enter só passa para o próximo campo: o formulário só envia pelo botão.
+        onKeyDown={enterAvancaCampo}
         className="flex flex-col gap-4"
         onSubmit={(e) => {
           e.preventDefault()
@@ -335,6 +340,8 @@ function FecharCaixaDialog({ open, caixa, onClose, onSuccess }: FecharCaixaDialo
   return (
     <Dialog open={open} onClose={onClose} title="Fechar caixa" className="max-w-md">
       <form
+        // Enter só passa para o próximo campo: o formulário só envia pelo botão.
+        onKeyDown={enterAvancaCampo}
         className="flex flex-col gap-4"
         onSubmit={(e) => {
           e.preventDefault()

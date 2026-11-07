@@ -12,6 +12,7 @@ import { centavosParaBRL, centavosParaTexto, textoParaCentavos } from '@renderer
 import { compraCreateSchema } from '@shared/ipc'
 import { toast } from '@renderer/state/toastStore'
 import type { Produto } from '@shared/types'
+import { enterAvancaCampo } from '@renderer/lib/enterAvancaCampo'
 
 interface LinhaItem {
   chave: string
@@ -104,6 +105,8 @@ export function CompraFormDialog({ open, onClose, onCreated }: Props): ReactNode
   return (
     <Dialog open={open} onClose={onClose} title="Nova compra" className="max-w-2xl">
       <form
+        // Enter só passa para o próximo campo: o formulário só envia pelo botão.
+        onKeyDown={enterAvancaCampo}
         className="flex flex-col gap-5"
         onSubmit={(e) => {
           e.preventDefault()

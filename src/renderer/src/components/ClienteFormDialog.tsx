@@ -11,6 +11,7 @@ import { clienteInputSchema, type ClienteInput } from '@shared/ipc'
 import { UNIDADES_FEDERATIVAS } from '@shared/types'
 import type { Cliente } from '@shared/types'
 import { toast } from '@renderer/state/toastStore'
+import { enterAvancaCampo } from '@renderer/lib/enterAvancaCampo'
 
 const VAZIO: ClienteInput = {
   nome: '',
@@ -106,6 +107,8 @@ export function ClienteFormDialog({ open, onClose, clienteExistente, onSaved }: 
       className="max-w-2xl"
     >
       <form
+        // Enter só passa para o próximo campo: o formulário só envia pelo botão.
+        onKeyDown={enterAvancaCampo}
         className="flex flex-col gap-5"
         onSubmit={(e) => {
           e.preventDefault()

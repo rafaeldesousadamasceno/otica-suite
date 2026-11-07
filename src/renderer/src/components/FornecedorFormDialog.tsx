@@ -9,6 +9,7 @@ import { unwrap, ApiCallError } from '@renderer/lib/ipc'
 import { fornecedorInputSchema, type FornecedorInput } from '@shared/ipc'
 import { toast } from '@renderer/state/toastStore'
 import type { Fornecedor } from '@shared/types'
+import { enterAvancaCampo } from '@renderer/lib/enterAvancaCampo'
 
 interface FormState {
   razaoSocial: string
@@ -81,6 +82,8 @@ export function FornecedorFormDialog({ open, onClose, fornecedorExistente }: Pro
   return (
     <Dialog open={open} onClose={onClose} title={editando ? 'Editar fornecedor' : 'Novo fornecedor'} className="max-w-lg">
       <form
+        // Enter só passa para o próximo campo: o formulário só envia pelo botão.
+        onKeyDown={enterAvancaCampo}
         className="flex flex-col gap-4"
         onSubmit={(e) => {
           e.preventDefault()

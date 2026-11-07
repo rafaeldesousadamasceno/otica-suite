@@ -14,6 +14,7 @@ import { centavosParaBRL, centavosParaTexto, textoParaCentavos } from '@renderer
 import { vendaCreateSchema, type CredencialAdminInput } from '@shared/ipc'
 import { toast } from '@renderer/state/toastStore'
 import type { ClienteResumo, Produto } from '@shared/types'
+import { enterAvancaCampo } from '@renderer/lib/enterAvancaCampo'
 
 interface LinhaItem {
   chave: string
@@ -202,6 +203,8 @@ export function VendaFormDialog({ open, onClose, clienteFixo, onCreated }: Props
   return (
     <Dialog open={open} onClose={onClose} title="Nova venda" className="max-w-3xl">
       <form
+        // Enter só passa para o próximo campo: o formulário só envia pelo botão.
+        onKeyDown={enterAvancaCampo}
         className="flex flex-col gap-5"
         onSubmit={(e) => {
           e.preventDefault()
