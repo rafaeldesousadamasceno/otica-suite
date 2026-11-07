@@ -1,6 +1,6 @@
 import { getDb } from '@main/db/connection'
 import type { ReceitaOptica } from '@shared/types'
-import type { ReceitaOpticaInput } from '@shared/ipc'
+import type { ReceitaOpticaAtualizarInput, ReceitaOpticaInput } from '@shared/ipc'
 
 interface ReceitaRow {
   id: number
@@ -107,6 +107,40 @@ export const receitaOpticaRepository = {
       .prepare('SELECT COALESCE(MAX(versao), 0) AS maxVersao FROM receita_optica WHERE cliente_id = :clienteId')
       .get({ clienteId }) as { maxVersao: number }
     return row.maxVersao + 1
+  },
+
+  /**
+   * Corrige uma receita ja salva, no mesmo registro: a versao, o cliente e quem
+   * criou continuam. `altura` (legado) nao e tocada. O valor antigo fica na
+   * auditoria (ver o service). Devolve false se o id nao existe.
+   */
+  atualizar(data: ReceitaOpticaAtualizarInput, profissionalId: number | null): boolean {
+    const info = getDb()
+      .prepare(
+        `UPDATE receita_optica SET
+           profissional_id = :profissionalId, data_exame = :dataExame,
+           longe_od_esf = :longeOdEsf, longe_od_cil = :longeOdCil, longe_od_eixo = :longeOdEixo, longe_od_dnp = :longeOdDnp, longe_od_dp = :longeOdDp,
+           longe_oe_esf = :longeOeEsf, longe_oe_cil = :longeOeCil, longe_oe_eixo = :longeOeEixo, longe_oe_dnp = :longeOeDnp, longe_oe_dp = :longeOeDp,
+           perto_od_esf = :pertoOdEsf, perto_od_cil = :pertoOdCil, perto_od_eixo = :pertoOdEixo, perto_od_dnp = :pertoOdDnp, perto_od_dp = :pertoOdDp,
+           perto_oe_esf = :pertoOeEsf, perto_oe_cil = :pertoOeCil, perto_oe_eixo = :pertoOeEixo, perto_oe_dnp = :pertoOeDnp, perto_oe_dp = :pertoOeDp,
+           adicao = :adicao, tipo_lente = :tipoLente, tratamentos = :tratamentos, armacao = :armacao, observacao = :observacao
+         WHERE id = :id`
+      )
+      .run({
+        id: data.id,
+        profissionalId,
+        dataExame: data.dataExame,
+        longeOdEsf: data.longeOdEsf, longeOdCil: data.longeOdCil, longeOdEixo: data.longeOdEixo, longeOdDnp: data.longeOdDnp, longeOdDp: data.longeOdDp ?? null,
+        longeOeEsf: data.longeOeEsf, longeOeCil: data.longeOeCil, longeOeEixo: data.longeOeEixo, longeOeDnp: data.longeOeDnp, longeOeDp: data.longeOeDp ?? null,
+        pertoOdEsf: data.pertoOdEsf, pertoOdCil: data.pertoOdCil, pertoOdEixo: data.pertoOdEixo, pertoOdDnp: data.pertoOdDnp, pertoOdDp: data.pertoOdDp ?? null,
+        pertoOeEsf: data.pertoOeEsf, pertoOeCil: data.pertoOeCil, pertoOeEixo: data.pertoOeEixo, pertoOeDnp: data.pertoOeDnp, pertoOeDp: data.pertoOeDp ?? null,
+        adicao: data.adicao,
+        tipoLente: data.tipoLente || null,
+        tratamentos: data.tratamentos || null,
+        armacao: data.armacao?.toUpperCase() || null,
+        observacao: data.observacao || null
+      })
+    return Number(info.changes) > 0
   },
 
   criar(data: ReceitaOpticaInput, profissionalId: number | null, versao: number, criadoPor: number): number {

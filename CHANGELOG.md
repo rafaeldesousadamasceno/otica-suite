@@ -2,6 +2,10 @@
 
 ## Próxima versão
 
+- Receita óptica: botão "Editar" em cada receita da ficha do cliente, para
+  corrigir um dado digitado errado ou uma receita salva sem querer. A correção
+  vale no mesmo registro (as OS ligadas a ela passam a mostrar o valor
+  corrigido) e o valor de antes fica guardado na Auditoria.
 - Receita óptica: campo DP (longe e perto, olho direito e esquerdo) logo depois
   do DNP, também no PDF da OS. O campo Altura saiu da tela e do PDF.
 - Importação do MD Óculos: clientes sem nome e sem nenhuma receita não entram

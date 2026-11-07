@@ -55,6 +55,7 @@ import type {
   AniversariantesQuery,
   ReceitaListByClienteInput,
   ReceitaOpticaInput,
+  ReceitaOpticaAtualizarInput,
   ListaValorTipoInput,
   OrdemServicoCreateInput,
   OrdemServicoAvancarInput,
@@ -139,6 +140,7 @@ interface Api {
   receitas: {
     listByCliente: (input: ReceitaListByClienteInput) => Promise<ApiResult<ReceitaOptica[]>>
     create: (input: ReceitaOpticaInput) => Promise<ApiResult<ReceitaOptica>>
+    update: (input: ReceitaOpticaAtualizarInput) => Promise<ApiResult<ReceitaOptica>>
   }
   ordensServico: {
     list: (input: OrdensServicoQuery) => Promise<ApiResult<OrdemServico[]>>

@@ -240,6 +240,10 @@ export const receitaOpticaInputSchema = z.object({
 })
 export type ReceitaOpticaInput = z.infer<typeof receitaOpticaInputSchema>
 
+/** Edicao de uma receita ja salva: os mesmos campos da criacao, mais o id. O cliente nao muda. */
+export const receitaOpticaAtualizarSchema = receitaOpticaInputSchema.extend({ id: z.number().int().positive() })
+export type ReceitaOpticaAtualizarInput = z.infer<typeof receitaOpticaAtualizarSchema>
+
 export const receitaListByClienteSchema = z.object({ clienteId: z.number().int().positive() })
 export type ReceitaListByClienteInput = z.infer<typeof receitaListByClienteSchema>
 

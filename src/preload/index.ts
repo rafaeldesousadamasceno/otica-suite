@@ -46,7 +46,8 @@ const api = {
   },
   receitas: {
     listByCliente: (input: unknown) => ipcRenderer.invoke(IPC.receitas.listByCliente, input),
-    create: (input: unknown) => ipcRenderer.invoke(IPC.receitas.create, input)
+    create: (input: unknown) => ipcRenderer.invoke(IPC.receitas.create, input),
+    update: (input: unknown) => ipcRenderer.invoke(IPC.receitas.update, input)
   },
   ordensServico: {
     list: (input: unknown) => ipcRenderer.invoke(IPC.ordensServico.list, input),

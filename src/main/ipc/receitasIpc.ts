@@ -1,5 +1,5 @@
 import { handleIpc } from './handle'
-import { IPC, receitaListByClienteSchema, receitaOpticaInputSchema } from '@shared/ipc'
+import { IPC, receitaListByClienteSchema, receitaOpticaAtualizarSchema, receitaOpticaInputSchema } from '@shared/ipc'
 import { receitaOpticaService } from '@main/services/receitaOpticaService'
 
 export function registerReceitasIpc(): void {
@@ -8,5 +8,8 @@ export function registerReceitasIpc(): void {
   )
   handleIpc(IPC.receitas.create, receitaOpticaInputSchema, (input) =>
     receitaOpticaService.criar(input)
+  )
+  handleIpc(IPC.receitas.update, receitaOpticaAtualizarSchema, (input) =>
+    receitaOpticaService.atualizar(input)
   )
 }

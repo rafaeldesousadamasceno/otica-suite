@@ -1,6 +1,8 @@
 import type { ReactNode } from 'react'
 import { Card } from '@renderer/components/ui/Card'
 import { Badge } from '@renderer/components/ui/Badge'
+import { Button } from '@renderer/components/ui/Button'
+import { Pencil } from 'lucide-react'
 import type { ReceitaOptica } from '@shared/types'
 
 function fmt(v: number | null, casas = 2): string {
@@ -13,7 +15,7 @@ function formatarDataBr(iso: string): string {
   return `${dia}/${mes}/${ano}`
 }
 
-export function ReceitaOpticaCard({ receita }: { receita: ReceitaOptica }): ReactNode {
+export function ReceitaOpticaCard({ receita, onEditar }: { receita: ReceitaOptica; onEditar?: () => void }): ReactNode {
   return (
     <Card className="overflow-hidden">
       <div className="flex items-center justify-between border-b border-[var(--rule)] bg-[var(--surface-2)] px-4 py-2.5">
@@ -23,9 +25,16 @@ export function ReceitaOpticaCard({ receita }: { receita: ReceitaOptica }): Reac
           </span>
           <Badge tone="accent">versão {receita.versao}</Badge>
         </div>
-        {receita.profissionalNome && (
-          <span className="text-xs text-[var(--ink-3)]">Dr(a). {receita.profissionalNome}</span>
-        )}
+        <div className="flex items-center gap-3">
+          {receita.profissionalNome && (
+            <span className="text-xs text-[var(--ink-3)]">Dr(a). {receita.profissionalNome}</span>
+          )}
+          {onEditar && (
+            <Button variant="ghost" size="sm" onClick={onEditar} aria-label={`Editar a receita de ${formatarDataBr(receita.dataExame)}`}>
+              <Pencil className="size-3.5" /> Editar
+            </Button>
+          )}
+        </div>
       </div>
 
       <div className="grid grid-cols-1 gap-px bg-[var(--rule)] sm:grid-cols-2">

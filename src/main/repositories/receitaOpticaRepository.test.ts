@@ -67,3 +67,45 @@ describe('receitaOpticaRepository + migracao 008 (DP)', () => {
     expect([r.longeOdDp, r.longeOeDp, r.pertoOdDp, r.pertoOeDp]).toEqual([null, null, null, null])
   })
 })
+
+describe('receitaOpticaRepository.atualizar', () => {
+  beforeEach(() => {
+    const db = new DatabaseSync(':memory:')
+    db.exec('PRAGMA foreign_keys = ON')
+    for (const m of MIGRATIONS) db.exec(m.sql)
+    db.prepare("INSERT INTO usuario (nome, login, senha_hash, perfil) VALUES ('Ana', 'ana', 'x', 'admin')").run()
+    db.prepare("INSERT INTO cliente (nome) VALUES ('Cliente')").run()
+    banco.db = db
+  })
+
+  it('corrige os campos no mesmo registro e mantem versao, cliente e altura legada', () => {
+    banco.db!.prepare(
+      `INSERT INTO receita_optica (cliente_id, data_exame, longe_od_esf, altura, versao) VALUES (1, '2025-01-10', -1.25, 18, 3)`
+    ).run()
+    const id = Number((banco.db!.prepare('SELECT last_insert_rowid() AS id').get() as { id: number }).id)
+
+    const ok = receitaOpticaRepository.atualizar(
+      { ...payload({ longeOdEsf: '-2,00', longeOdDp: '32', armacao: 'preta', observacao: 'corrigida' }), id },
+      null
+    )
+
+    expect(ok).toBe(true)
+    const r = receitaOpticaRepository.buscarPorId(id)!
+    expect(r.longeOdEsf).toBe(-2)
+    expect(r.longeOdDp).toBe(32)
+    expect(r.armacao).toBe('PRETA')
+    expect(r.observacao).toBe('corrigida')
+    expect(r.dataExame).toBe('2026-11-07')
+    expect(r.versao).toBe(3)
+    expect(r.altura).toBe(18)
+  })
+
+  it('campo apagado vira nulo e id inexistente devolve false', () => {
+    const id = receitaOpticaRepository.criar(payload({ longeOdEsf: '-1,00', tipoLente: 'X' }), null, 1, 1)
+    receitaOpticaRepository.atualizar({ ...payload({}), id }, null)
+    const r = receitaOpticaRepository.buscarPorId(id)!
+    expect(r.longeOdEsf).toBeNull()
+    expect(r.tipoLente).toBeNull()
+    expect(receitaOpticaRepository.atualizar({ ...payload({}), id: 9999 }, null)).toBe(false)
+  })
+})

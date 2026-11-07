@@ -43,7 +43,8 @@ export const IPC = {
   },
   receitas: {
     listByCliente: 'receitas:listByCliente',
-    create: 'receitas:create'
+    create: 'receitas:create',
+    update: 'receitas:update'
   },
   ordensServico: {
     list: 'ordensServico:list',
