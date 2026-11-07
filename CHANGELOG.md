@@ -11,6 +11,18 @@
   zoom e páginas, e de lá é possível salvar ou imprimir direto (escolhendo a
   impressora). Antes era preciso salvar o arquivo e abrir fora do sistema.
 - Os relatórios em paisagem saem em paisagem e sem margem dobrada.
+- Relatórios com visual novo e padronizado: faixa na cor da ótica com logo e
+  contatos, cards de resumo coloridos (verde para resultado positivo, vermelho
+  para negativo), tabelas zebradas, selos de situação, fonte do sistema e
+  rodapé com "Página X de Y". Ganharam gráficos: receitas × despesas,
+  saldo acumulado do fluxo de caixa, receita por categoria e produtos com
+  maior margem (lucro/prejuízo), atraso da inadimplência, Pareto da curva
+  ABC e total por vendedor. A OS, o comprovante, o carnê e o protocolo
+  seguem o mesmo padrão.
+- Inadimplência mostra os dias em atraso; vendas por vendedor mostram ticket
+  médio e participação.
+- O relatório de produtos abaixo do mínimo não deixa mais produtos de fora
+  quando a ótica tem mais de 500 itens cadastrados.
 - Com a janela baixa, só o menu lateral rola, e não a tela inteira.
 
 ## 0.1.0

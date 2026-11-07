@@ -6,6 +6,7 @@ import { requireSessao } from '@main/auth/session'
 import { Errors } from '@main/errors'
 import type { PdfVisualizacao } from '@shared/types'
 import { criarCachePdf, emPaisagem, tituloDoHtml, type PdfGerado } from './pdfCache'
+import { comFontes } from './fontes'
 
 /**
  * RF-12: gera um PDF a partir de HTML usando o proprio Chromium do
@@ -58,8 +59,10 @@ async function renderizarPdf(html: string): Promise<Buffer> {
 }
 
 /** Gera o PDF e guarda para salvar/imprimir; devolve os bytes para o visualizador. */
-export async function gerarPdfVisualizacao(html: string, nomeArquivo: string, titulo?: string): Promise<PdfVisualizacao> {
+export async function gerarPdfVisualizacao(htmlRelatorio: string, nomeArquivo: string, titulo?: string): Promise<PdfVisualizacao> {
   const sessao = requireSessao()
+  // A impressao usa este mesmo HTML (ja com a fonte), entao PDF e papel saem iguais.
+  const html = comFontes(htmlRelatorio)
   const pdf = new Uint8Array(await renderizarPdf(html))
   const id = randomUUID()
   const tituloFinal = titulo ?? tituloDoHtml(html) ?? nomeArquivo.replace(/\.pdf$/i, '')
