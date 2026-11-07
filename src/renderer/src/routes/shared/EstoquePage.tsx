@@ -1,4 +1,5 @@
 import { type ReactNode, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { Search, ClipboardEdit, Printer } from 'lucide-react'
 import { Card } from '@renderer/components/ui/Card'
@@ -24,7 +25,12 @@ const ROTULO_CATEGORIA: Record<CategoriaProduto, string> = {
 export function EstoquePage(): ReactNode {
   const [busca, setBusca] = useState('')
   const [categoria, setCategoria] = useState<'' | 'armacao' | 'lente' | 'acessorio'>('')
-  const [situacao, setSituacao] = useState<'' | 'abaixo_minimo' | 'zerado'>('')
+  // O painel abre esta tela ja filtrada (?situacao=abaixo_minimo).
+  const [params] = useSearchParams()
+  const situacaoDaUrl = params.get('situacao')
+  const [situacao, setSituacao] = useState<'' | 'abaixo_minimo' | 'zerado'>(
+    situacaoDaUrl === 'abaixo_minimo' || situacaoDaUrl === 'zerado' ? situacaoDaUrl : ''
+  )
   const [itemParaAjustar, setItemParaAjustar] = useState<EstoqueItem | null>(null)
   const buscaDebounced = useDebouncedValue(busca)
   const sessao = useAuthStore((s) => s.sessao)

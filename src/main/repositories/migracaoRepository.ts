@@ -1,6 +1,7 @@
 import { getDb } from '@main/db/connection'
 import type { SituacaoOS } from '@shared/types'
 import { temMojibake } from '@main/migracao/transformar'
+import { DESCRICAO_PRODUTO_IMPORTADO } from '@shared/importacao'
 
 const SISTEMA_ORIGEM = 'mdoculos'
 
@@ -71,7 +72,7 @@ export function jaImportado(tabelaOrigem: string, origemId: number): number | nu
 /** Produto generico onde entram os itens de venda migrados (PRD 11: "lentes/tratamentos/armacao -> produto 'Item importado'"). */
 export function garantirProdutoGenerico(): number {
   const db = getDb()
-  const existente = db.prepare(`SELECT id FROM produto WHERE descricao = 'Item importado' LIMIT 1`).get() as
+  const existente = db.prepare(`SELECT id FROM produto WHERE descricao = :descricao LIMIT 1`).get({ descricao: DESCRICAO_PRODUTO_IMPORTADO }) as
     | { id: number }
     | undefined
   if (existente) return existente.id
@@ -79,9 +80,9 @@ export function garantirProdutoGenerico(): number {
   const info = db
     .prepare(
       `INSERT INTO produto (descricao, categoria, unidade, custo_centavos, margem, preco_venda_centavos, estoque_minimo)
-       VALUES ('Item importado', 'servico', 'UN', 0, 0, 0, 0)`
+       VALUES (:descricao, 'servico', 'UN', 0, 0, 0, 0)`
     )
-    .run()
+    .run({ descricao: DESCRICAO_PRODUTO_IMPORTADO })
   return Number(info.lastInsertRowid)
 }
 

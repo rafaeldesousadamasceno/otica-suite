@@ -25,6 +25,13 @@ function hoje(): string {
   return hojeLocal()
 }
 
+/**
+ * "Atrasada" (RF-06): passou da previsao e o par ainda nao chegou. Mesma regra
+ * do `atrasada` de `toDomain`, em SQL, para filtrar e contar ANTES do limite de
+ * linhas. Usa o parametro `:hoje`.
+ */
+const SQL_ATRASADA = `os.situacao IN ('EM ABERTO', 'LABORATÓRIO') AND os.data_previsao IS NOT NULL AND os.data_previsao < :hoje`
+
 function toDomain(row: OrdemServicoRow): OrdemServico {
   const naoChegou = row.situacao === 'EM ABERTO' || row.situacao === 'LABORATÓRIO'
   return {
@@ -133,18 +140,31 @@ export const ordemServicoRepository = {
            AND (:situacao = '' OR os.situacao = :situacao)
            AND (:dataInicio = '' OR os.data_abertura >= :dataInicio)
            AND (:dataFim = '' OR os.data_abertura <= :dataFim)
+           AND (:apenasAtrasadas = 0 OR (${SQL_ATRASADA}))
          ORDER BY os.data_abertura DESC, os.id DESC
          LIMIT 300`
       )
       .all({
+        hoje: hoje(),
+        apenasAtrasadas: query.apenasAtrasadas ? 1 : 0,
         termo: `%${query.busca?.trim() ?? ''}%`,
         situacao: query.situacao?.trim() ?? '',
         dataInicio: normalizar(query.dataInicio) ?? '',
         dataFim: normalizar(query.dataFim) ?? ''
       }) as unknown as OrdemServicoRow[]
 
-    const ordens = rows.map(toDomain)
-    return query.apenasAtrasadas ? ordens.filter((os) => os.atrasada) : ordens
+    return rows.map(toDomain)
+  },
+
+  /** Quantas OS estao atrasadas (sem o limite de linhas da listagem). `criadoPor` limita a um usuario. */
+  contarAtrasadas(criadoPor?: number): number {
+    const row = getDb()
+      .prepare(
+        `SELECT COUNT(*) AS n FROM ordem_servico os
+         WHERE ${SQL_ATRASADA} AND (:criadoPor = 0 OR os.criado_por = :criadoPor)`
+      )
+      .get({ hoje: hoje(), criadoPor: criadoPor ?? 0 }) as { n: number }
+    return row.n
   },
 
   listarPorCliente(clienteId: number): OrdemServico[] {

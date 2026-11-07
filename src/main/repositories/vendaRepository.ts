@@ -15,11 +15,12 @@ interface ProdutoParaVenda {
   id: number
   descricao: string
   categoria: string
+  custo_centavos: number
 }
 
 function buscarProdutoAtivo(db: ReturnType<typeof getDb>, id: number): ProdutoParaVenda | null {
   const row = db
-    .prepare('SELECT id, descricao, categoria FROM produto WHERE id = :id AND ativo = 1')
+    .prepare('SELECT id, descricao, categoria, custo_centavos FROM produto WHERE id = :id AND ativo = 1')
     .get({ id }) as ProdutoParaVenda | undefined
   return row ?? null
 }
@@ -121,9 +122,9 @@ export const vendaRepository = {
         db.prepare(
           `INSERT INTO venda_item (
              venda_id, produto_id, descricao, quantidade,
-             preco_unitario_centavos, desconto_centavos, total_centavos
+             preco_unitario_centavos, desconto_centavos, total_centavos, custo_unitario_centavos
            ) VALUES (
-             :vendaId, :produtoId, :descricao, :quantidade, :precoUnitario, :desconto, :total
+             :vendaId, :produtoId, :descricao, :quantidade, :precoUnitario, :desconto, :total, :custo
            )`
         ).run({
           vendaId,
@@ -132,7 +133,10 @@ export const vendaRepository = {
           quantidade: item.quantidade,
           precoUnitario: item.precoUnitarioCentavos,
           desconto: item.descontoCentavos,
-          total: totalItem
+          total: totalItem,
+          // Custo da epoca da venda. Custo zerado em produto com estoque e "nao cadastrado", nao "de graca":
+          // fica nulo para o painel nao inflar a margem. Servico sem custo e custo zero de verdade.
+          custo: produto.custo_centavos > 0 || produto.categoria === 'servico' ? produto.custo_centavos : null
         })
 
         // Servico nao tem estoque para baixar (RF-07/08).

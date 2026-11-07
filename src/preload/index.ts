@@ -115,7 +115,7 @@ const api = {
     lucroPrejuizo: (input: unknown) => ipcRenderer.invoke(IPC.financeiro.lucroPrejuizo, input)
   },
   dashboard: {
-    get: () => ipcRenderer.invoke(IPC.dashboard.get)
+    get: (input: unknown) => ipcRenderer.invoke(IPC.dashboard.get, input)
   },
   backup: {
     status: () => ipcRenderer.invoke(IPC.backup.status),

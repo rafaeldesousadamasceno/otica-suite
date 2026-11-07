@@ -19,6 +19,20 @@
   maior margem (lucro/prejuízo), atraso da inadimplência, Pareto da curva
   ABC e total por vendedor. A OS, o comprovante, o carnê e o protocolo
   seguem o mesmo padrão.
+- Painel inicial gerencial: filtro de período (hoje, últimos 7/30 dias, este mês,
+  mês anterior, 3 e 6 meses, este ano, ano anterior ou datas livres), comparação
+  com o período anterior e filtro por vendedor para o administrador. Indicadores
+  de faturamento, vendas, ticket médio, lucro bruto e margem (estimados), clientes
+  novos e recorrentes, recebido, despesas e resultado de caixa, cada um com a
+  variação e a explicação do cálculo. Gráficos de evolução do faturamento (com o
+  período anterior em linha tracejada), recebido e despesas, vendas por categoria,
+  ranking de vendedores, produtos mais vendidos, formas de pagamento e ordens de
+  serviço. "Posição atual" separada (contas, estoque e OS) e "Insights da Ótica",
+  com avisos que levam direto à lista filtrada.
+- O custo do produto passa a ser guardado em cada venda nova, para o lucro bruto
+  não mudar quando o custo do produto mudar. Vendas antigas usam o custo atual.
+- O painel não deixa mais de contar produtos abaixo do mínimo ou OS atrasadas
+  quando há muitos registros.
 - Inadimplência mostra os dias em atraso; vendas por vendedor mostram ticket
   médio e participação.
 - O relatório de produtos abaixo do mínimo não deixa mais produtos de fora

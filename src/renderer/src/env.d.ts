@@ -24,7 +24,7 @@ import type {
   ConfiguracaoOperacional,
   FluxoCaixaResultado,
   LucroPrejuizoResultado,
-  DashboardData,
+  DashboardResumo,
   PdfVisualizacao,
   BackupStatus,
   LicencaInfo,
@@ -51,6 +51,7 @@ import type {
   ClienteUpdateInput,
   IdInput,
   PdfIdInput,
+  DashboardQuery,
   AniversariantesQuery,
   ReceitaListByClienteInput,
   ReceitaOpticaInput,
@@ -206,7 +207,7 @@ interface Api {
     lucroPrejuizo: (input: PeriodoQuery) => Promise<ApiResult<LucroPrejuizoResultado>>
   }
   dashboard: {
-    get: () => Promise<ApiResult<DashboardData>>
+    get: (input: DashboardQuery) => Promise<ApiResult<DashboardResumo>>
   }
   backup: {
     status: () => Promise<ApiResult<BackupStatus>>

@@ -410,26 +410,8 @@ export interface RankingVendedorItem {
   totalCentavos: number
 }
 
-/** Total vendido num dia ('YYYY-MM-DD'); a serie do grafico e sempre continua, com 0 nos dias sem venda. */
-export interface VendaDiaItem {
-  data: string
-  totalCentavos: number
-}
-
-/** Receitas e despesas de um mes ('YYYY-MM'), regime de caixa - a mesma definicao do card "Saldo do mes". */
-export interface FluxoMesItem {
-  mes: string
-  receitasCentavos: number
-  despesasCentavos: number
-}
-
 /** 'outros' agrupa itens vendidos sem produto cadastrado (ex.: itens importados do sistema antigo). */
 export type CategoriaVenda = CategoriaProduto | 'outros'
-
-export interface VendaCategoriaItem {
-  categoria: CategoriaVenda
-  totalCentavos: number
-}
 
 /** So as etapas em andamento - ENTREGUE e CANCELADA nao entram no funil. */
 export type EtapaOS = 'EM ABERTO' | 'LABORATÓRIO' | 'CHEGOU'
@@ -439,41 +421,121 @@ export interface OsEtapaItem {
   quantidade: number
 }
 
-export interface DashboardAdmin {
-  vendasHojeCentavos: number
-  vendasMesCentavos: number
-  vendasMesAnteriorCentavos: number
-  contasReceberVencendoCentavos: number
-  contasReceberVencendoQtd: number
-  contasReceberVencidasQtd: number
-  contasPagarVencendoCentavos: number
-  contasPagarVencendoQtd: number
-  saldoMesCentavos: number
+/** Valor do periodo e o mesmo valor no periodo de comparacao (`null` quando a comparacao esta desligada). */
+export interface ValorComparado {
+  atual: number
+  anterior: number | null
+}
+
+export type Granularidade = 'dia' | 'semana' | 'mes'
+
+export type SeveridadeInsight = 'critico' | 'atencao' | 'info' | 'positivo'
+
+/** Aviso do painel ("Insights da Otica"), gerado por regras fixas sobre os numeros do proprio painel. */
+export interface Insight {
+  id: string
+  severidade: SeveridadeInsight
+  titulo: string
+  detalhe: string
+  /** Rota do app (com filtro) que mostra os registros por tras do aviso. */
+  link?: string
+}
+
+export interface VendaCategoriaDetalhe {
+  categoria: CategoriaVenda
+  quantidade: number
+  totalCentavos: number
+}
+
+export interface ProdutoVendidoItem {
+  produtoId: number
+  descricao: string
+  quantidade: number
+  totalCentavos: number
+  /** `null` quando o custo desse produto nao e conhecido. */
+  margemCentavos: number | null
+}
+
+export interface FormaPagamentoItem {
+  forma: string
+  /** Valor VENDIDO nessa forma (nao o recebido: parcela e pagamento pendente entram inteiros). */
+  totalCentavos: number
+}
+
+export interface VendedorDesempenho {
+  vendedorId: number
+  vendedorNome: string
+  quantidadeVendas: number
+  totalCentavos: number
+}
+
+export interface DashboardOs {
+  porEtapa: OsEtapaItem[]
+  abertasNoPeriodo: number
+  entreguesNoPeriodo: number
+  /** Media de dias entre abrir e entregar, das OS entregues no periodo. `null` sem nenhuma. */
+  diasMediosAteEntrega: number | null
+}
+
+export interface DashboardFinanceiro {
+  /** Entradas de caixa menos estornos (suprimento de caixa nao e receita). */
+  recebido: ValorComparado
+  /** Despesas pagas (sangria de caixa e estorno nao entram). */
+  despesas: ValorComparado
+  resultado: ValorComparado
+  recebidoPorBalde: number[]
+  despesasPorBalde: number[]
+}
+
+/** Foto de agora: NAO muda com o periodo escolhido. */
+export interface DashboardPosicao {
   produtosAbaixoMinimo: number
   osAtrasadas: number
+  osProntas: number
+  /** Prontas para retirada ha mais de 7 dias. */
+  osProntasHaMuito: number
   aniversariantesSemana: number
-  rankingVendedores: RankingVendedorItem[]
-  vendasPorDia: VendaDiaItem[]
-  fluxoMensal: FluxoMesItem[]
-  vendasPorCategoria: VendaCategoriaItem[]
-  osPorEtapa: OsEtapaItem[]
+  receber: { abertoCentavos: number; abertoQtd: number; vencidasCentavos: number; vencidasQtd: number } | null
+  pagar: { vencidasCentavos: number; vencidasQtd: number; hojeCentavos: number; hojeQtd: number } | null
 }
 
-export interface DashboardVendedor {
-  vendasHojeCentavos: number
-  vendasMesCentavos: number
-  comissaoAcumuladaCentavos: number
-  osResponsavel: number
-  osAguardandoRetirada: number
-  aniversariantesSemana: number
-  vendasPorDia: VendaDiaItem[]
-  osPorEtapa: OsEtapaItem[]
+export interface DashboardResumo {
+  /** `loja` = todas as vendas; `vendedor` = so as de um vendedor (o proprio, ou o escolhido no filtro). */
+  escopo: 'loja' | 'vendedor'
+  periodo: { inicio: string; fim: string }
+  comparacao: { inicio: string; fim: string } | null
+  granularidade: Granularidade
+  kpis: {
+    faturamento: ValorComparado
+    vendas: ValorComparado
+    ticketMedio: ValorComparado
+    /** `null` sem permissao de ver custo e margem. */
+    lucroBruto: ValorComparado | null
+    /** Em % do faturamento com custo conhecido. `null` sem permissao ou sem nenhum custo conhecido. */
+    margemPct: ValorComparado | null
+    clientesNovos: ValorComparado
+    clientesRecorrentes: ValorComparado
+    /** So quando o painel esta limitado a um vendedor. */
+    comissao: ValorComparado | null
+  }
+  /** % da receita dos itens vendidos que tem custo conhecido (a margem so vale para essa parte). */
+  coberturaCustoPct: number | null
+  serie: {
+    baldes: { rotulo: string; titulo: string }[]
+    faturamento: number[]
+    comparacao: number[] | null
+  }
+  categorias: VendaCategoriaDetalhe[]
+  topProdutos: ProdutoVendidoItem[]
+  formasPagamento: FormaPagamentoItem[]
+  /** `null` sem permissao de ver o desempenho da equipe, ou com o painel filtrado por vendedor. */
+  ranking: VendedorDesempenho[] | null
+  os: DashboardOs
+  /** `null` sem permissao de financeiro, ou com o painel filtrado por vendedor (o caixa e da loja toda). */
+  financeiro: DashboardFinanceiro | null
+  posicao: DashboardPosicao
+  insights: Insight[]
 }
-
-/** O service decide o formato pelo perfil da sessao - nunca pelo que o renderer pede. */
-export type DashboardData =
-  | { perfil: 'admin'; dados: DashboardAdmin }
-  | { perfil: 'vendedor'; dados: DashboardVendedor }
 
 // ---------------------------------------------------------------------
 // Backup e licenca (RF-13 - fase F6)

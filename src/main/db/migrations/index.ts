@@ -6,6 +6,7 @@ import logoFormatoSql from './005_empresa_logo_formato.sql?raw'
 import migracaoSql from './006_migracao.sql?raw'
 import relacionamentoSql from './007_relacionamento.sql?raw'
 import receitaDpSql from './008_receita_dp.sql?raw'
+import dashboardSql from './009_dashboard.sql?raw'
 
 export interface Migration {
   version: number
@@ -25,5 +26,6 @@ export const MIGRATIONS: Migration[] = [
   { version: 5, name: 'empresa_logo_formato', sql: logoFormatoSql },
   { version: 6, name: 'migracao', sql: migracaoSql },
   { version: 7, name: 'relacionamento', sql: relacionamentoSql },
-  { version: 8, name: 'receita_dp', sql: receitaDpSql }
+  { version: 8, name: 'receita_dp', sql: receitaDpSql },
+  { version: 9, name: 'dashboard', sql: dashboardSql }
 ]

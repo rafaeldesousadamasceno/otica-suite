@@ -1,4 +1,5 @@
 import { type ReactNode, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { Search, CircleDollarSign, Plus } from 'lucide-react'
 import { Card } from '@renderer/components/ui/Card'
@@ -25,9 +26,11 @@ const TOM_SITUACAO: Record<SituacaoContaPagar, 'ok' | 'warn' | 'danger'> = {
 }
 
 export function ContasPagarPage(): ReactNode {
+  // O painel abre esta tela ja filtrada (?vencidas=1).
+  const [params] = useSearchParams()
   const [busca, setBusca] = useState('')
   const [situacao, setSituacao] = useState<'' | SituacaoContaPagar>('')
-  const [apenasVencidas, setApenasVencidas] = useState(false)
+  const [apenasVencidas, setApenasVencidas] = useState(params.get('vencidas') === '1')
   const [novaOpen, setNovaOpen] = useState(false)
   const [contaParaPagar, setContaParaPagar] = useState<ContaPagar | null>(null)
   const buscaDebounced = useDebouncedValue(busca)

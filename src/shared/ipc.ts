@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import { MOTIVOS_CONTATO } from './types'
+import { PRESETS_PERIODO, validarPeriodo } from './periodos'
 
 /**
  * Contrato de IPC: os nomes de canal moram em `ipcChannels.ts` (sem
@@ -564,6 +565,21 @@ export const periodoQuerySchema = z.object({
   dataFim: z.string().trim().length(10, 'Informe a data final')
 })
 export type PeriodoQuery = z.infer<typeof periodoQuerySchema>
+
+/** Filtro do painel gerencial: periodo (com o atalho usado, que decide como comparar), comparacao e vendedor. */
+export const dashboardQuerySchema = z
+  .object({
+    dataInicio: z.string().trim(),
+    dataFim: z.string().trim(),
+    preset: z.enum(PRESETS_PERIODO).default('personalizado'),
+    comparar: z.boolean().default(true),
+    vendedorId: z.number().int().positive().optional()
+  })
+  .superRefine((q, ctx) => {
+    const erro = validarPeriodo({ inicio: q.dataInicio, fim: q.dataFim })
+    if (erro) ctx.addIssue({ code: 'custom', message: erro, path: ['dataInicio'] })
+  })
+export type DashboardQuery = z.infer<typeof dashboardQuerySchema>
 
 // ---------------------------------------------------------------------
 // Backup e licenca (RF-13 - fase F6)

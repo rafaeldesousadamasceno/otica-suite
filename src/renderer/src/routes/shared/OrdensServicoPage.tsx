@@ -1,4 +1,5 @@
 import { type ReactNode, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { Search, FilePlus2, AlertTriangle, Printer } from 'lucide-react'
 import { Card } from '@renderer/components/ui/Card'
@@ -28,8 +29,10 @@ function formatarDataBr(iso: string | null): string {
  */
 export function OrdensServicoPage(): ReactNode {
   const [busca, setBusca] = useState('')
-  const [situacao, setSituacao] = useState('')
-  const [apenasAtrasadas, setApenasAtrasadas] = useState(false)
+  // O painel abre esta tela ja filtrada (?atrasadas=1 ou ?situacao=CHEGOU).
+  const [params] = useSearchParams()
+  const [situacao, setSituacao] = useState(params.get('situacao') ?? '')
+  const [apenasAtrasadas, setApenasAtrasadas] = useState(params.get('atrasadas') === '1')
   const [novaOpen, setNovaOpen] = useState(false)
   const [osSelecionada, setOsSelecionada] = useState<number | null>(null)
   const buscaDebounced = useDebouncedValue(busca)
