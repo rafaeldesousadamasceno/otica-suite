@@ -1,16 +1,16 @@
 import { type ReactNode, useState } from 'react'
-import { useMutation, useQuery } from '@tanstack/react-query'
+import { useQuery } from '@tanstack/react-query'
 import { Search, ClipboardEdit, Printer } from 'lucide-react'
 import { Card } from '@renderer/components/ui/Card'
 import { Input } from '@renderer/components/ui/Input'
 import { Select } from '@renderer/components/ui/Select'
 import { Badge } from '@renderer/components/ui/Badge'
 import { Button } from '@renderer/components/ui/Button'
-import { unwrap, ApiCallError } from '@renderer/lib/ipc'
+import { unwrap } from '@renderer/lib/ipc'
+import { useGerarPdf } from '@renderer/lib/useGerarPdf'
 import { useDebouncedValue } from '@renderer/lib/useDebouncedValue'
 import { AjustarEstoqueDialog } from '@renderer/components/AjustarEstoqueDialog'
 import { useAuthStore } from '@renderer/state/authStore'
-import { toast } from '@renderer/state/toastStore'
 import { possuiPermissao } from '@shared/permissions'
 import type { CategoriaProduto, EstoqueItem } from '@shared/types'
 
@@ -35,13 +35,7 @@ export function EstoquePage(): ReactNode {
     queryFn: () => unwrap(window.api.estoque.list({ busca: buscaDebounced, categoria, situacao }))
   })
 
-  const imprimir = useMutation({
-    mutationFn: () => unwrap(window.api.relatorios.posicaoEstoque({ busca: buscaDebounced, categoria, situacao })),
-    onSuccess: (resultado) => {
-      if (resultado) toast.ok(`PDF salvo em ${resultado.caminho}`)
-    },
-    onError: (err) => toast.error(err instanceof ApiCallError || err instanceof Error ? err.message : 'Erro inesperado.')
-  })
+  const imprimir = useGerarPdf(() => window.api.relatorios.posicaoEstoque({ busca: buscaDebounced, categoria, situacao }))
 
   return (
     <div className="flex flex-col gap-4">

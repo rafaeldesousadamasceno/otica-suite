@@ -7,6 +7,7 @@ import { Button } from '@renderer/components/ui/Button'
 import { Field } from '@renderer/components/ui/Field'
 import { Input } from '@renderer/components/ui/Input'
 import { unwrap, ApiCallError } from '@renderer/lib/ipc'
+import { useGerarPdf } from '@renderer/lib/useGerarPdf'
 import { toast } from '@renderer/state/toastStore'
 import { TOM_SITUACAO_OS } from '@renderer/lib/situacaoOSTone'
 import { podeCancelar, rotuloAvanco } from '@shared/situacaoOS'
@@ -77,13 +78,7 @@ export function OrdemServicoDetailDialog({ osId, onClose }: Props): ReactNode {
     onError: (err) => setErro(err instanceof ApiCallError || err instanceof Error ? err.message : 'Erro inesperado.')
   })
 
-  const imprimir = useMutation({
-    mutationFn: () => unwrap(window.api.relatorios.ordemServico({ id: osId! })),
-    onSuccess: (resultado) => {
-      if (resultado) toast.ok(`PDF salvo em ${resultado.caminho}`)
-    },
-    onError: (err) => toast.error(err instanceof ApiCallError || err instanceof Error ? err.message : 'Erro inesperado.')
-  })
+  const imprimir = useGerarPdf(() => window.api.relatorios.ordemServico({ id: osId! }))
 
   const salvarDados = useMutation({
     mutationFn: () =>

@@ -25,6 +25,7 @@ import type {
   FluxoCaixaResultado,
   LucroPrejuizoResultado,
   DashboardData,
+  PdfVisualizacao,
   BackupStatus,
   LicencaInfo,
   MigracaoResultado,
@@ -49,6 +50,7 @@ import type {
   ClienteInput,
   ClienteUpdateInput,
   IdInput,
+  PdfIdInput,
   AniversariantesQuery,
   ReceitaListByClienteInput,
   ReceitaOpticaInput,
@@ -228,21 +230,26 @@ interface Api {
     suprimento: (input: CaixaMovimentoInput) => Promise<ApiResult<CaixaAberto>>
   }
   relatorios: {
-    ordemServico: (input: IdInput) => Promise<ApiResult<{ caminho: string } | null>>
-    protocoloSaida: (input: OrdensServicoQuery) => Promise<ApiResult<{ caminho: string } | null>>
-    comprovanteVenda: (input: IdInput) => Promise<ApiResult<{ caminho: string } | null>>
-    carneParcelas: (input: IdInput) => Promise<ApiResult<{ caminho: string } | null>>
-    aniversariantes: (input: AniversariantesQuery) => Promise<ApiResult<{ caminho: string } | null>>
-    receitasDespesas: (input: PeriodoQuery) => Promise<ApiResult<{ caminho: string } | null>>
-    fluxoCaixa: (input: PeriodoQuery) => Promise<ApiResult<{ caminho: string } | null>>
-    lucroPrejuizo: (input: PeriodoQuery) => Promise<ApiResult<{ caminho: string } | null>>
-    inadimplencia: () => Promise<ApiResult<{ caminho: string } | null>>
-    posicaoEstoque: (input: EstoqueListQuery) => Promise<ApiResult<{ caminho: string } | null>>
-    produtosAbaixoMinimo: () => Promise<ApiResult<{ caminho: string } | null>>
-    curvaAbc: (input: PeriodoQuery) => Promise<ApiResult<{ caminho: string } | null>>
-    vendasPorVendedor: (input: PeriodoQuery) => Promise<ApiResult<{ caminho: string } | null>>
-    rankingVendedores: (input: PeriodoQuery) => Promise<ApiResult<{ caminho: string } | null>>
-    comissoes: (input: PeriodoQuery) => Promise<ApiResult<{ caminho: string } | null>>
+    ordemServico: (input: IdInput) => Promise<ApiResult<PdfVisualizacao>>
+    protocoloSaida: (input: OrdensServicoQuery) => Promise<ApiResult<PdfVisualizacao>>
+    comprovanteVenda: (input: IdInput) => Promise<ApiResult<PdfVisualizacao>>
+    carneParcelas: (input: IdInput) => Promise<ApiResult<PdfVisualizacao>>
+    aniversariantes: (input: AniversariantesQuery) => Promise<ApiResult<PdfVisualizacao>>
+    receitasDespesas: (input: PeriodoQuery) => Promise<ApiResult<PdfVisualizacao>>
+    fluxoCaixa: (input: PeriodoQuery) => Promise<ApiResult<PdfVisualizacao>>
+    lucroPrejuizo: (input: PeriodoQuery) => Promise<ApiResult<PdfVisualizacao>>
+    inadimplencia: () => Promise<ApiResult<PdfVisualizacao>>
+    posicaoEstoque: (input: EstoqueListQuery) => Promise<ApiResult<PdfVisualizacao>>
+    produtosAbaixoMinimo: () => Promise<ApiResult<PdfVisualizacao>>
+    curvaAbc: (input: PeriodoQuery) => Promise<ApiResult<PdfVisualizacao>>
+    vendasPorVendedor: (input: PeriodoQuery) => Promise<ApiResult<PdfVisualizacao>>
+    rankingVendedores: (input: PeriodoQuery) => Promise<ApiResult<PdfVisualizacao>>
+    comissoes: (input: PeriodoQuery) => Promise<ApiResult<PdfVisualizacao>>
+  }
+  pdf: {
+    salvar: (input: PdfIdInput) => Promise<ApiResult<{ caminho: string } | null>>
+    imprimir: (input: PdfIdInput) => Promise<ApiResult<{ impresso: boolean }>>
+    descartar: (input: PdfIdInput) => Promise<ApiResult<void>>
   }
   sistema: {
     info: () => Promise<ApiResult<SistemaInfo>>

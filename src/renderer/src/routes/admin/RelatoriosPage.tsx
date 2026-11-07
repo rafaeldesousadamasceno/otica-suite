@@ -1,12 +1,11 @@
 import { type ReactNode, useState } from 'react'
-import { useMutation } from '@tanstack/react-query'
 import { FileText, Printer } from 'lucide-react'
 import { Card } from '@renderer/components/ui/Card'
 import { Input } from '@renderer/components/ui/Input'
 import { Button } from '@renderer/components/ui/Button'
-import { unwrap, ApiCallError } from '@renderer/lib/ipc'
-import { toast } from '@renderer/state/toastStore'
+import { useGerarPdf } from '@renderer/lib/useGerarPdf'
 import type { PeriodoQuery } from '@shared/ipc'
+import type { ApiResult, PdfVisualizacao } from '@shared/types'
 import { hojeLocal, dataLocalISO } from '@shared/data'
 
 function primeiroDiaMesAtualIso(): string {
@@ -23,7 +22,7 @@ interface RelatorioDef {
   titulo: string
   descricao: string
   precisaPeriodo: boolean
-  gerar: (periodo: PeriodoQuery) => Promise<{ caminho: string } | null>
+  gerar: (periodo: PeriodoQuery) => Promise<ApiResult<PdfVisualizacao>>
 }
 
 const RELATORIOS: RelatorioDef[] = [
@@ -31,66 +30,60 @@ const RELATORIOS: RelatorioDef[] = [
     titulo: 'Receitas e despesas',
     descricao: 'Lançamentos financeiros do período.',
     precisaPeriodo: true,
-    gerar: (p) => unwrap(window.api.relatorios.receitasDespesas(p))
+    gerar: (p) => window.api.relatorios.receitasDespesas(p)
   },
   {
     titulo: 'Fluxo de caixa',
     descricao: 'Entradas e saídas com saldo acumulado.',
     precisaPeriodo: true,
-    gerar: (p) => unwrap(window.api.relatorios.fluxoCaixa(p))
+    gerar: (p) => window.api.relatorios.fluxoCaixa(p)
   },
   {
     titulo: 'Lucro / Prejuízo',
     descricao: 'Regimes de caixa e competência, margem por produto.',
     precisaPeriodo: true,
-    gerar: (p) => unwrap(window.api.relatorios.lucroPrejuizo(p))
+    gerar: (p) => window.api.relatorios.lucroPrejuizo(p)
   },
   {
     titulo: 'Inadimplência',
     descricao: 'Parcelas vencidas e ainda em aberto.',
     precisaPeriodo: false,
-    gerar: () => unwrap(window.api.relatorios.inadimplencia())
+    gerar: () => window.api.relatorios.inadimplencia()
   },
   {
     titulo: 'Produtos abaixo do mínimo',
     descricao: 'Itens de estoque que precisam de reposição.',
     precisaPeriodo: false,
-    gerar: () => unwrap(window.api.relatorios.produtosAbaixoMinimo())
+    gerar: () => window.api.relatorios.produtosAbaixoMinimo()
   },
   {
     titulo: 'Curva ABC de produtos',
     descricao: 'Classificação A/B/C pela receita do período.',
     precisaPeriodo: true,
-    gerar: (p) => unwrap(window.api.relatorios.curvaAbc(p))
+    gerar: (p) => window.api.relatorios.curvaAbc(p)
   },
   {
     titulo: 'Vendas por vendedor',
     descricao: 'Quantidade e valor total vendido, por vendedor.',
     precisaPeriodo: true,
-    gerar: (p) => unwrap(window.api.relatorios.vendasPorVendedor(p))
+    gerar: (p) => window.api.relatorios.vendasPorVendedor(p)
   },
   {
     titulo: 'Ranking de vendedores',
     descricao: 'Vendedores ordenados pelo total vendido no período.',
     precisaPeriodo: true,
-    gerar: (p) => unwrap(window.api.relatorios.rankingVendedores(p))
+    gerar: (p) => window.api.relatorios.rankingVendedores(p)
   },
   {
     titulo: 'Comissões',
     descricao: 'Comissões provisionadas, liberadas e canceladas no período.',
     precisaPeriodo: true,
-    gerar: (p) => unwrap(window.api.relatorios.comissoes(p))
+    gerar: (p) => window.api.relatorios.comissoes(p)
   }
 ]
 
 function RelatorioCard({ def, periodo }: { def: RelatorioDef; periodo: PeriodoQuery }): ReactNode {
-  const gerar = useMutation({
-    mutationFn: () => def.gerar(periodo),
-    onSuccess: (resultado) => {
-      if (resultado) toast.ok(`PDF salvo em ${resultado.caminho}`)
-    },
-    onError: (err) => toast.error(err instanceof ApiCallError || err instanceof Error ? err.message : 'Erro inesperado.')
-  })
+  const gerar = useGerarPdf(() => def.gerar(periodo))
 
   return (
     <Card>

@@ -46,6 +46,9 @@
   --viz-ord-2: #3987e5;
   --viz-ord-3: #1c5cab;
 
+  /* Fundo atras das paginas no visualizador de PDF: neutro e escuro nos dois temas, para a folha branca destacar. */
+  --pdf-fundo: #5b6366;
+
   color-scheme: light;
 }
 
@@ -71,6 +74,8 @@
   --viz-ord-1: #1c5cab;
   --viz-ord-2: #3987e5;
   --viz-ord-3: #86b6ef;
+
+  --pdf-fundo: #0a1013;
 
   color-scheme: dark;
 }

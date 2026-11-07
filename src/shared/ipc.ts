@@ -118,6 +118,10 @@ export type UsuarioResetSenhaInput = z.infer<typeof usuarioResetSenhaSchema>
 export const idSchema = z.object({ id: z.number().int().positive() })
 export type IdInput = z.infer<typeof idSchema>
 
+/** PDF aberto no visualizador (id gerado pelo main com `randomUUID`). */
+export const pdfIdSchema = z.object({ id: z.uuid() })
+export type PdfIdInput = z.infer<typeof pdfIdSchema>
+
 // ---------------------------------------------------------------------
 // Clientes (RF-04)
 // ---------------------------------------------------------------------

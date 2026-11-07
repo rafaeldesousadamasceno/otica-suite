@@ -155,6 +155,11 @@ const api = {
     rankingVendedores: (input: unknown) => ipcRenderer.invoke(IPC.relatorios.rankingVendedores, input),
     comissoes: (input: unknown) => ipcRenderer.invoke(IPC.relatorios.comissoes, input)
   },
+  pdf: {
+    salvar: (input: unknown) => ipcRenderer.invoke(IPC.pdf.salvar, input),
+    imprimir: (input: unknown) => ipcRenderer.invoke(IPC.pdf.imprimir, input),
+    descartar: (input: unknown) => ipcRenderer.invoke(IPC.pdf.descartar, input)
+  },
   sistema: {
     info: () => ipcRenderer.invoke(IPC.sistema.info)
   },

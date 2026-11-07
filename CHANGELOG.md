@@ -1,5 +1,18 @@
 # Notas de versão — OptiAleph
 
+## Próxima versão
+
+- Receita óptica: campo DP (longe e perto, olho direito e esquerdo) logo depois
+  do DNP, também no PDF da OS. O campo Altura saiu da tela e do PDF.
+- Importação do MD Óculos: clientes sem nome e sem nenhuma receita não entram
+  mais; os que já tinham entrado são removidos na próxima importação, com
+  backup antes.
+- Visualizador de PDF dentro do sistema: todo relatório abre na tela, com
+  zoom e páginas, e de lá é possível salvar ou imprimir direto (escolhendo a
+  impressora). Antes era preciso salvar o arquivo e abrir fora do sistema.
+- Os relatórios em paisagem saem em paisagem e sem margem dobrada.
+- Com a janela baixa, só o menu lateral rola, e não a tela inteira.
+
 ## 0.1.0
 
 Primeira versão do sistema, substituindo o MD Óculos (Java Swing + MySQL).

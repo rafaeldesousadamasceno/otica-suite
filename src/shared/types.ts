@@ -639,6 +639,14 @@ export const MESES = [
 ] as const
 
 /** Resultado padrao de toda chamada IPC - nunca lanca a excecao crua para a UI. */
+/** PDF gerado no main e aberto no visualizador do sistema (Salvar e Imprimir voltam pelo `id`). */
+export interface PdfVisualizacao {
+  id: string
+  nomeArquivo: string
+  titulo: string
+  bytes: Uint8Array
+}
+
 export type ApiResult<T> =
   | { ok: true; data: T }
   | { ok: false; error: { code: string; message: string } }

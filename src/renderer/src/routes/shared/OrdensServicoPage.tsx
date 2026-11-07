@@ -1,13 +1,13 @@
 import { type ReactNode, useState } from 'react'
-import { useMutation, useQuery } from '@tanstack/react-query'
+import { useQuery } from '@tanstack/react-query'
 import { Search, FilePlus2, AlertTriangle, Printer } from 'lucide-react'
 import { Card } from '@renderer/components/ui/Card'
 import { Input } from '@renderer/components/ui/Input'
 import { Select } from '@renderer/components/ui/Select'
 import { Button } from '@renderer/components/ui/Button'
 import { Badge } from '@renderer/components/ui/Badge'
-import { unwrap, ApiCallError } from '@renderer/lib/ipc'
-import { toast } from '@renderer/state/toastStore'
+import { unwrap } from '@renderer/lib/ipc'
+import { useGerarPdf } from '@renderer/lib/useGerarPdf'
 import { useDebouncedValue } from '@renderer/lib/useDebouncedValue'
 import { TOM_SITUACAO_OS } from '@renderer/lib/situacaoOSTone'
 import { FLUXO_SITUACAO_OS } from '@shared/types'
@@ -40,13 +40,7 @@ export function OrdensServicoPage(): ReactNode {
     queryFn: () => unwrap(window.api.ordensServico.list(query))
   })
 
-  const imprimirProtocolo = useMutation({
-    mutationFn: () => unwrap(window.api.relatorios.protocoloSaida(query)),
-    onSuccess: (resultado) => {
-      if (resultado) toast.ok(`PDF salvo em ${resultado.caminho}`)
-    },
-    onError: (err) => toast.error(err instanceof ApiCallError || err instanceof Error ? err.message : 'Erro inesperado.')
-  })
+  const imprimirProtocolo = useGerarPdf(() => window.api.relatorios.protocoloSaida(query))
 
   return (
     <div className="flex flex-col gap-4">

@@ -152,6 +152,12 @@ export const IPC = {
     rankingVendedores: 'relatorios:rankingVendedores',
     comissoes: 'relatorios:comissoes'
   },
+  /** Visualizador de PDF: o PDF gerado por `relatorios:*` fica no main ate ser salvo, impresso ou descartado. */
+  pdf: {
+    salvar: 'pdf:salvar',
+    imprimir: 'pdf:imprimir',
+    descartar: 'pdf:descartar'
+  },
   sistema: {
     info: 'sistema:info'
   },
