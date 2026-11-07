@@ -8,6 +8,7 @@ import { Button } from '@renderer/components/ui/Button'
 import { unwrap, ApiCallError } from '@renderer/lib/ipc'
 import { receitaOpticaInputSchema } from '@shared/ipc'
 import { toast } from '@renderer/state/toastStore'
+import { enterAvancaCampo } from '@renderer/lib/enterAvancaCampo'
 import type { ReceitaOptica } from '@shared/types'
 
 interface GrauForm {
@@ -254,6 +255,8 @@ export function ReceitaOpticaFormDialog({ open, onClose, clienteId, receita }: P
     <Dialog open={open} onClose={onClose} title={editando ? 'Editar receita óptica' : 'Nova receita óptica'} className="max-w-4xl">
       <form
         className="flex flex-col gap-4"
+        // Enter so passa para o proximo campo: a receita so salva pelo botao.
+        onKeyDown={enterAvancaCampo}
         onSubmit={(e) => {
           e.preventDefault()
           mutation.mutate()
