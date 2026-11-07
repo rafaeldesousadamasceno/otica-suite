@@ -246,6 +246,7 @@ interface Api {
     vendasPorVendedor: (input: PeriodoQuery) => Promise<ApiResult<PdfVisualizacao>>
     rankingVendedores: (input: PeriodoQuery) => Promise<ApiResult<PdfVisualizacao>>
     comissoes: (input: PeriodoQuery) => Promise<ApiResult<PdfVisualizacao>>
+    manual: () => Promise<ApiResult<PdfVisualizacao>>
   }
   pdf: {
     salvar: (input: PdfIdInput) => Promise<ApiResult<{ caminho: string } | null>>

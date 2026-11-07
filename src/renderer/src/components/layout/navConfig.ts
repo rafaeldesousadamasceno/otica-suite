@@ -21,7 +21,8 @@ import {
   KeyRound,
   Landmark,
   FileText,
-  MessageCircle
+  MessageCircle,
+  CircleHelp
 } from 'lucide-react'
 import type { Perfil } from '@shared/types'
 
@@ -62,7 +63,8 @@ export const NAV_ITEMS: Record<Perfil, NavItem[]> = {
     { label: 'Auditoria', path: '/auditoria', icon: ScrollText },
     { label: 'Backup', path: '/backup', icon: DatabaseBackup },
     { label: 'Importar Dados', path: '/importar-dados', icon: DatabaseZap },
-    { label: 'Licença', path: '/licenca', icon: KeyRound, alertaLicenca: true }
+    { label: 'Licença', path: '/licenca', icon: KeyRound, alertaLicenca: true },
+    { label: 'Ajuda', path: '/ajuda', icon: CircleHelp }
   ],
   vendedor: [
     { label: 'Início', path: '/', icon: LayoutDashboard },
@@ -73,6 +75,7 @@ export const NAV_ITEMS: Record<Perfil, NavItem[]> = {
     { label: 'Contas a Receber', path: '/contas-receber', icon: CircleDollarSign },
     { label: 'Produtos', path: '/produtos', icon: Package },
     { label: 'Estoque', path: '/estoque', icon: Boxes },
-    { label: 'Aniversariantes', path: '/aniversariantes', icon: Cake }
+    { label: 'Aniversariantes', path: '/aniversariantes', icon: Cake },
+    { label: 'Ajuda', path: '/ajuda', icon: CircleHelp }
   ]
 }

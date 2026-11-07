@@ -7,7 +7,8 @@ import {
   periodoQuerySchema,
   estoqueListQuerySchema
 } from '@shared/ipc'
-import { requirePermissao } from '@main/auth/session'
+import { app } from 'electron'
+import { requirePermissao, requireSessao } from '@main/auth/session'
 import { ordemServicoRepository } from '@main/repositories/ordemServicoRepository'
 import { receitaOpticaRepository } from '@main/repositories/receitaOpticaRepository'
 import { ordemServicoService } from '@main/services/ordemServicoService'
@@ -31,12 +32,24 @@ import {
 } from '@main/relatorios/financeiroHtml'
 import { montarHtmlEstoque, calcularCurvaAbc, montarHtmlCurvaAbc } from '@main/relatorios/estoqueHtml'
 import { montarHtmlVendasPorVendedor, montarHtmlRankingVendedores, montarHtmlComissoes } from '@main/relatorios/vendedoresHtml'
+import { montarHtmlManual } from '@main/relatorios/manualHtml'
+import { secoesDoPerfil } from '@shared/ajuda'
 import { Errors } from '@main/errors'
 import { hojeLocal } from '@shared/data'
 
 const dataHojeSufixo = (): string => hojeLocal()
 
 export function registerRelatoriosIpc(): void {
+  // Manual do usuario: so as secoes que o perfil de quem pediu pode usar.
+  handleIpc(IPC.relatorios.manual, null, async () => {
+    const sessao = requireSessao()
+    const html = montarHtmlManual(secoesDoPerfil(sessao.usuario.perfil), empresaService.get(), {
+      versao: app.getVersion(),
+      geradoEm: hojeLocal()
+    })
+    return gerarPdfVisualizacao(html, 'Manual-do-Usuario.pdf', 'Manual do Usuário')
+  })
+
   handleIpc(IPC.relatorios.ordemServico, idSchema, async (input) => {
     requirePermissao('ordens_servico', 'ver')
     const os = ordemServicoRepository.buscarPorId(input.id)

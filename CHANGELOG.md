@@ -33,6 +33,11 @@
   não mudar quando o custo do produto mudar. Vendas antigas usam o custo atual.
 - O painel não deixa mais de contar produtos abaixo do mínimo ou OS atrasadas
   quando há muitos registros.
+- Ajuda dentro do sistema: página com sumário e busca (sem acento) e o botão
+  "Ajuda" na barra superior, que abre direto a seção da tela em que a pessoa
+  está. O Vendedor só vê as seções que usa. O mesmo conteúdo gera o "Manual em
+  PDF", com capa na cor da ótica e sumário, aberto no visualizador.
+- Com a tela baixa, textos só para leitor de tela não esticam mais a página.
 - Inadimplência mostra os dias em atraso; vendas por vendedor mostram ticket
   médio e participação.
 - O relatório de produtos abaixo do mínimo não deixa mais produtos de fora

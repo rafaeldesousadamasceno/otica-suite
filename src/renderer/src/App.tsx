@@ -30,6 +30,7 @@ import { LicencaPage } from '@renderer/routes/admin/LicencaPage'
 import { AniversariantesPage } from '@renderer/routes/shared/AniversariantesPage'
 import { RelatoriosPage } from '@renderer/routes/admin/RelatoriosPage'
 import { RelacionamentoPage } from '@renderer/routes/shared/RelacionamentoPage'
+import { AjudaPage } from '@renderer/routes/shared/AjudaPage'
 
 function aplicarTemaEAcento(cor: string, tema: 'claro' | 'escuro' | 'sistema'): void {
   document.documentElement.style.setProperty('--accent', cor)
@@ -131,6 +132,7 @@ export default function App(): ReactNode {
           <Route path="/estoque" element={<EstoquePage />} />
           <Route path="/aniversariantes" element={<AniversariantesPage />} />
           <Route path="/relacionamento" element={<RelacionamentoPage />} />
+          <Route path="/ajuda" element={<AjudaPage />} />
           {perfil === 'admin' && (
             <>
               <Route path="/contas-pagar" element={<ContasPagarPage />} />

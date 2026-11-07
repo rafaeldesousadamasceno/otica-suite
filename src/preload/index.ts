@@ -153,7 +153,8 @@ const api = {
     curvaAbc: (input: unknown) => ipcRenderer.invoke(IPC.relatorios.curvaAbc, input),
     vendasPorVendedor: (input: unknown) => ipcRenderer.invoke(IPC.relatorios.vendasPorVendedor, input),
     rankingVendedores: (input: unknown) => ipcRenderer.invoke(IPC.relatorios.rankingVendedores, input),
-    comissoes: (input: unknown) => ipcRenderer.invoke(IPC.relatorios.comissoes, input)
+    comissoes: (input: unknown) => ipcRenderer.invoke(IPC.relatorios.comissoes, input),
+    manual: () => ipcRenderer.invoke(IPC.relatorios.manual)
   },
   pdf: {
     salvar: (input: unknown) => ipcRenderer.invoke(IPC.pdf.salvar, input),

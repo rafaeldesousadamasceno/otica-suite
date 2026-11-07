@@ -1,10 +1,12 @@
 import { type ReactNode, useState } from 'react'
-import { LogOut, KeyRound, ChevronDown } from 'lucide-react'
+import { LogOut, KeyRound, ChevronDown, CircleHelp } from 'lucide-react'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { useQueryClient } from '@tanstack/react-query'
 import { useAuthStore } from '@renderer/state/authStore'
 import { unwrap } from '@renderer/lib/ipc'
 import { toast } from '@renderer/state/toastStore'
 import { ChangePasswordDialog } from '@renderer/components/ChangePasswordDialog'
+import { secaoParaRota, secoesDoPerfil } from '@shared/ajuda'
 
 export function Topbar(): ReactNode {
   const sessao = useAuthStore((s) => s.sessao)
@@ -12,6 +14,8 @@ export function Topbar(): ReactNode {
   const queryClient = useQueryClient()
   const [menuOpen, setMenuOpen] = useState(false)
   const [senhaOpen, setSenhaOpen] = useState(false)
+  const { pathname } = useLocation()
+  const navigate = useNavigate()
 
   if (!sessao) return null
 
@@ -33,6 +37,22 @@ export function Topbar(): ReactNode {
   return (
     <header className="flex h-16 shrink-0 items-center justify-between border-b border-[var(--rule)] bg-[var(--surface)] px-6">
       <span className="text-sm capitalize text-[var(--ink-3)]">{hoje}</span>
+
+      {/* "?": abre a ajuda na secao da tela em que a pessoa esta. */}
+      {pathname !== '/ajuda' && (
+        <button
+          type="button"
+          onClick={() => {
+            const secao = secaoParaRota(pathname, secoesDoPerfil(sessao.usuario.perfil))
+            navigate({ pathname: '/ajuda', hash: secao ? `#${secao.id}` : '' })
+          }}
+          title="Ajuda desta tela"
+          aria-label="Ajuda desta tela"
+          className="ml-auto mr-3 flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-sm text-[var(--ink-2)] hover:bg-[var(--surface-2)] hover:text-[var(--ink)]"
+        >
+          <CircleHelp className="size-4" /> Ajuda
+        </button>
+      )}
 
       <div className="relative">
         <button

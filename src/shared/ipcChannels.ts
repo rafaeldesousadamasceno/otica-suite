@@ -150,7 +150,8 @@ export const IPC = {
     curvaAbc: 'relatorios:curvaAbc',
     vendasPorVendedor: 'relatorios:vendasPorVendedor',
     rankingVendedores: 'relatorios:rankingVendedores',
-    comissoes: 'relatorios:comissoes'
+    comissoes: 'relatorios:comissoes',
+    manual: 'relatorios:manual'
   },
   /** Visualizador de PDF: o PDF gerado por `relatorios:*` fica no main ate ser salvo, impresso ou descartado. */
   pdf: {

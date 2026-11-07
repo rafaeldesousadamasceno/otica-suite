@@ -196,6 +196,8 @@ export interface MontarDocumentoInput {
   corpo: string
   /** CSS so deste documento (ex.: canhotos do carne), alem do padrao. */
   estiloExtra?: string
+  /** Documento com capa propria (ex.: o manual): sem a faixa de cabecalho nem o titulo padrao. */
+  semCabecalho?: boolean
 }
 
 export function montarDocumento(input: MontarDocumentoInput): string {
@@ -211,14 +213,18 @@ export function montarDocumento(input: MontarDocumentoInput): string {
 <style>${estilo(input.empresa, orientacao, emitidoEm)}${input.estiloExtra ?? ''}</style>
 </head>
 <body>
-  ${cabecalho(input.empresa)}
+  ${
+    input.semCabecalho
+      ? ''
+      : `${cabecalho(input.empresa)}
   <div class="titulo-doc">
     <div>
       <h1>${escapeHtml(input.titulo)}</h1>
       ${input.subtitulo ? `<p class="subtitulo">${escapeHtml(input.subtitulo)}</p>` : ''}
     </div>
     ${chips.length ? `<div class="chips">${chips.map((c) => `<span class="chip">${escapeHtml(c)}</span>`).join('')}</div>` : ''}
-  </div>
+  </div>`
+  }
   ${input.corpo}
 </body>
 </html>`
