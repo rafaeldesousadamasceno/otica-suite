@@ -136,6 +136,8 @@ export function ImportarDadosPage(): ReactNode {
             <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
               <ResumoItem label="Clientes importados" valor={resultado.clientesImportados} />
               <ResumoItem label="Clientes ignorados" valor={resultado.clientesIgnorados} />
+              <ResumoItem label="Clientes sem nome e sem receita (não importados)" valor={resultado.clientesSemNomeIgnorados} />
+              <ResumoItem label="Clientes sem nome e sem receita removidos" valor={resultado.clientesSemNomeRemovidos} />
               <ResumoItem label="Receitas ópticas e vendas importadas" valor={resultado.examesImportados} />
               <ResumoItem label="Receitas ópticas e vendas ignoradas" valor={resultado.examesIgnorados} />
               <ResumoItem label="Despesas importadas" valor={resultado.despesasImportadas} />

@@ -189,6 +189,15 @@ const dnp = z
   .refine((v) => v === null || Number.isFinite(v), 'DNP inválido')
   .nullable()
 
+// DP por olho (migracao 008): mesma regra do DNP. Opcional para continuar
+// aceitando payloads de antes do campo existir.
+const dp = z
+  .union([z.string(), z.number()])
+  .transform((v) => (v === '' || v === null || v === undefined ? null : Number(String(v).replace(',', '.'))))
+  .refine((v) => v === null || Number.isFinite(v), 'DP inválido')
+  .nullable()
+  .optional()
+
 export const receitaOpticaInputSchema = z.object({
   clienteId: z.number().int().positive(),
   profissionalNome: z.string().trim().optional().nullable().or(z.literal('')),
@@ -198,22 +207,27 @@ export const receitaOpticaInputSchema = z.object({
   longeOdCil: grauEsfCil,
   longeOdEixo: eixo,
   longeOdDnp: dnp,
+  longeOdDp: dp,
   longeOeEsf: grauEsfCil,
   longeOeCil: grauEsfCil,
   longeOeEixo: eixo,
   longeOeDnp: dnp,
+  longeOeDp: dp,
 
   pertoOdEsf: grauEsfCil,
   pertoOdCil: grauEsfCil,
   pertoOdEixo: eixo,
   pertoOdDnp: dnp,
+  pertoOdDp: dp,
   pertoOeEsf: grauEsfCil,
   pertoOeCil: grauEsfCil,
   pertoOeEixo: eixo,
   pertoOeDnp: dnp,
+  pertoOeDp: dp,
 
   adicao: grauEsfCil,
-  altura: dnp,
+  // Legado (migracao 008): o formulario nao envia mais.
+  altura: dnp.optional(),
   tipoLente: z.string().trim().optional().nullable().or(z.literal('')),
   tratamentos: z.string().trim().optional().nullable().or(z.literal('')),
   armacao: z.string().trim().optional().nullable().or(z.literal('')),

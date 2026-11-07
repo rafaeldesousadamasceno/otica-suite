@@ -317,6 +317,53 @@ function corrigirCampos(tabela: string, id: number, novos: Record<string, string
   return true
 }
 
+/**
+ * Cliente sem nome que veio de uma importacao anterior e nao tem nenhuma
+ * receita no sistema antigo: sai do banco. So remove se, no OptiAleph, ele
+ * continua sem nome (ninguem completou o cadastro) e nao tem nada atrelado -
+ * receita, venda, OS, conta a receber ou contato do Relacionamento. Devolve
+ * `false` quando o cliente fica.
+ */
+export function removerClienteImportadoSemNome(clienteId: number): boolean {
+  const db = getDb()
+  db.exec('BEGIN IMMEDIATE')
+  try {
+    const cliente = db.prepare(`SELECT nome FROM cliente WHERE id = :id`).get({ id: clienteId }) as
+      | { nome: string | null }
+      | undefined
+    const continuaSemNome = cliente !== undefined && !(cliente.nome ?? '').trim()
+
+    const vinculo = continuaSemNome
+      ? (db
+          .prepare(
+            `SELECT EXISTS (SELECT 1 FROM receita_optica WHERE cliente_id = :id)
+                 OR EXISTS (SELECT 1 FROM venda WHERE cliente_id = :id)
+                 OR EXISTS (SELECT 1 FROM ordem_servico WHERE cliente_id = :id)
+                 OR EXISTS (SELECT 1 FROM conta_receber WHERE cliente_id = :id)
+                 OR EXISTS (SELECT 1 FROM contato WHERE cliente_id = :id) AS tem`
+          )
+          .get({ id: clienteId }) as { tem: number })
+      : null
+
+    if (!continuaSemNome || vinculo?.tem === 1) {
+      db.exec('ROLLBACK')
+      return false
+    }
+
+    db.prepare(
+      `DELETE FROM migracao_registro
+       WHERE origem_sistema = :sistema AND destino_tabela = 'cliente' AND destino_id = :id`
+    ).run({ sistema: SISTEMA_ORIGEM, id: clienteId })
+    db.prepare(`DELETE FROM cliente WHERE id = :id`).run({ id: clienteId })
+
+    db.exec('COMMIT')
+    return true
+  } catch (err) {
+    db.exec('ROLLBACK')
+    throw err
+  }
+}
+
 export function corrigirTextosCliente(
   clienteId: number,
   dados: Pick<ClienteTransformado, 'nome' | 'logradouro' | 'numero' | 'complemento' | 'bairro' | 'cidade'>

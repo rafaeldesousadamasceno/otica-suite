@@ -3,6 +3,7 @@ import { auditoriaRepository } from '@main/repositories/auditoriaRepository'
 import * as mysqlSource from '@main/migracao/mysqlSource'
 import * as transformar from '@main/migracao/transformar'
 import * as migracaoRepository from '@main/repositories/migracaoRepository'
+import * as backupRepository from '@main/repositories/backupRepository'
 import { Errors } from '@main/errors'
 import type { MigracaoAviso, MigracaoResultado } from '@shared/types'
 import type { MigracaoConexaoInput } from '@shared/ipc'
@@ -40,13 +41,17 @@ export const migracaoService = {
 
     let clientesImportados = 0
     let clientesIgnorados = 0
+    let clientesSemNomeIgnorados = 0
+    let clientesSemNomeRemovidos = 0
     let examesImportados = 0
     let examesIgnorados = 0
     let despesasImportadas = 0
     let despesasIgnoradas = 0
     let textosCorrigidos = 0
 
-    // --------------------------- clientes ---------------------------
+    // --------------------------- leitura ---------------------------
+    // Os exames sao lidos ANTES do laco de clientes: no sistema antigo cada
+    // exame e uma receita, e um cliente sem nome so entra se tiver ao menos uma.
     let clientesOrigem
     try {
       clientesOrigem = await mysqlSource.lerClientes(config)
@@ -54,13 +59,56 @@ export const migracaoService = {
       throw Errors.validacao(`Não foi possível ler os clientes do banco antigo: ${mensagemErro(err)}`)
     }
 
+    let examesOrigem
+    try {
+      examesOrigem = await mysqlSource.lerExames(config)
+    } catch (err) {
+      throw Errors.validacao(`Não foi possível ler os exames do banco antigo: ${mensagemErro(err)}`)
+    }
+
+    const idsClienteComExame = new Set(
+      examesOrigem.map((e) => e.id_cliente).filter((id): id is number => id !== null)
+    )
+
+    // Backup feito uma vez so, e so se houver algum cliente sem nome para remover.
+    let backupAntesDeRemover: boolean | null = null
+    const clientesRemovidosIds: number[] = []
+    function backupFeitoParaRemover(): boolean {
+      if (backupAntesDeRemover === null) {
+        try {
+          backupAntesDeRemover = backupRepository.criarArquivoBackup().integro
+        } catch {
+          backupAntesDeRemover = false
+        }
+        if (!backupAntesDeRemover) {
+          avisos.push({
+            tabela: 'clientes',
+            origemId: 0,
+            motivo: 'O backup antes de remover os clientes sem nome falhou. Nenhum cliente foi removido.'
+          })
+        }
+      }
+      return backupAntesDeRemover
+    }
+
+    // --------------------------- clientes ---------------------------
     for (const c of clientesOrigem) {
+      const semNomeESemReceita = transformar.nomeVazio(c.nome) && !idsClienteComExame.has(c.id_cliente)
       const clienteJaId = migracaoRepository.jaImportado('clientes', c.id_cliente)
       if (clienteJaId !== null) {
+        if (semNomeESemReceita) {
+          if (backupFeitoParaRemover() && migracaoRepository.removerClienteImportadoSemNome(clienteJaId)) {
+            clientesSemNomeRemovidos++
+            clientesRemovidosIds.push(clienteJaId)
+          } else {
+            clientesIgnorados++
+          }
+          continue
+        }
         clientesIgnorados++
         if (
           migracaoRepository.corrigirTextosCliente(clienteJaId, {
-            nome: transformar.normalizarNomeProprio(c.nome),
+            nome: transformar.normalizarNomeProprio(c.nome ?? ''),
             logradouro: c.logradouro,
             numero: c.numero,
             complemento: c.complemento,
@@ -72,10 +120,15 @@ export const migracaoService = {
         }
         continue
       }
+      if (semNomeESemReceita) {
+        // Nao grava em migracao_registro: se um dia ganhar uma receita no sistema antigo, entra na proxima importacao.
+        clientesSemNomeIgnorados++
+        continue
+      }
       try {
         migracaoRepository.importarCliente(
           {
-            nome: transformar.normalizarNomeProprio(c.nome),
+            nome: transformar.normalizarNomeProprio(c.nome ?? ''),
             dataNasc: transformar.dataOuNull(c.data_nasc),
             cpf: transformar.cpfOuNull(c.cpf),
             celular: transformar.celularOuNull(c.celular),
@@ -95,15 +148,17 @@ export const migracaoService = {
       }
     }
 
+    if (clientesRemovidosIds.length > 0) {
+      auditoriaRepository.registrar({
+        usuarioId: sessao.usuario.id,
+        acao: 'REMOVER_CLIENTES_SEM_NOME',
+        entidade: 'cliente',
+        valorNovo: { quantidade: clientesRemovidosIds.length, ids: clientesRemovidosIds }
+      })
+    }
+
     // --------------------------- exames ---------------------------
     const produtoGenericoId = migracaoRepository.garantirProdutoGenerico()
-
-    let examesOrigem
-    try {
-      examesOrigem = await mysqlSource.lerExames(config)
-    } catch (err) {
-      throw Errors.validacao(`Não foi possível ler os exames do banco antigo: ${mensagemErro(err)}`)
-    }
 
     for (const e of examesOrigem) {
       const vendaJaId = migracaoRepository.jaImportado('exames', e.id_exame)
@@ -226,6 +281,8 @@ export const migracaoService = {
     return {
       clientesImportados,
       clientesIgnorados,
+      clientesSemNomeIgnorados,
+      clientesSemNomeRemovidos,
       examesImportados,
       examesIgnorados,
       despesasImportadas,

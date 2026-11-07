@@ -31,12 +31,12 @@ export function ReceitaOpticaCard({ receita }: { receita: ReceitaOptica }): Reac
       <div className="grid grid-cols-1 gap-px bg-[var(--rule)] sm:grid-cols-2">
         {(
           [
-            ['Longe', receita.longeOdEsf, receita.longeOdCil, receita.longeOdEixo, receita.longeOdDnp,
-             receita.longeOeEsf, receita.longeOeCil, receita.longeOeEixo, receita.longeOeDnp],
-            ['Perto', receita.pertoOdEsf, receita.pertoOdCil, receita.pertoOdEixo, receita.pertoOdDnp,
-             receita.pertoOeEsf, receita.pertoOeCil, receita.pertoOeEixo, receita.pertoOeDnp]
+            ['Longe', receita.longeOdEsf, receita.longeOdCil, receita.longeOdEixo, receita.longeOdDnp, receita.longeOdDp,
+             receita.longeOeEsf, receita.longeOeCil, receita.longeOeEixo, receita.longeOeDnp, receita.longeOeDp],
+            ['Perto', receita.pertoOdEsf, receita.pertoOdCil, receita.pertoOdEixo, receita.pertoOdDnp, receita.pertoOdDp,
+             receita.pertoOeEsf, receita.pertoOeCil, receita.pertoOeEixo, receita.pertoOeDnp, receita.pertoOeDp]
           ] as const
-        ).map(([titulo, odEsf, odCil, odEixo, odDnp, oeEsf, oeCil, oeEixo, oeDnp]) => (
+        ).map(([titulo, odEsf, odCil, odEixo, odDnp, odDp, oeEsf, oeCil, oeEixo, oeDnp, oeDp]) => (
           <div key={titulo} className="bg-[var(--surface)] p-3">
             <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[var(--accent)]">{titulo}</p>
             <table className="w-full text-xs">
@@ -47,6 +47,7 @@ export function ReceitaOpticaCard({ receita }: { receita: ReceitaOptica }): Reac
                   <th className="font-normal">Cil</th>
                   <th className="font-normal">Eixo</th>
                   <th className="font-normal">DNP</th>
+                  <th className="font-normal">DP</th>
                 </tr>
               </thead>
               <tbody className="font-mono-tab text-[var(--ink)]">
@@ -56,6 +57,7 @@ export function ReceitaOpticaCard({ receita }: { receita: ReceitaOptica }): Reac
                   <td className="text-center">{fmt(odCil)}</td>
                   <td className="text-center">{odEixo ?? '—'}°</td>
                   <td className="text-center">{fmt(odDnp, 1)}</td>
+                  <td className="text-center">{fmt(odDp, 1)}</td>
                 </tr>
                 <tr>
                   <td className="text-[var(--ink-3)]">OE</td>
@@ -63,6 +65,7 @@ export function ReceitaOpticaCard({ receita }: { receita: ReceitaOptica }): Reac
                   <td className="text-center">{fmt(oeCil)}</td>
                   <td className="text-center">{oeEixo ?? '—'}°</td>
                   <td className="text-center">{fmt(oeDnp, 1)}</td>
+                  <td className="text-center">{fmt(oeDp, 1)}</td>
                 </tr>
               </tbody>
             </table>

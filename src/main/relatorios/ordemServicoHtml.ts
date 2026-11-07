@@ -30,12 +30,13 @@ function escapeHtml(valor: string): string {
 function grau(valor: number | null): string {
   if (valor === null || valor === undefined || Number.isNaN(valor)) return '—'
   const sinal = valor > 0 ? '+' : ''
-  return `${sinal}${valor.toFixed(2)}`
+  return `${sinal}${valor.toFixed(2).replace('.', ',')}`
 }
 
-function eixoOuDnp(valor: number | null): string {
+/** Eixo, DNP e DP: sem sinal, com virgula decimal (31,5). */
+function eixoOuMedida(valor: number | null): string {
   if (valor === null || valor === undefined || Number.isNaN(valor)) return '—'
-  return String(valor)
+  return String(valor).replace('.', ',')
 }
 
 function montarLetterhead(empresa: Empresa): string {
@@ -72,13 +73,13 @@ function montarTabelaReceita(receita: ReceitaOptica): string {
       <thead>
         <tr>
           <th></th>
-          <th colspan="4">Olho Direito (OD)</th>
-          <th colspan="4">Olho Esquerdo (OE)</th>
+          <th colspan="5">Olho Direito (OD)</th>
+          <th colspan="5">Olho Esquerdo (OE)</th>
         </tr>
         <tr>
           <th></th>
-          <th>ESF</th><th>CIL</th><th>EIXO</th><th>DNP</th>
-          <th>ESF</th><th>CIL</th><th>EIXO</th><th>DNP</th>
+          <th>ESF</th><th>CIL</th><th>EIXO</th><th>DNP</th><th>DP</th>
+          <th>ESF</th><th>CIL</th><th>EIXO</th><th>DNP</th><th>DP</th>
         </tr>
       </thead>
       <tbody>
@@ -86,27 +87,31 @@ function montarTabelaReceita(receita: ReceitaOptica): string {
           <td class="rotulo">Longe</td>
           <td>${grau(receita.longeOdEsf)}</td>
           <td>${grau(receita.longeOdCil)}</td>
-          <td>${eixoOuDnp(receita.longeOdEixo)}</td>
-          <td>${eixoOuDnp(receita.longeOdDnp)}</td>
+          <td>${eixoOuMedida(receita.longeOdEixo)}</td>
+          <td>${eixoOuMedida(receita.longeOdDnp)}</td>
+          <td>${eixoOuMedida(receita.longeOdDp)}</td>
           <td>${grau(receita.longeOeEsf)}</td>
           <td>${grau(receita.longeOeCil)}</td>
-          <td>${eixoOuDnp(receita.longeOeEixo)}</td>
-          <td>${eixoOuDnp(receita.longeOeDnp)}</td>
+          <td>${eixoOuMedida(receita.longeOeEixo)}</td>
+          <td>${eixoOuMedida(receita.longeOeDnp)}</td>
+          <td>${eixoOuMedida(receita.longeOeDp)}</td>
         </tr>
         <tr>
           <td class="rotulo">Perto</td>
           <td>${grau(receita.pertoOdEsf)}</td>
           <td>${grau(receita.pertoOdCil)}</td>
-          <td>${eixoOuDnp(receita.pertoOdEixo)}</td>
-          <td>${eixoOuDnp(receita.pertoOdDnp)}</td>
+          <td>${eixoOuMedida(receita.pertoOdEixo)}</td>
+          <td>${eixoOuMedida(receita.pertoOdDnp)}</td>
+          <td>${eixoOuMedida(receita.pertoOdDp)}</td>
           <td>${grau(receita.pertoOeEsf)}</td>
           <td>${grau(receita.pertoOeCil)}</td>
-          <td>${eixoOuDnp(receita.pertoOeEixo)}</td>
-          <td>${eixoOuDnp(receita.pertoOeDnp)}</td>
+          <td>${eixoOuMedida(receita.pertoOeEixo)}</td>
+          <td>${eixoOuMedida(receita.pertoOeDnp)}</td>
+          <td>${eixoOuMedida(receita.pertoOeDp)}</td>
         </tr>
         <tr>
           <td class="rotulo">Adição</td>
-          <td colspan="8">${grau(receita.adicao)}</td>
+          <td colspan="10">${grau(receita.adicao)}</td>
         </tr>
       </tbody>
     </table>

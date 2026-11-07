@@ -92,19 +92,24 @@ export interface ReceitaOptica {
   longeOdCil: number | null
   longeOdEixo: number | null
   longeOdDnp: number | null
+  longeOdDp: number | null
   longeOeEsf: number | null
   longeOeCil: number | null
   longeOeEixo: number | null
   longeOeDnp: number | null
+  longeOeDp: number | null
   pertoOdEsf: number | null
   pertoOdCil: number | null
   pertoOdEixo: number | null
   pertoOdDnp: number | null
+  pertoOdDp: number | null
   pertoOeEsf: number | null
   pertoOeCil: number | null
   pertoOeEixo: number | null
   pertoOeDnp: number | null
+  pertoOeDp: number | null
   adicao: number | null
+  /** Legado: nao aparece mais na tela nem no PDF (migracao 008). Mantido para nao perder o dado antigo. */
   altura: number | null
   tipoLente: string | null
   tratamentos: string | null
@@ -579,6 +584,10 @@ export interface MigracaoAviso {
 export interface MigracaoResultado {
   clientesImportados: number
   clientesIgnorados: number
+  /** Clientes sem nome e sem nenhuma receita no sistema antigo: nao entram. */
+  clientesSemNomeIgnorados: number
+  /** Clientes sem nome e sem receita que tinham entrado numa importacao anterior e foram removidos. */
+  clientesSemNomeRemovidos: number
   examesImportados: number
   examesIgnorados: number
   despesasImportadas: number
