@@ -1136,6 +1136,7 @@ chave assinada. Mantém o registro das licenças emitidas.
 | **F5 — Gestão** | Caixa, fluxo, lucro/prejuízo, relatórios, dashboard | RF-11.3, RF-11.4, RF-12, RF-14 |
 | **F6 — Produto** | Backup, licença, instalador, atualização, migração de dados | RF-13, RF-16, seção 11 |
 | **F7 — Piloto** | Instalação em ótica real, ajustes, documentação, treinamento | — |
+| **F8 — Nuvem** (futuro) | Sincronização offline→online (Supabase) e app de gestão no celular, plano Premium. A base do banco já existe (migração 010) | ver `docs/Arquitetura-Sincronizacao.md` |
 
 **Sugestão de sequência de validação:** ao final de F2 o sistema já substitui o MD Óculos atual no
 essencial. Vale instalar numa ótica amiga nesse ponto, antes de construir F3–F5 — feedback real

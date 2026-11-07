@@ -37,6 +37,10 @@
   "Ajuda" na barra superior, que abre direto a seção da tela em que a pessoa
   está. O Vendedor só vê as seções que usa. O mesmo conteúdo gera o "Manual em
   PDF", com capa na cor da ótica e sumário, aberto no visualizador.
+- Base para a sincronização com a nuvem: cada registro ganha um identificador
+  único e um número de alteração, e as exclusões ficam registradas. Nada é
+  enviado ainda; o plano (Supabase e app de celular) está em
+  docs/Arquitetura-Sincronizacao.md.
 - Com a tela baixa, textos só para leitor de tela não esticam mais a página.
 - Inadimplência mostra os dias em atraso; vendas por vendedor mostram ticket
   médio e participação.
