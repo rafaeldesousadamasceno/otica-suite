@@ -129,7 +129,21 @@ const api = {
   },
   migracao: {
     testarConexao: (input: unknown) => ipcRenderer.invoke(IPC.migracao.testarConexao, input),
-    importar: (input: unknown) => ipcRenderer.invoke(IPC.migracao.importar, input)
+    analisar: (input: unknown) => ipcRenderer.invoke(IPC.migracao.analisar, input),
+    importar: (input: unknown) => ipcRenderer.invoke(IPC.migracao.importar, input),
+    pendenciasListar: (input: unknown) => ipcRenderer.invoke(IPC.migracao.pendenciasListar, input),
+    pendenciasResumo: (input: unknown) => ipcRenderer.invoke(IPC.migracao.pendenciasResumo, input),
+    pendenciaAplicar: (input: unknown) => ipcRenderer.invoke(IPC.migracao.pendenciaAplicar, input),
+    pendenciaResolver: (input: unknown) => ipcRenderer.invoke(IPC.migracao.pendenciaResolver, input),
+    pendenciaIgnorar: (input: unknown) => ipcRenderer.invoke(IPC.migracao.pendenciaIgnorar, input),
+    pendenciaReabrir: (input: unknown) => ipcRenderer.invoke(IPC.migracao.pendenciaReabrir, input),
+    pendenciaCorrigirDatas: (input: unknown) => ipcRenderer.invoke(IPC.migracao.pendenciaCorrigirDatas, input),
+    osAntigasAbertas: () => ipcRenderer.invoke(IPC.migracao.osAntigasAbertas),
+    encerrarOsAntigas: (input: unknown) => ipcRenderer.invoke(IPC.migracao.encerrarOsAntigas, input),
+    pendenciaDatasAtuais: (input: unknown) => ipcRenderer.invoke(IPC.migracao.pendenciaDatasAtuais, input),
+    pendenciaDetalhes: (input: unknown) => ipcRenderer.invoke(IPC.migracao.pendenciaDetalhes, input),
+    pendenciasAplicarVarias: (input: unknown) => ipcRenderer.invoke(IPC.migracao.pendenciasAplicarVarias, input),
+    pendenciasIgnorarVarias: (input: unknown) => ipcRenderer.invoke(IPC.migracao.pendenciasIgnorarVarias, input)
   },
   caixa: {
     atual: () => ipcRenderer.invoke(IPC.caixa.atual),

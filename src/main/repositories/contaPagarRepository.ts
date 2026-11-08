@@ -1,4 +1,5 @@
 import { getDb } from '@main/db/connection'
+import { maiusculo, termoBusca } from '@shared/texto'
 import type { ContaPagar, SituacaoContaPagar } from '@shared/types'
 import { hojeLocal } from '@shared/data'
 
@@ -56,14 +57,14 @@ export const contaPagarRepository = {
     const rows = getDb()
       .prepare(
         `${SELECT_CONTA_PAGAR}
-         WHERE (cp.descricao LIKE :termo OR f.razao_social LIKE :termo)
+         WHERE (sem_acento(cp.descricao) LIKE :termo OR sem_acento(f.razao_social) LIKE :termo)
            AND (:situacao = '' OR cp.situacao = :situacao)
            AND (:apenasVencidas = 0 OR (cp.situacao = 'ABERTA' AND cp.vencimento < :hoje))
          ORDER BY cp.vencimento ASC, cp.id ASC
          LIMIT 500`
       )
       .all({
-        termo: `%${query.busca?.trim() ?? ''}%`,
+        termo: termoBusca(query.busca),
         situacao: query.situacao?.trim() || '',
         apenasVencidas: query.apenasVencidas ? 1 : 0,
         hoje: hoje()
@@ -84,7 +85,7 @@ export const contaPagarRepository = {
          VALUES (:descricao, :categoria, :valor, :vencimento, 'ABERTA', :recorrente)`
       )
       .run({
-        descricao: input.descricao.trim(),
+        descricao: maiusculo(input.descricao),
         categoria: input.categoria,
         valor: input.valorCentavos,
         vencimento: input.vencimento,

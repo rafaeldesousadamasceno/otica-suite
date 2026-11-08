@@ -1,4 +1,4 @@
-import { type ReactNode, type RefObject, useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { type ReactNode, type RefObject, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useMutation } from '@tanstack/react-query'
 import { Download, FileText, Loader2, Maximize2, Minus, Plus, Printer, X } from 'lucide-react'
@@ -20,6 +20,9 @@ interface TamanhoPagina {
 const DEGRAUS_ZOOM = [0.5, 0.67, 0.75, 0.9, 1, 1.1, 1.25, 1.5, 1.75, 2, 2.5, 3]
 /** Folga lateral da area cinza quando o zoom e "ajustar a largura". */
 const FOLGA_LARGURA = 48
+/** Limites do zoom, tanto pelos botoes quanto pela roda do mouse. */
+const ESCALA_MINIMA = 0.25
+const ESCALA_MAXIMA = 4
 
 function mensagemDeErro(err: unknown): string {
   return err instanceof ApiCallError || err instanceof Error ? err.message : 'Erro inesperado.'
@@ -78,7 +81,58 @@ function PdfViewerAberto({ pdf }: { pdf: PdfVisualizacao }): ReactNode {
 
   const larguraMaxima = useMemo(() => Math.max(0, ...tamanhos.map((t) => t.largura)), [tamanhos])
   const escalaLargura = larguraMaxima > 0 && larguraArea > 0 ? (larguraArea - FOLGA_LARGURA) / larguraMaxima : 1
-  const escala = Math.min(4, Math.max(0.25, zoom === 'largura' ? escalaLargura : zoom))
+  const escala = Math.min(ESCALA_MAXIMA, Math.max(ESCALA_MINIMA, zoom === 'largura' ? escalaLargura : zoom))
+
+  // Zoom pela roda do mouse (Ctrl + roda, e o gesto de pinca do touchpad, que chega como Ctrl + roda).
+  // A roda sozinha continua rolando as paginas. O zoom fica ancorado no ponteiro: o que esta embaixo
+  // dele continua embaixo dele, como nos leitores de PDF comuns.
+  const escalaRef = useRef(escala)
+  escalaRef.current = escala
+  const ancoraRef = useRef<{ x: number; y: number; antes: number } | null>(null)
+
+  useEffect(() => {
+    const area = areaRef.current
+    if (!area) return
+    let fator = 1
+    let quadro = 0
+    let alvo = { x: 0, y: 0 }
+
+    // Um evento por quadro: a roda dispara muitos eventos seguidos e cada zoom redesenha as paginas.
+    const aplicar = (): void => {
+      quadro = 0
+      const antes = escalaRef.current
+      const depois = Math.min(ESCALA_MAXIMA, Math.max(ESCALA_MINIMA, antes * fator))
+      fator = 1
+      if (Math.abs(depois - antes) < 0.0005) return
+      ancoraRef.current = { x: alvo.x, y: alvo.y, antes }
+      setZoom(depois)
+    }
+    const onWheel = (e: WheelEvent): void => {
+      if (!(e.ctrlKey || e.metaKey)) return // rolagem comum: deixa rolar
+      e.preventDefault() // senao o Chromium aplicaria o zoom dele na janela inteira
+      const caixa = area.getBoundingClientRect()
+      alvo = { x: e.clientX - caixa.left, y: e.clientY - caixa.top }
+      fator *= Math.exp(-Math.max(-120, Math.min(120, e.deltaY)) * 0.002)
+      if (!quadro) quadro = requestAnimationFrame(aplicar)
+    }
+
+    area.addEventListener('wheel', onWheel, { passive: false })
+    return () => {
+      area.removeEventListener('wheel', onWheel)
+      if (quadro) cancelAnimationFrame(quadro)
+    }
+  }, [areaRef])
+
+  // Depois que o zoom muda o tamanho das paginas, ajusta a rolagem para manter o ponto sob o ponteiro.
+  useLayoutEffect(() => {
+    const ancora = ancoraRef.current
+    const area = areaRef.current
+    if (!ancora || !area) return
+    ancoraRef.current = null
+    const razao = escala / ancora.antes
+    area.scrollLeft = (area.scrollLeft + ancora.x) * razao - ancora.x
+    area.scrollTop = (area.scrollTop + ancora.y) * razao - ancora.y
+  }, [escala, areaRef])
 
   const zoomMais = useCallback(() => setZoom(DEGRAUS_ZOOM.find((d) => d > escala + 0.001) ?? DEGRAUS_ZOOM.at(-1)!), [escala])
   const zoomMenos = useCallback(
@@ -169,7 +223,9 @@ function PdfViewerAberto({ pdf }: { pdf: PdfVisualizacao }): ReactNode {
           <Button variant="ghost" size="sm" onClick={zoomMenos} aria-label="Diminuir zoom" title="Diminuir zoom (Ctrl -)">
             <Minus className="size-4" />
           </Button>
-          <span className="w-12 text-center tabular-nums">{Math.round(escala * 100)}%</span>
+          <span className="w-12 text-center tabular-nums" title="Ctrl + roda do mouse: aproximar ou afastar">
+            {Math.round(escala * 100)}%
+          </span>
           <Button variant="ghost" size="sm" onClick={zoomMais} aria-label="Aumentar zoom" title="Aumentar zoom (Ctrl +)">
             <Plus className="size-4" />
           </Button>

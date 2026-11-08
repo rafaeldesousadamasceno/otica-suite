@@ -491,6 +491,7 @@ export const SECOES_AJUDA: SecaoAjuda[] = [
           ['Ctrl + S', 'Salvar o PDF'],
           ['Ctrl + P', 'Imprimir'],
           ['Ctrl + mais e Ctrl + menos', 'Aumentar e diminuir o zoom'],
+          ['Ctrl + roda do mouse', 'Aproximar e afastar, a partir de onde está o ponteiro (a roda sozinha rola as páginas)'],
           ['Ctrl + 0', 'Ajustar à largura da tela'],
           ['Esc', 'Fechar o visualizador']
         ]
@@ -587,9 +588,19 @@ export const SECOES_AJUDA: SecaoAjuda[] = [
         itens: [
           'Preencha host, porta, usuário, senha e nome do banco do sistema antigo.',
           'Clique em "Testar conexão".',
-          'Clique em "Importar" e confirme.',
-          'Confira o resultado e os avisos na tabela que aparece.'
+          'Clique em "Analisar". Nada é gravado: o sistema mostra o que vai acontecer e os problemas encontrados, cada um com a explicação e o que fazer.',
+          'Se aparecer CPF repetido, escolha como tratar (unir cadastros da mesma pessoa; importar sem o CPF de quem repete o de outra pessoa).',
+          'Clique em "Importar agora" e confirme. Um backup é feito antes; sem backup a importação não começa.',
+          'Confira o resultado. O que ficar duvidoso aparece em "Pendências da Importação".'
         ]
+      },
+      {
+        tipo: 'paragrafo',
+        texto: 'CPF repetido: se for a mesma pessoa (mesmo nome e nascimento), os cadastros são unidos e os exames dos dois ficam num só cliente. Se forem pessoas diferentes, as duas entram e o CPF é retirado de uma, com o número original guardado na observação do cadastro. CPF inválido entra sem CPF, também com o original na observação. O sistema nunca inventa um CPF.'
+      },
+      {
+        tipo: 'paragrafo',
+        texto: 'Datas: a importação não muda datas sozinha. Se a data do exame vier incoerente com as da venda, do envio ou da chegada (por exemplo, um ano digitado errado), o caso vira pendência com a data sugerida, e você aplica a correção com um clique.'
       },
       {
         tipo: 'paragrafo',
@@ -597,8 +608,47 @@ export const SECOES_AJUDA: SecaoAjuda[] = [
       },
       {
         tipo: 'atencao',
+        titulo: 'Registros em branco',
+        texto: 'O sistema antigo guarda cadastros iniciados e nunca preenchidos: só o nome, sem CPF, telefone, endereço nem nascimento, e com exames sem nenhum dado (graus zerados, sem armação nem lentes, valor zero, sem laboratório). A análise mostra quantos são e, se você deixar marcado "Não importar (e remover, se já entrou)", eles não entram. Os que já tinham sido importados são removidos junto com a receita, a venda e a OS criadas para eles, mas só se ninguém usou o cadastro depois: se foi preenchido algum dado, editada a receita, lançado valor ou feito contato, ele fica. O backup é feito antes e a Auditoria guarda quem foi removido.'
+      },
+      {
+        tipo: 'atencao',
+        titulo: 'Entregas antigas em aberto',
+        texto: 'No fim da tela há o cartão "Entregas antigas em aberto". Ordens de serviço que vieram do sistema antigo e nunca foram entregues ficariam para sempre nas telas de pesquisa, no painel e no Relacionamento. Escolha uma data (já vem sugerido o último dia de movimento dos dados antigos) e clique em "Marcar como entregues": todas são encerradas de uma vez, após um backup automático, e a Auditoria guarda a situação anterior de cada uma. Uma OS que já tem envio ou chegada depois da data escolhida fica com a data dela. OS novas, feitas neste sistema, nunca são mexidas.'
+      },
+      {
+        tipo: 'atencao',
         titulo: 'Clientes sem nome',
         texto: 'Clientes do sistema antigo sem nome e sem nenhuma receita não são importados. Se algum deles já tinha entrado numa importação anterior, a próxima importação o remove (depois de fazer um backup), desde que continue sem nome e sem nada vinculado: receita, venda, OS, conta a receber ou contato. Quem tem receita, mesmo sem nome, continua sendo importado.'
+      }
+    ]
+  },
+  {
+    id: 'pendencias-importacao',
+    titulo: 'Pendências da importação',
+    rotas: ['/pendencias-importacao'],
+    soAdmin: true,
+    resumo: 'O que a importação achou de errado ou mudou, e como resolver.',
+    blocos: [
+      {
+        tipo: 'paragrafo',
+        texto: 'Cada pendência explica o que aconteceu, de qual registro do sistema antigo veio e o que fazer. Elas ficam salvas: você pode sair da tela e voltar depois.'
+      },
+      {
+        tipo: 'passos',
+        itens: [
+          'Use os botões de tipo no alto (cada um mostra quantas pendências há) para ver um problema de cada vez. A busca procura pelo nome, CPF ou código do registro.',
+          'CPF inválido ou repetido: clique em "Corrigir cadastro", ajuste o CPF e salve. A pendência se resolve sozinha.',
+          'Datas incoerentes, ausentes ou inválidas: clique em "Ver detalhes do exame" (cliente, item, laboratório e todas as datas gravadas) para ter um norte. "Aplicar data sugerida" corrige com um clique; "Corrigir as datas" abre uma janela com as quatro datas do exame para você alterar quantas precisar. Salvar NÃO fecha a pendência: corrija uma data, veja o que ainda parece errado e corrija as outras; ela só fecha em "Salvar e concluir". A receita e a ordem de serviço acompanham; a data da venda e o lançamento financeiro não mudam. Tudo fica na Auditoria.',
+          'A sugestão de data vem do ano que mais se repete: primeiro nas outras datas do próprio exame e, se elas não bastarem, nos exames de código próximo. Quando a data nem existe ou está vazia, o ponto de partida é a data da venda, um palpite que você confere antes de usar (palpite não entra nas ações em lote).',
+          'Com muitas pendências do mesmo tipo, use "Aplicar as datas sugeridas" ou "Ignorar todas" no alto da lista (o sistema pede confirmação).',
+          'O que não importa, clique em "Ignorar". Importar de novo não reabre pendência já tratada. Mudou de ideia? Escolha "Ignoradas" (ou "Resolvidas") no filtro de situação e clique em "Reabrir": ela volta para a lista de abertas.'
+        ]
+      },
+      {
+        tipo: 'atencao',
+        titulo: 'Exames sem cliente',
+        texto: 'São três casos diferentes: exame sem cliente no sistema antigo, exame que aponta para um cliente que não existe mais lá, e exame cujo cliente não entrou (por exemplo, por CPF repetido). No último caso, resolva o cliente e importe de novo: o exame entra sozinho e a pendência se fecha.'
       }
     ]
   },

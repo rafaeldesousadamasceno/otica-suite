@@ -1,6 +1,7 @@
 import { DatabaseSync } from 'node:sqlite'
 import { beforeAll, describe, expect, it, vi } from 'vitest'
 import { MIGRATIONS } from '@main/db/migrations'
+import { registrarFuncoesSql } from '@main/db/funcoesSql'
 
 const { banco } = vi.hoisted(() => ({ banco: { db: null as DatabaseSync | null } }))
 vi.mock('@main/db/connection', () => ({ getDb: () => banco.db }))
@@ -10,6 +11,7 @@ import { contarAbaixoMinimo, listarComSaldo } from './estoqueRepository'
 beforeAll(() => {
   const db = new DatabaseSync(':memory:')
   db.exec('PRAGMA foreign_keys = ON')
+  registrarFuncoesSql(db)
   for (const m of MIGRATIONS) db.exec(m.sql)
   // 501 produtos com estoque sobrando; so o ultimo em ordem alfabetica esta abaixo do minimo.
   const produto = db.prepare(`INSERT INTO produto (descricao, categoria, estoque_minimo) VALUES (:d, 'armacao', :min)`)

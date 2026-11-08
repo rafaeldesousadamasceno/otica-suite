@@ -28,7 +28,6 @@ import type {
   PdfVisualizacao,
   BackupStatus,
   LicencaInfo,
-  MigracaoResultado,
   CaixaAberto,
   CaixaResumo,
   SistemaInfo,
@@ -93,10 +92,17 @@ import type {
   LicencaAtivarInput,
   PrimeiroAcessoInput,
   MigracaoConexaoInput,
+  MigracaoImportarInput,
+  PendenciasListQuery,
+  PendenciasResumoQuery,
+  PendenciaCorrigirDatasInput,
+  EncerrarOsAntigasInput,
+  PendenciaIdsInput,
   CaixaAbrirInput,
   CaixaFecharInput,
   CaixaMovimentoInput
 } from '@shared/ipc'
+import type { CampoDataExame, DetalhesExamePendencia, OsAntigasAbertas, OsAntigasEncerradas, MigracaoResultado, MigracaoAnalise, Pendencia, TipoPendencia } from '@shared/importacao'
 
 /**
  * Espelha exatamente a superficie exposta em src/preload/index.ts.
@@ -222,7 +228,21 @@ interface Api {
   }
   migracao: {
     testarConexao: (input: MigracaoConexaoInput) => Promise<ApiResult<void>>
-    importar: (input: MigracaoConexaoInput) => Promise<ApiResult<MigracaoResultado>>
+    analisar: (input: MigracaoConexaoInput) => Promise<ApiResult<MigracaoAnalise>>
+    importar: (input: MigracaoImportarInput) => Promise<ApiResult<MigracaoResultado>>
+    pendenciasListar: (input: PendenciasListQuery) => Promise<ApiResult<Pendencia[]>>
+    pendenciasResumo: (input: PendenciasResumoQuery) => Promise<ApiResult<Partial<Record<TipoPendencia, number>>>>
+    pendenciaAplicar: (input: { id: number }) => Promise<ApiResult<void>>
+    pendenciaResolver: (input: { id: number }) => Promise<ApiResult<void>>
+    pendenciaIgnorar: (input: { id: number }) => Promise<ApiResult<void>>
+    pendenciaReabrir: (input: { id: number }) => Promise<ApiResult<void>>
+    pendenciaCorrigirDatas: (input: PendenciaCorrigirDatasInput) => Promise<ApiResult<{ aplicadas: number; avisos: string[]; resolvida: boolean }>>
+    osAntigasAbertas: () => Promise<ApiResult<OsAntigasAbertas>>
+    encerrarOsAntigas: (input: EncerrarOsAntigasInput) => Promise<ApiResult<OsAntigasEncerradas>>
+    pendenciaDetalhes: (input: { id: number }) => Promise<ApiResult<DetalhesExamePendencia>>
+    pendenciaDatasAtuais: (input: { id: number }) => Promise<ApiResult<Record<CampoDataExame, string | null>>>
+    pendenciasAplicarVarias: (input: PendenciaIdsInput) => Promise<ApiResult<{ aplicadas: number; puladas: number }>>
+    pendenciasIgnorarVarias: (input: PendenciaIdsInput) => Promise<ApiResult<{ ignoradas: number }>>
   }
   caixa: {
     atual: () => Promise<ApiResult<CaixaAberto | null>>

@@ -20,7 +20,7 @@ const um = (db: DatabaseSync, sql: string, ...p: (string | number)[]): Record<st
 
 describe('classificação das tabelas', () => {
   it('toda tabela do schema entra na sincronização ou tem motivo para ficar de fora', () => {
-    const db = banco(10)
+    const db = banco(MIGRATIONS[MIGRATIONS.length - 1].version)
     const tabelas = (db.prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%'").all() as { name: string }[]).map(
       (r) => r.name
     )

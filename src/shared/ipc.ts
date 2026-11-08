@@ -1,6 +1,7 @@
 import { z } from 'zod'
 import { MOTIVOS_CONTATO } from './types'
 import { PRESETS_PERIODO, validarPeriodo } from './periodos'
+import { CAMPOS_DATA_EXAME, TIPOS_PENDENCIA } from './importacao'
 
 /**
  * Contrato de IPC: os nomes de canal moram em `ipcChannels.ts` (sem
@@ -627,6 +628,41 @@ export const migracaoConexaoSchema = z.object({
   banco: z.string().trim().min(1, 'Informe o nome do banco')
 })
 export type MigracaoConexaoInput = z.infer<typeof migracaoConexaoSchema>
+
+export const migracaoImportarSchema = z.object({
+  conexao: migracaoConexaoSchema,
+  aprovacoes: z.object({
+    mesclarDuplicados: z.boolean(),
+    removerCpfConflitante: z.boolean(),
+    removerRegistrosVazios: z.boolean()
+  })
+})
+export type MigracaoImportarInput = z.infer<typeof migracaoImportarSchema>
+
+export const pendenciasListQuerySchema = z.object({
+  status: z.enum(['ABERTA', 'RESOLVIDA', 'IGNORADA']).optional(),
+  tipo: z.enum(TIPOS_PENDENCIA).optional()
+})
+export type PendenciasListQuery = z.infer<typeof pendenciasListQuerySchema>
+
+export const pendenciasResumoQuerySchema = z.object({ status: z.enum(['ABERTA', 'RESOLVIDA', 'IGNORADA']).default('ABERTA') })
+export type PendenciasResumoQuery = z.infer<typeof pendenciasResumoQuerySchema>
+
+export const pendenciaCorrigirDatasSchema = z.object({
+  id: z.number().int().positive(),
+  alteracoes: z
+    .array(z.object({ campo: z.enum(CAMPOS_DATA_EXAME), data: z.string().trim().length(10, 'Informe a data') }))
+    .max(CAMPOS_DATA_EXAME.length),
+  /** Fecha a pendencia depois de salvar. Sem isso ela continua aberta, para corrigir outras datas do mesmo exame. */
+  concluir: z.boolean()
+})
+export type PendenciaCorrigirDatasInput = z.infer<typeof pendenciaCorrigirDatasSchema>
+
+export const encerrarOsAntigasSchema = z.object({ data: z.string().trim().length(10, 'Informe a data de entrega') })
+export type EncerrarOsAntigasInput = z.infer<typeof encerrarOsAntigasSchema>
+
+export const pendenciaIdsSchema = z.object({ ids: z.array(z.number().int().positive()).min(1).max(2000) })
+export type PendenciaIdsInput = z.infer<typeof pendenciaIdsSchema>
 
 // ---------------------------------------------------------------------
 // Listas de valor (RF-01)

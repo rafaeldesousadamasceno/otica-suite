@@ -1,5 +1,6 @@
 import type { DatabaseSync } from 'node:sqlite'
 import { getDb } from '@main/db/connection'
+import { termoBusca } from '@shared/texto'
 import type { CategoriaProduto, EstoqueItem } from '@shared/types'
 import type { EstoqueListQuery } from '@shared/ipc'
 
@@ -99,16 +100,16 @@ export function listarComSaldo(query: EstoqueListQuery): EstoqueItem[] {
   const rows = getDb()
     .prepare(
       `SELECT * FROM (${SQL_PRODUTO_COM_SALDO}
-         AND (p.descricao LIKE :termo OR p.codigo LIKE :termo OR p.marca LIKE :termo)
+         AND (sem_acento(p.descricao) LIKE :termo OR sem_acento(p.codigo) LIKE :termo OR sem_acento(p.marca) LIKE :termo)
          AND (:categoria = '' OR p.categoria = :categoria))
        WHERE (:situacao = ''
           OR (:situacao = 'zerado' AND saldo <= 0)
           OR (:situacao = 'abaixo_minimo' AND ${SQL_ABAIXO_MINIMO}))
-       ORDER BY descricao
+       ORDER BY sem_acento(descricao)
        LIMIT 500`
     )
     .all({
-      termo: `%${query.busca?.trim() ?? ''}%`,
+      termo: termoBusca(query.busca),
       categoria: query.categoria ?? '',
       situacao: query.situacao ?? ''
     }) as unknown as EstoqueRow[]

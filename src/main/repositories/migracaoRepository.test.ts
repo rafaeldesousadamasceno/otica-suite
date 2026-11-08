@@ -22,7 +22,7 @@ describe('corrigirTextosCliente', () => {
     db.prepare("INSERT INTO cliente (nome) VALUES ('Agnaldo Da Silva Rebolãƒâƒã¢â€â¡as')").run()
     const id = Number((db.prepare('SELECT last_insert_rowid() id').get() as { id: number }).id)
     expect(corrigirTextosCliente(id, NOVO)).toBe(true)
-    expect((db.prepare('SELECT nome FROM cliente WHERE id = ?').get(id) as { nome: string }).nome).toBe(NOVO.nome)
+    expect((db.prepare('SELECT nome FROM cliente WHERE id = ?').get(id) as { nome: string }).nome).toBe(NOVO.nome.toUpperCase())
   })
 
   it('nao sobrescreve o que ja esta correto (edicao manual) nem repete', () => {

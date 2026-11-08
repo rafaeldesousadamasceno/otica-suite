@@ -1,4 +1,5 @@
 import { getDb } from '@main/db/connection'
+import { termoBusca } from '@shared/texto'
 import { registrarMovimento } from './estoqueRepository'
 import { comissaoRepository } from './comissaoRepository'
 import { contaReceberRepository } from './contaReceberRepository'
@@ -309,14 +310,14 @@ export const vendaRepository = {
     const rows = getDb()
       .prepare(
         `${SELECT_RESUMO}
-         WHERE (c.nome LIKE :termo OR v.numero LIKE :termo)
+         WHERE (sem_acento(c.nome) LIKE :termo OR sem_acento(v.numero) LIKE :termo)
            AND (:dataInicio = '' OR v.data >= :dataInicio)
            AND (:dataFim = '' OR v.data <= :dataFim)
          ORDER BY v.data DESC, v.id DESC
          LIMIT 300`
       )
       .all({
-        termo: `%${query.busca?.trim() ?? ''}%`,
+        termo: termoBusca(query.busca),
         dataInicio: query.dataInicio?.trim() || '',
         dataFim: query.dataFim?.trim() || ''
       }) as unknown as ResumoRow[]

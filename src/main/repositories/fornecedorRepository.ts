@@ -1,4 +1,5 @@
 import { getDb } from '@main/db/connection'
+import { maiusculo, maiusculoOuNulo, termoBusca } from '@shared/texto'
 import type { Fornecedor } from '@shared/types'
 import type { FornecedorInput, FornecedoresListQuery } from '@shared/ipc'
 
@@ -38,12 +39,12 @@ export const fornecedorRepository = {
         `SELECT id, razao_social, cnpj, contato, telefone, email, prazo_entrega_dias, ativo
          FROM fornecedor
          WHERE (:apenasAtivos = 0 OR ativo = 1)
-           AND (razao_social LIKE :termo OR cnpj LIKE :termo)
-         ORDER BY razao_social
+           AND (sem_acento(razao_social) LIKE :termo OR sem_acento(cnpj) LIKE :termo)
+         ORDER BY sem_acento(razao_social)
          LIMIT 300`
       )
       .all({
-        termo: `%${query.busca?.trim() ?? ''}%`,
+        termo: termoBusca(query.busca),
         apenasAtivos: query.apenasAtivos === false ? 0 : 1
       }) as unknown as FornecedorRow[]
     return rows.map(toDomain)
@@ -63,9 +64,9 @@ export const fornecedorRepository = {
          VALUES (:razaoSocial, :cnpj, :contato, :telefone, :email, :prazoEntregaDias)`
       )
       .run({
-        razaoSocial: data.razaoSocial.trim(),
+        razaoSocial: maiusculo(data.razaoSocial),
         cnpj: normalizar(data.cnpj),
-        contato: normalizar(data.contato),
+        contato: maiusculoOuNulo(data.contato),
         telefone: normalizar(data.telefone),
         email: normalizar(data.email),
         prazoEntregaDias: data.prazoEntregaDias ?? null
@@ -83,9 +84,9 @@ export const fornecedorRepository = {
       )
       .run({
         id,
-        razaoSocial: data.razaoSocial.trim(),
+        razaoSocial: maiusculo(data.razaoSocial),
         cnpj: normalizar(data.cnpj),
-        contato: normalizar(data.contato),
+        contato: maiusculoOuNulo(data.contato),
         telefone: normalizar(data.telefone),
         email: normalizar(data.email),
         prazoEntregaDias: data.prazoEntregaDias ?? null

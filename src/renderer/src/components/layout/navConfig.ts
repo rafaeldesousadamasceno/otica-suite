@@ -18,6 +18,7 @@ import {
   PiggyBank,
   DatabaseBackup,
   DatabaseZap,
+  ListChecks,
   KeyRound,
   Landmark,
   FileText,
@@ -63,6 +64,7 @@ export const NAV_ITEMS: Record<Perfil, NavItem[]> = {
     { label: 'Auditoria', path: '/auditoria', icon: ScrollText },
     { label: 'Backup', path: '/backup', icon: DatabaseBackup },
     { label: 'Importar Dados', path: '/importar-dados', icon: DatabaseZap },
+    { label: 'Pendências da Importação', path: '/pendencias-importacao', icon: ListChecks },
     { label: 'Licença', path: '/licenca', icon: KeyRound, alertaLicenca: true },
     { label: 'Ajuda', path: '/ajuda', icon: CircleHelp }
   ],

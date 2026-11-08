@@ -1,4 +1,5 @@
 import { getDb } from '@main/db/connection'
+import { termoBusca } from '@shared/texto'
 import type { Cliente, ClienteResumo } from '@shared/types'
 import type { ClienteInput } from '@shared/ipc'
 
@@ -57,14 +58,14 @@ function normalizar(campo: string | null | undefined): string | null {
 
 export const clienteRepository = {
   listar(busca: string, apenasAtivos: boolean, limite = 200): ClienteResumo[] {
-    const termo = `%${busca}%`
+    const termo = termoBusca(busca)
     const rows = getDb()
       .prepare(
         `SELECT id, nome, celular, cpf, data_nasc
          FROM cliente
          WHERE (:apenasAtivos = 0 OR ativo = 1)
-           AND (nome LIKE :termo OR cpf LIKE :termo OR celular LIKE :termo)
-         ORDER BY nome
+           AND (sem_acento(nome) LIKE :termo OR sem_acento(cpf) LIKE :termo OR sem_acento(celular) LIKE :termo)
+         ORDER BY sem_acento(nome)
          LIMIT :limite`
       )
       .all({ termo, apenasAtivos: apenasAtivos ? 1 : 0, limite }) as {

@@ -637,28 +637,6 @@ export interface CaixaResumo {
 // Migracao do MD Óculos (PRD secao 11 - fase F7)
 // ---------------------------------------------------------------------
 
-export interface MigracaoAviso {
-  tabela: string
-  origemId: number
-  motivo: string
-}
-
-export interface MigracaoResultado {
-  clientesImportados: number
-  clientesIgnorados: number
-  /** Clientes sem nome e sem nenhuma receita no sistema antigo: nao entram. */
-  clientesSemNomeIgnorados: number
-  /** Clientes sem nome e sem receita que tinham entrado numa importacao anterior e foram removidos. */
-  clientesSemNomeRemovidos: number
-  examesImportados: number
-  examesIgnorados: number
-  despesasImportadas: number
-  despesasIgnoradas: number
-  /** Registros ja importados cujos acentos quebrados foram corrigidos nesta rodada. */
-  textosCorrigidos: number
-  avisos: MigracaoAviso[]
-}
-
 export interface ListaValorItem {
   id: number
   tipo: string

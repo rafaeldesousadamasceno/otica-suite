@@ -2,6 +2,22 @@
 
 ## Próxima versão
 
+- Importação do MD Óculos em duas etapas: "Analisar" (não grava nada e mostra o
+  que vai acontecer, com a explicação de cada problema) e "Importar agora"
+  (com backup antes; sem backup a importação não começa). CPF repetido pode ser
+  unido (mesma pessoa) ou importado sem o CPF de quem repete; o CPF original
+  fica na observação do cadastro. Cadastros em branco do sistema antigo não
+  entram, e há o cartão "Entregas antigas em aberto" para encerrar de uma vez as
+  OS antigas nunca entregues.
+- Nova tela "Pendências da importação" (administrador): CPF inválido ou
+  repetido, datas incoerentes do exame (com data sugerida e correção em lote) e
+  exames sem cliente. As pendências ficam salvas, e tudo vai para a Auditoria.
+- Textos de cadastro (nome, endereço, marca, modelo etc.) passam a ser
+  gravados em maiúsculas, com acento; os já cadastrados são ajustados uma vez.
+- Busca sem acento e sem diferença de maiúsculas nos cadastros ("priscila"
+  encontra "PRÍSCILA").
+- Visualizador de PDF: Ctrl + roda do mouse aproxima e afasta a partir do
+  ponteiro; a roda sozinha rola as páginas.
 - Formulários: o Enter dentro de um campo agora só passa para o próximo campo e
   não salva mais sem querer. Vale para receita, cliente, venda, compra, produto,
   fornecedor, ordem de serviço, contas, caixa, usuários, ajuste de estoque e

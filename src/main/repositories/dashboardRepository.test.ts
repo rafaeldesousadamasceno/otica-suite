@@ -1,6 +1,7 @@
 import { DatabaseSync } from 'node:sqlite'
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
 import { MIGRATIONS } from '@main/db/migrations'
+import { registrarFuncoesSql } from '@main/db/funcoesSql'
 import { DESCRICAO_PRODUTO_IMPORTADO } from '@shared/importacao'
 
 // SQLite em memoria com o schema REAL das migrations: o que se testa aqui e o
@@ -52,6 +53,7 @@ beforeAll(() => {
 
   const db = new DatabaseSync(':memory:')
   db.exec('PRAGMA foreign_keys = ON')
+  registrarFuncoesSql(db)
   for (const m of MIGRATIONS) db.exec(m.sql)
   banco.db = db
 

@@ -126,7 +126,21 @@ export const IPC = {
   },
   migracao: {
     testarConexao: 'migracao:testarConexao',
-    importar: 'migracao:importar'
+    analisar: 'migracao:analisar',
+    importar: 'migracao:importar',
+    pendenciasListar: 'migracao:pendenciasListar',
+    pendenciasResumo: 'migracao:pendenciasResumo',
+    pendenciaAplicar: 'migracao:pendenciaAplicar',
+    pendenciaResolver: 'migracao:pendenciaResolver',
+    pendenciaIgnorar: 'migracao:pendenciaIgnorar',
+    pendenciaReabrir: 'migracao:pendenciaReabrir',
+    pendenciaCorrigirDatas: 'migracao:pendenciaCorrigirDatas',
+    osAntigasAbertas: 'migracao:osAntigasAbertas',
+    encerrarOsAntigas: 'migracao:encerrarOsAntigas',
+    pendenciaDatasAtuais: 'migracao:pendenciaDatasAtuais',
+    pendenciaDetalhes: 'migracao:pendenciaDetalhes',
+    pendenciasAplicarVarias: 'migracao:pendenciasAplicarVarias',
+    pendenciasIgnorarVarias: 'migracao:pendenciasIgnorarVarias'
   },
   caixa: {
     atual: 'caixa:atual',

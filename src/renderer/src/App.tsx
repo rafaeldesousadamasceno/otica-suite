@@ -26,6 +26,7 @@ import { ConfiguracoesPage } from '@renderer/routes/admin/ConfiguracoesPage'
 import { AuditoriaPage } from '@renderer/routes/admin/AuditoriaPage'
 import { BackupPage } from '@renderer/routes/admin/BackupPage'
 import { ImportarDadosPage } from '@renderer/routes/admin/ImportarDadosPage'
+import { PendenciasImportacaoPage } from '@renderer/routes/admin/PendenciasImportacaoPage'
 import { LicencaPage } from '@renderer/routes/admin/LicencaPage'
 import { AniversariantesPage } from '@renderer/routes/shared/AniversariantesPage'
 import { RelatoriosPage } from '@renderer/routes/admin/RelatoriosPage'
@@ -147,6 +148,7 @@ export default function App(): ReactNode {
               <Route path="/auditoria" element={<AuditoriaPage />} />
               <Route path="/backup" element={<BackupPage />} />
               <Route path="/importar-dados" element={<ImportarDadosPage />} />
+              <Route path="/pendencias-importacao" element={<PendenciasImportacaoPage />} />
               <Route path="/licenca" element={<LicencaPage />} />
             </>
           )}

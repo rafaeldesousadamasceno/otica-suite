@@ -1,4 +1,5 @@
 import { getDb } from '@main/db/connection'
+import { termoBusca } from '@shared/texto'
 import type { OrdemServico, SituacaoOS } from '@shared/types'
 import type { OrdemServicoCreateInput, OrdensServicoQuery } from '@shared/ipc'
 import { hojeLocal } from '@shared/data'
@@ -136,7 +137,7 @@ export const ordemServicoRepository = {
     const rows = getDb()
       .prepare(
         `${SELECT_BASE}
-         WHERE (c.nome LIKE :termo OR os.numero LIKE :termo)
+         WHERE (sem_acento(c.nome) LIKE :termo OR sem_acento(os.numero) LIKE :termo)
            AND (:situacao = '' OR os.situacao = :situacao)
            AND (:dataInicio = '' OR os.data_abertura >= :dataInicio)
            AND (:dataFim = '' OR os.data_abertura <= :dataFim)
@@ -147,7 +148,7 @@ export const ordemServicoRepository = {
       .all({
         hoje: hoje(),
         apenasAtrasadas: query.apenasAtrasadas ? 1 : 0,
-        termo: `%${query.busca?.trim() ?? ''}%`,
+        termo: termoBusca(query.busca),
         situacao: query.situacao?.trim() ?? '',
         dataInicio: normalizar(query.dataInicio) ?? '',
         dataFim: normalizar(query.dataFim) ?? ''

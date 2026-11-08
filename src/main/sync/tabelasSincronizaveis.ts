@@ -71,6 +71,7 @@ export const TABELAS_SINCRONIZAVEIS: TabelaSync[] = [
 export const TABELAS_FORA_DA_SINCRONIZACAO: Record<string, string> = {
   _migrations: 'Versão do schema de cada computador.',
   migracao_registro: 'Mapa da importação do MD Óculos, só faz sentido onde a importação foi feita.',
+  migracao_pendencia: 'Pendencias da importacao do MD Óculos, só faz sentido onde a importação foi feita.',
   sync_contador: 'Contador de revisões deste computador.',
   sync_exclusao: 'Registro de exclusões pendentes de envio, consumido pelo próprio worker.'
 }
