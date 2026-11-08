@@ -11,6 +11,7 @@ import { centavosParaBRL, centavosParaTexto, textoParaCentavos } from '@renderer
 import { toast } from '@renderer/state/toastStore'
 import type { ContaPagar } from '@shared/types'
 import { hojeLocal } from '@shared/data'
+import { enterAvancaCampo } from '@renderer/lib/enterAvancaCampo'
 
 interface Props {
   conta: ContaPagar | null
@@ -73,6 +74,8 @@ export function PagarContaDialog({ conta, onClose }: Props): ReactNode {
   return (
     <Dialog open onClose={onClose} title={`Pagar - ${conta.descricao}`} className="max-w-sm">
       <form
+        // Enter só passa para o próximo campo: o formulário só envia pelo botão.
+        onKeyDown={enterAvancaCampo}
         className="flex flex-col gap-4"
         onSubmit={(e) => {
           e.preventDefault()

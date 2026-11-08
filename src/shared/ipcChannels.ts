@@ -43,7 +43,8 @@ export const IPC = {
   },
   receitas: {
     listByCliente: 'receitas:listByCliente',
-    create: 'receitas:create'
+    create: 'receitas:create',
+    update: 'receitas:update'
   },
   ordensServico: {
     list: 'ordensServico:list',
@@ -125,7 +126,21 @@ export const IPC = {
   },
   migracao: {
     testarConexao: 'migracao:testarConexao',
-    importar: 'migracao:importar'
+    analisar: 'migracao:analisar',
+    importar: 'migracao:importar',
+    pendenciasListar: 'migracao:pendenciasListar',
+    pendenciasResumo: 'migracao:pendenciasResumo',
+    pendenciaAplicar: 'migracao:pendenciaAplicar',
+    pendenciaResolver: 'migracao:pendenciaResolver',
+    pendenciaIgnorar: 'migracao:pendenciaIgnorar',
+    pendenciaReabrir: 'migracao:pendenciaReabrir',
+    pendenciaCorrigirDatas: 'migracao:pendenciaCorrigirDatas',
+    osAntigasAbertas: 'migracao:osAntigasAbertas',
+    encerrarOsAntigas: 'migracao:encerrarOsAntigas',
+    pendenciaDatasAtuais: 'migracao:pendenciaDatasAtuais',
+    pendenciaDetalhes: 'migracao:pendenciaDetalhes',
+    pendenciasAplicarVarias: 'migracao:pendenciasAplicarVarias',
+    pendenciasIgnorarVarias: 'migracao:pendenciasIgnorarVarias'
   },
   caixa: {
     atual: 'caixa:atual',
@@ -150,7 +165,14 @@ export const IPC = {
     curvaAbc: 'relatorios:curvaAbc',
     vendasPorVendedor: 'relatorios:vendasPorVendedor',
     rankingVendedores: 'relatorios:rankingVendedores',
-    comissoes: 'relatorios:comissoes'
+    comissoes: 'relatorios:comissoes',
+    manual: 'relatorios:manual'
+  },
+  /** Visualizador de PDF: o PDF gerado por `relatorios:*` fica no main ate ser salvo, impresso ou descartado. */
+  pdf: {
+    salvar: 'pdf:salvar',
+    imprimir: 'pdf:imprimir',
+    descartar: 'pdf:descartar'
   },
   sistema: {
     info: 'sistema:info'

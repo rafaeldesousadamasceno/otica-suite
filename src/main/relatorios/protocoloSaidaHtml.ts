@@ -1,5 +1,6 @@
 import type { Empresa, OrdemServico } from '@shared/types'
-import { escapeHtml, formatarDataBr, montarLetterhead, texto } from './htmlUtils'
+import { escapeHtml, formatarDataBr, montarRelatorioTabela, texto } from './htmlUtils'
+import { TOM_SITUACAO_OS, badge } from './layout'
 
 /**
  * RF-06/RF-12: reproduz o "Protocolo de Saída" ("Protocolo.jasper" no
@@ -17,25 +18,9 @@ function montarFiltroTexto(filtro: { dataInicio?: string | null; dataFim?: strin
     partes.push(`Período: ${filtro.dataInicio ? formatarDataBr(filtro.dataInicio) : '—'} a ${filtro.dataFim ? formatarDataBr(filtro.dataFim) : '—'}`)
   }
   if (filtro.situacao && filtro.situacao.trim()) {
-    partes.push(`Situação: ${escapeHtml(filtro.situacao)}`)
+    partes.push(`Situação: ${filtro.situacao}`)
   }
   return partes.join(' · ')
-}
-
-function montarLinha(os: OrdemServico): string {
-  return `
-    <tr>
-      <td>${texto(os.clienteNome)}</td>
-      <td>${escapeHtml(os.numero)}</td>
-      <td>${texto(os.laboratorio)}</td>
-      <td>${texto(os.receitaTipoLente)}</td>
-      <td>${formatarDataBr(os.dataAbertura)}</td>
-      <td>${formatarDataBr(os.dataEnvio)}</td>
-      <td>${formatarDataBr(os.dataChegada)}</td>
-      <td>${texto(os.situacao)}</td>
-      <td>${texto(os.clienteCelular)}</td>
-    </tr>
-  `
 }
 
 export function montarHtmlProtocoloSaida(
@@ -43,91 +28,34 @@ export function montarHtmlProtocoloSaida(
   empresa: Empresa,
   filtro: { dataInicio?: string | null; dataFim?: string | null; situacao?: string }
 ): string {
-  const emitidoEm = new Date().toLocaleString('pt-BR')
-  const filtroTexto = montarFiltroTexto(filtro)
-
-  const corpoTabela =
-    itens.length === 0
-      ? `<tr><td colspan="9" class="vazio">Nenhuma ordem de serviço encontrada.</td></tr>`
-      : itens.map(montarLinha).join('')
-
-  return `<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-<meta charset="UTF-8" />
-<title>Protocolo de Saída</title>
-<style>
-  @page { size: A4 landscape; margin: 12mm; }
-  * { box-sizing: border-box; }
-  body {
-    font-family: Arial, Helvetica, sans-serif;
-    color: #1a1a1a;
-    font-size: 11px;
-    margin: 0;
-  }
-  .letterhead {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    border-bottom: 2px solid #1a1a1a;
-    padding-bottom: 8px;
-    margin-bottom: 10px;
-  }
-  .logo { max-height: 48px; max-width: 100px; object-fit: contain; }
-  .empresa-nome { font-size: 16px; font-weight: bold; }
-  .empresa-detalhe { font-size: 9px; color: #444; }
-  .titulo {
-    display: flex;
-    justify-content: space-between;
-    align-items: baseline;
-    margin-bottom: 4px;
-  }
-  .titulo h1 { font-size: 15px; margin: 0; }
-  .titulo .emitido { font-size: 9px; color: #555; }
-  .filtro { font-size: 10px; color: #444; margin-bottom: 10px; }
-  table { width: 100%; border-collapse: collapse; }
-  th, td {
-    border: 1px solid #999;
-    padding: 4px 6px;
-    text-align: left;
-    font-size: 10px;
-  }
-  thead th { background: #eee; text-transform: uppercase; font-size: 9px; }
-  td.vazio { text-align: center; font-style: italic; color: #555; padding: 16px; }
-  .rodape { margin-top: 10px; font-size: 9px; color: #555; display: flex; justify-content: space-between; }
-</style>
-</head>
-<body>
-  ${montarLetterhead(empresa)}
-
-  <div class="titulo">
-    <h1>Protocolo de Saída</h1>
-    <span class="emitido">Emitido em ${emitidoEm}</span>
-  </div>
-  ${filtroTexto ? `<div class="filtro">${filtroTexto}</div>` : ''}
-
-  <table>
-    <thead>
-      <tr>
-        <th>Cliente</th>
-        <th>Nº OS</th>
-        <th>Laboratório</th>
-        <th>Tipo de lente</th>
-        <th>Data da compra</th>
-        <th>Data de saída</th>
-        <th>Data de chegada</th>
-        <th>Situação</th>
-        <th>Celular</th>
-      </tr>
-    </thead>
-    <tbody>
-      ${corpoTabela}
-    </tbody>
-  </table>
-
-  <div class="rodape">
-    <span>Total de ordens de serviço: ${itens.length}</span>
-  </div>
-</body>
-</html>`
+  return montarRelatorioTabela({
+    titulo: 'Protocolo de Saída',
+    subtitulo: 'Pares enviados ao laboratório e ainda não entregues.',
+    empresa,
+    orientacao: 'paisagem',
+    filtroTexto: montarFiltroTexto(filtro),
+    colunas: [
+      { label: 'Cliente' },
+      { label: 'Nº OS' },
+      { label: 'Laboratório' },
+      { label: 'Tipo de lente' },
+      { label: 'Data da compra' },
+      { label: 'Data de saída' },
+      { label: 'Data de chegada' },
+      { label: 'Situação' },
+      { label: 'Celular' }
+    ],
+    linhas: itens.map((os) => [
+      texto(os.clienteNome),
+      escapeHtml(os.numero),
+      texto(os.laboratorio),
+      texto(os.receitaTipoLente),
+      formatarDataBr(os.dataAbertura),
+      formatarDataBr(os.dataEnvio),
+      formatarDataBr(os.dataChegada),
+      badge(os.situacao, TOM_SITUACAO_OS[os.situacao] ?? 'neutro'),
+      texto(os.clienteCelular)
+    ]),
+    linhaVazia: 'Nenhuma ordem de serviço encontrada.'
+  })
 }

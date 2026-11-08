@@ -1,6 +1,8 @@
 import { DatabaseSync } from 'node:sqlite'
 import { paths } from '@main/paths'
 import { runMigrations } from './migrator'
+import { registrarFuncoesSql } from './funcoesSql'
+import { padronizarTextos } from './padronizarTextos'
 
 let db: DatabaseSync | null = null
 
@@ -23,6 +25,8 @@ export function getDb(): DatabaseSync {
     PRAGMA busy_timeout = 5000;
   `)
 
+  registrarFuncoesSql(conexao)
+
   try {
     runMigrations(conexao, caminhoDb)
   } catch (err) {
@@ -35,6 +39,13 @@ export function getDb(): DatabaseSync {
       // ja fechada
     }
     throw err
+  }
+
+  // Acabamento dos dados antigos: se falhar, o app abre mesmo assim e tenta de novo na proxima vez.
+  try {
+    padronizarTextos(conexao)
+  } catch (err) {
+    console.error('Padronizacao de textos adiada:', err)
   }
 
   db = conexao

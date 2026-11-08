@@ -1,4 +1,4 @@
-import { type ReactNode, useState } from 'react'
+import { type ReactNode, useEffect, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Dialog } from '@renderer/components/ui/Dialog'
 import { Field } from '@renderer/components/ui/Field'
@@ -8,15 +8,44 @@ import { Button } from '@renderer/components/ui/Button'
 import { unwrap, ApiCallError } from '@renderer/lib/ipc'
 import { receitaOpticaInputSchema } from '@shared/ipc'
 import { toast } from '@renderer/state/toastStore'
+import { enterAvancaCampo } from '@renderer/lib/enterAvancaCampo'
+import type { ReceitaOptica } from '@shared/types'
 
 interface GrauForm {
   esf: string
   cil: string
   eixo: string
   dnp: string
+  dp: string
 }
 
-const GRAU_VAZIO: GrauForm = { esf: '', cil: '', eixo: '', dnp: '' }
+const GRAU_VAZIO: GrauForm = { esf: '', cil: '', eixo: '', dnp: '', dp: '' }
+
+/** Colunas de cada linha OD/OE, na ordem da receita: o DP vem logo depois do DNP. */
+const COLUNAS_GRAU: { campo: keyof GrauForm; titulo: string; placeholder: string }[] = [
+  { campo: 'esf', titulo: 'Esférico', placeholder: '0,00' },
+  { campo: 'cil', titulo: 'Cilíndrico', placeholder: '0,00' },
+  { campo: 'eixo', titulo: 'Eixo', placeholder: '0°' },
+  { campo: 'dnp', titulo: 'DNP', placeholder: 'mm' },
+  { campo: 'dp', titulo: 'DP', placeholder: 'mm' }
+]
+
+const ROTULO_MEDIDA: Record<string, string> = {
+  Esf: 'esférico',
+  Cil: 'cilíndrico',
+  Eixo: 'eixo',
+  Dnp: 'DNP',
+  Dp: 'DP'
+}
+
+/** "longeOdDnp" -> "Longe OD (DNP)", para a mensagem de erro dizer qual campo corrigir. */
+function rotuloCampo(campo: string): string | null {
+  const m = /^(longe|perto)(Od|Oe)(Esf|Cil|Eixo|Dnp|Dp)$/.exec(campo)
+  if (m) return `${m[1] === 'longe' ? 'Longe' : 'Perto'} ${m[2].toUpperCase()} (${ROTULO_MEDIDA[m[3]]})`
+  if (campo === 'adicao') return 'Adição'
+  if (campo === 'dataExame') return 'Data do exame'
+  return null
+}
 
 /** Uma linha OD/OE de um bloco (Longe ou Perto) - o padrao real da receita optica. */
 function LinhaGrau({
@@ -41,10 +70,11 @@ function LinhaGrau({
         <thead>
           <tr className="border-b border-[var(--rule)] text-xs text-[var(--ink-3)]">
             <th className="w-12 px-2 py-1.5 text-left"></th>
-            <th className="px-2 py-1.5">Esférico</th>
-            <th className="px-2 py-1.5">Cilíndrico</th>
-            <th className="px-2 py-1.5">Eixo</th>
-            <th className="px-2 py-1.5">DNP</th>
+            {COLUNAS_GRAU.map((c) => (
+              <th key={c.campo} className="px-2 py-1.5">
+                {c.titulo}
+              </th>
+            ))}
           </tr>
         </thead>
         <tbody>
@@ -56,38 +86,18 @@ function LinhaGrau({
           ).map(([label, valor, setValor]) => (
             <tr key={label} className="border-b border-[var(--rule)] last:border-0">
               <td className="px-2 py-1 font-medium text-[var(--ink-2)]">{label}</td>
-              <td className="px-1 py-1">
-                <Input
-                  className="font-mono-tab text-center"
-                  value={valor.esf}
-                  onChange={(e) => setValor({ ...valor, esf: e.target.value })}
-                  placeholder="0,00"
-                />
-              </td>
-              <td className="px-1 py-1">
-                <Input
-                  className="font-mono-tab text-center"
-                  value={valor.cil}
-                  onChange={(e) => setValor({ ...valor, cil: e.target.value })}
-                  placeholder="0,00"
-                />
-              </td>
-              <td className="px-1 py-1">
-                <Input
-                  className="font-mono-tab text-center"
-                  value={valor.eixo}
-                  onChange={(e) => setValor({ ...valor, eixo: e.target.value })}
-                  placeholder="0°"
-                />
-              </td>
-              <td className="px-1 py-1">
-                <Input
-                  className="font-mono-tab text-center"
-                  value={valor.dnp}
-                  onChange={(e) => setValor({ ...valor, dnp: e.target.value })}
-                  placeholder="mm"
-                />
-              </td>
+              {COLUNAS_GRAU.map((c) => (
+                <td key={c.campo} className="px-1 py-1">
+                  <Input
+                    className="font-mono-tab px-1.5 text-center"
+                    inputMode="decimal"
+                    aria-label={`${titulo} ${label} ${c.titulo}`}
+                    value={valor[c.campo]}
+                    onChange={(e) => setValor({ ...valor, [c.campo]: e.target.value })}
+                    placeholder={c.placeholder}
+                  />
+                </td>
+              ))}
             </tr>
           ))}
         </tbody>
@@ -100,9 +110,31 @@ interface Props {
   open: boolean
   onClose: () => void
   clienteId: number
+  /** Receita ja salva a corrigir. Sem ela, o formulario cria uma receita nova. */
+  receita?: ReceitaOptica | null
 }
 
-export function ReceitaOpticaFormDialog({ open, onClose, clienteId }: Props): ReactNode {
+/** 31.5 -> "31,5"; vazio quando nao ha valor. */
+function paraCampo(v: number | null): string {
+  return v === null ? '' : String(v).replace('.', ',')
+}
+
+function grauDe(esf: number | null, cil: number | null, eixo: number | null, dnp: number | null, dp: number | null): GrauForm {
+  return { esf: paraCampo(esf), cil: paraCampo(cil), eixo: paraCampo(eixo), dnp: paraCampo(dnp), dp: paraCampo(dp) }
+}
+
+/**
+ * Valor ja gravado que nao esta (mais) na lista de opcoes - ex.: veio da
+ * importacao ou a opcao foi desativada. Sem isto o campo apareceria vazio e
+ * salvar apagaria o valor.
+ */
+function valorForaDaLista(atual: string, opcoes: { valor: string }[] | undefined): ReactNode {
+  if (!atual || !opcoes || opcoes.some((o) => o.valor === atual)) return null
+  return <option value={atual}>{atual}</option>
+}
+
+export function ReceitaOpticaFormDialog({ open, onClose, clienteId, receita }: Props): ReactNode {
+  const editando = Boolean(receita)
   const queryClient = useQueryClient()
   const [dataExame, setDataExame] = useState('')
   const [profissionalNome, setProfissionalNome] = useState('')
@@ -111,7 +143,6 @@ export function ReceitaOpticaFormDialog({ open, onClose, clienteId }: Props): Re
   const [pertoOd, setPertoOd] = useState<GrauForm>(GRAU_VAZIO)
   const [pertoOe, setPertoOe] = useState<GrauForm>(GRAU_VAZIO)
   const [adicao, setAdicao] = useState('')
-  const [altura, setAltura] = useState('')
   const [tipoLente, setTipoLente] = useState('')
   const [tratamentos, setTratamentos] = useState('')
   const [armacao, setArmacao] = useState('')
@@ -137,7 +168,6 @@ export function ReceitaOpticaFormDialog({ open, onClose, clienteId }: Props): Re
     setPertoOd(GRAU_VAZIO)
     setPertoOe(GRAU_VAZIO)
     setAdicao('')
-    setAltura('')
     setTipoLente('')
     setTratamentos('')
     setArmacao('')
@@ -145,9 +175,31 @@ export function ReceitaOpticaFormDialog({ open, onClose, clienteId }: Props): Re
     setErro(null)
   }
 
+  // Ao abrir: preenche com a receita a corrigir, ou comeca em branco para uma nova.
+  useEffect(() => {
+    if (!open) return
+    if (!receita) {
+      limpar()
+      return
+    }
+    setDataExame(receita.dataExame)
+    setProfissionalNome(receita.profissionalNome ?? '')
+    setLongeOd(grauDe(receita.longeOdEsf, receita.longeOdCil, receita.longeOdEixo, receita.longeOdDnp, receita.longeOdDp))
+    setLongeOe(grauDe(receita.longeOeEsf, receita.longeOeCil, receita.longeOeEixo, receita.longeOeDnp, receita.longeOeDp))
+    setPertoOd(grauDe(receita.pertoOdEsf, receita.pertoOdCil, receita.pertoOdEixo, receita.pertoOdDnp, receita.pertoOdDp))
+    setPertoOe(grauDe(receita.pertoOeEsf, receita.pertoOeCil, receita.pertoOeEixo, receita.pertoOeDnp, receita.pertoOeDp))
+    setAdicao(paraCampo(receita.adicao))
+    setTipoLente(receita.tipoLente ?? '')
+    setTratamentos(receita.tratamentos ?? '')
+    setArmacao(receita.armacao ?? '')
+    setObservacao(receita.observacao ?? '')
+    setErro(null)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, receita?.id])
+
   const mutation = useMutation({
     mutationFn: async () => {
-      const dados = receitaOpticaInputSchema.parse({
+      const validacao = receitaOpticaInputSchema.safeParse({
         clienteId,
         profissionalNome: profissionalNome || null,
         dataExame,
@@ -155,30 +207,42 @@ export function ReceitaOpticaFormDialog({ open, onClose, clienteId }: Props): Re
         longeOdCil: longeOd.cil,
         longeOdEixo: longeOd.eixo,
         longeOdDnp: longeOd.dnp,
+        longeOdDp: longeOd.dp,
         longeOeEsf: longeOe.esf,
         longeOeCil: longeOe.cil,
         longeOeEixo: longeOe.eixo,
         longeOeDnp: longeOe.dnp,
+        longeOeDp: longeOe.dp,
         pertoOdEsf: pertoOd.esf,
         pertoOdCil: pertoOd.cil,
         pertoOdEixo: pertoOd.eixo,
         pertoOdDnp: pertoOd.dnp,
+        pertoOdDp: pertoOd.dp,
         pertoOeEsf: pertoOe.esf,
         pertoOeCil: pertoOe.cil,
         pertoOeEixo: pertoOe.eixo,
         pertoOeDnp: pertoOe.dnp,
+        pertoOeDp: pertoOe.dp,
         adicao,
-        altura,
         tipoLente: tipoLente || null,
         tratamentos: tratamentos || null,
         armacao: armacao || null,
         observacao: observacao || null
       })
-      return unwrap(window.api.receitas.create(dados))
+      if (!validacao.success) {
+        // Mostra so o primeiro problema, em portugues e com o campo - nunca o JSON cru do Zod.
+        const problema = validacao.error.issues[0]
+        const rotulo = rotuloCampo(String(problema?.path[0] ?? ''))
+        throw new Error(rotulo ? `${rotulo}: ${problema.message}` : (problema?.message ?? 'Dados inválidos.'))
+      }
+      return receita
+        ? unwrap(window.api.receitas.update({ ...validacao.data, id: receita.id }))
+        : unwrap(window.api.receitas.create(validacao.data))
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['receitas', clienteId] })
-      toast.ok('Receita óptica registrada.')
+      queryClient.invalidateQueries({ queryKey: ['ordensServico'] })
+      toast.ok(editando ? 'Receita corrigida.' : 'Receita óptica registrada.')
       limpar()
       onClose()
     },
@@ -188,9 +252,11 @@ export function ReceitaOpticaFormDialog({ open, onClose, clienteId }: Props): Re
   })
 
   return (
-    <Dialog open={open} onClose={onClose} title="Nova receita óptica" className="max-w-3xl">
+    <Dialog open={open} onClose={onClose} title={editando ? 'Editar receita óptica' : 'Nova receita óptica'} className="max-w-4xl">
       <form
         className="flex flex-col gap-4"
+        // Enter so passa para o proximo campo: a receita so salva pelo botao.
+        onKeyDown={enterAvancaCampo}
         onSubmit={(e) => {
           e.preventDefault()
           mutation.mutate()
@@ -210,7 +276,7 @@ export function ReceitaOpticaFormDialog({ open, onClose, clienteId }: Props): Re
           <LinhaGrau titulo="Perto" od={pertoOd} oe={pertoOe} setOd={setPertoOd} setOe={setPertoOe} />
         </div>
 
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
           <Field label="Adição">
             <Input
               className="font-mono-tab"
@@ -219,12 +285,10 @@ export function ReceitaOpticaFormDialog({ open, onClose, clienteId }: Props): Re
               placeholder="0,00"
             />
           </Field>
-          <Field label="Altura (mm)">
-            <Input className="font-mono-tab" value={altura} onChange={(e) => setAltura(e.target.value)} />
-          </Field>
           <Field label="Tipo de lente" className="col-span-2 sm:col-span-1">
             <Select value={tipoLente} onChange={(e) => setTipoLente(e.target.value)}>
               <option value="">—</option>
+              {valorForaDaLista(tipoLente, tiposLente.data)}
               {tiposLente.data?.map((t) => (
                 <option key={t.id} value={t.valor}>
                   {t.valor}
@@ -235,6 +299,7 @@ export function ReceitaOpticaFormDialog({ open, onClose, clienteId }: Props): Re
           <Field label="Tratamentos" className="col-span-2 sm:col-span-1">
             <Select value={tratamentos} onChange={(e) => setTratamentos(e.target.value)}>
               <option value="">—</option>
+              {valorForaDaLista(tratamentos, tratamentosDisponiveis.data)}
               {tratamentosDisponiveis.data?.map((t) => (
                 <option key={t.id} value={t.valor}>
                   {t.valor}
@@ -265,7 +330,7 @@ export function ReceitaOpticaFormDialog({ open, onClose, clienteId }: Props): Re
             Cancelar
           </Button>
           <Button type="submit" loading={mutation.isPending}>
-            Salvar receita
+            {editando ? 'Salvar alterações' : 'Salvar receita'}
           </Button>
         </div>
       </form>

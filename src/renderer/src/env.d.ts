@@ -24,10 +24,10 @@ import type {
   ConfiguracaoOperacional,
   FluxoCaixaResultado,
   LucroPrejuizoResultado,
-  DashboardData,
+  DashboardResumo,
+  PdfVisualizacao,
   BackupStatus,
   LicencaInfo,
-  MigracaoResultado,
   CaixaAberto,
   CaixaResumo,
   SistemaInfo,
@@ -49,9 +49,12 @@ import type {
   ClienteInput,
   ClienteUpdateInput,
   IdInput,
+  PdfIdInput,
+  DashboardQuery,
   AniversariantesQuery,
   ReceitaListByClienteInput,
   ReceitaOpticaInput,
+  ReceitaOpticaAtualizarInput,
   ListaValorTipoInput,
   OrdemServicoCreateInput,
   OrdemServicoAvancarInput,
@@ -89,10 +92,17 @@ import type {
   LicencaAtivarInput,
   PrimeiroAcessoInput,
   MigracaoConexaoInput,
+  MigracaoImportarInput,
+  PendenciasListQuery,
+  PendenciasResumoQuery,
+  PendenciaCorrigirDatasInput,
+  EncerrarOsAntigasInput,
+  PendenciaIdsInput,
   CaixaAbrirInput,
   CaixaFecharInput,
   CaixaMovimentoInput
 } from '@shared/ipc'
+import type { CampoDataExame, DetalhesExamePendencia, OsAntigasAbertas, OsAntigasEncerradas, MigracaoResultado, MigracaoAnalise, Pendencia, TipoPendencia } from '@shared/importacao'
 
 /**
  * Espelha exatamente a superficie exposta em src/preload/index.ts.
@@ -136,6 +146,7 @@ interface Api {
   receitas: {
     listByCliente: (input: ReceitaListByClienteInput) => Promise<ApiResult<ReceitaOptica[]>>
     create: (input: ReceitaOpticaInput) => Promise<ApiResult<ReceitaOptica>>
+    update: (input: ReceitaOpticaAtualizarInput) => Promise<ApiResult<ReceitaOptica>>
   }
   ordensServico: {
     list: (input: OrdensServicoQuery) => Promise<ApiResult<OrdemServico[]>>
@@ -204,7 +215,7 @@ interface Api {
     lucroPrejuizo: (input: PeriodoQuery) => Promise<ApiResult<LucroPrejuizoResultado>>
   }
   dashboard: {
-    get: () => Promise<ApiResult<DashboardData>>
+    get: (input: DashboardQuery) => Promise<ApiResult<DashboardResumo>>
   }
   backup: {
     status: () => Promise<ApiResult<BackupStatus>>
@@ -217,7 +228,21 @@ interface Api {
   }
   migracao: {
     testarConexao: (input: MigracaoConexaoInput) => Promise<ApiResult<void>>
-    importar: (input: MigracaoConexaoInput) => Promise<ApiResult<MigracaoResultado>>
+    analisar: (input: MigracaoConexaoInput) => Promise<ApiResult<MigracaoAnalise>>
+    importar: (input: MigracaoImportarInput) => Promise<ApiResult<MigracaoResultado>>
+    pendenciasListar: (input: PendenciasListQuery) => Promise<ApiResult<Pendencia[]>>
+    pendenciasResumo: (input: PendenciasResumoQuery) => Promise<ApiResult<Partial<Record<TipoPendencia, number>>>>
+    pendenciaAplicar: (input: { id: number }) => Promise<ApiResult<void>>
+    pendenciaResolver: (input: { id: number }) => Promise<ApiResult<void>>
+    pendenciaIgnorar: (input: { id: number }) => Promise<ApiResult<void>>
+    pendenciaReabrir: (input: { id: number }) => Promise<ApiResult<void>>
+    pendenciaCorrigirDatas: (input: PendenciaCorrigirDatasInput) => Promise<ApiResult<{ aplicadas: number; avisos: string[]; resolvida: boolean }>>
+    osAntigasAbertas: () => Promise<ApiResult<OsAntigasAbertas>>
+    encerrarOsAntigas: (input: EncerrarOsAntigasInput) => Promise<ApiResult<OsAntigasEncerradas>>
+    pendenciaDetalhes: (input: { id: number }) => Promise<ApiResult<DetalhesExamePendencia>>
+    pendenciaDatasAtuais: (input: { id: number }) => Promise<ApiResult<Record<CampoDataExame, string | null>>>
+    pendenciasAplicarVarias: (input: PendenciaIdsInput) => Promise<ApiResult<{ aplicadas: number; puladas: number }>>
+    pendenciasIgnorarVarias: (input: PendenciaIdsInput) => Promise<ApiResult<{ ignoradas: number }>>
   }
   caixa: {
     atual: () => Promise<ApiResult<CaixaAberto | null>>
@@ -228,21 +253,27 @@ interface Api {
     suprimento: (input: CaixaMovimentoInput) => Promise<ApiResult<CaixaAberto>>
   }
   relatorios: {
-    ordemServico: (input: IdInput) => Promise<ApiResult<{ caminho: string } | null>>
-    protocoloSaida: (input: OrdensServicoQuery) => Promise<ApiResult<{ caminho: string } | null>>
-    comprovanteVenda: (input: IdInput) => Promise<ApiResult<{ caminho: string } | null>>
-    carneParcelas: (input: IdInput) => Promise<ApiResult<{ caminho: string } | null>>
-    aniversariantes: (input: AniversariantesQuery) => Promise<ApiResult<{ caminho: string } | null>>
-    receitasDespesas: (input: PeriodoQuery) => Promise<ApiResult<{ caminho: string } | null>>
-    fluxoCaixa: (input: PeriodoQuery) => Promise<ApiResult<{ caminho: string } | null>>
-    lucroPrejuizo: (input: PeriodoQuery) => Promise<ApiResult<{ caminho: string } | null>>
-    inadimplencia: () => Promise<ApiResult<{ caminho: string } | null>>
-    posicaoEstoque: (input: EstoqueListQuery) => Promise<ApiResult<{ caminho: string } | null>>
-    produtosAbaixoMinimo: () => Promise<ApiResult<{ caminho: string } | null>>
-    curvaAbc: (input: PeriodoQuery) => Promise<ApiResult<{ caminho: string } | null>>
-    vendasPorVendedor: (input: PeriodoQuery) => Promise<ApiResult<{ caminho: string } | null>>
-    rankingVendedores: (input: PeriodoQuery) => Promise<ApiResult<{ caminho: string } | null>>
-    comissoes: (input: PeriodoQuery) => Promise<ApiResult<{ caminho: string } | null>>
+    ordemServico: (input: IdInput) => Promise<ApiResult<PdfVisualizacao>>
+    protocoloSaida: (input: OrdensServicoQuery) => Promise<ApiResult<PdfVisualizacao>>
+    comprovanteVenda: (input: IdInput) => Promise<ApiResult<PdfVisualizacao>>
+    carneParcelas: (input: IdInput) => Promise<ApiResult<PdfVisualizacao>>
+    aniversariantes: (input: AniversariantesQuery) => Promise<ApiResult<PdfVisualizacao>>
+    receitasDespesas: (input: PeriodoQuery) => Promise<ApiResult<PdfVisualizacao>>
+    fluxoCaixa: (input: PeriodoQuery) => Promise<ApiResult<PdfVisualizacao>>
+    lucroPrejuizo: (input: PeriodoQuery) => Promise<ApiResult<PdfVisualizacao>>
+    inadimplencia: () => Promise<ApiResult<PdfVisualizacao>>
+    posicaoEstoque: (input: EstoqueListQuery) => Promise<ApiResult<PdfVisualizacao>>
+    produtosAbaixoMinimo: () => Promise<ApiResult<PdfVisualizacao>>
+    curvaAbc: (input: PeriodoQuery) => Promise<ApiResult<PdfVisualizacao>>
+    vendasPorVendedor: (input: PeriodoQuery) => Promise<ApiResult<PdfVisualizacao>>
+    rankingVendedores: (input: PeriodoQuery) => Promise<ApiResult<PdfVisualizacao>>
+    comissoes: (input: PeriodoQuery) => Promise<ApiResult<PdfVisualizacao>>
+    manual: () => Promise<ApiResult<PdfVisualizacao>>
+  }
+  pdf: {
+    salvar: (input: PdfIdInput) => Promise<ApiResult<{ caminho: string } | null>>
+    imprimir: (input: PdfIdInput) => Promise<ApiResult<{ impresso: boolean }>>
+    descartar: (input: PdfIdInput) => Promise<ApiResult<void>>
   }
   sistema: {
     info: () => Promise<ApiResult<SistemaInfo>>

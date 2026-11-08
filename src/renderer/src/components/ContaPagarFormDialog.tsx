@@ -8,6 +8,7 @@ import { Button } from '@renderer/components/ui/Button'
 import { unwrap, ApiCallError } from '@renderer/lib/ipc'
 import { contaPagarCriarSchema } from '@shared/ipc'
 import { toast } from '@renderer/state/toastStore'
+import { enterAvancaCampo } from '@renderer/lib/enterAvancaCampo'
 
 interface Props {
   open: boolean
@@ -59,6 +60,8 @@ export function ContaPagarFormDialog({ open, onClose }: Props): ReactNode {
   return (
     <Dialog open={open} onClose={onClose} title="Nova conta a pagar" className="max-w-md">
       <form
+        // Enter só passa para o próximo campo: o formulário só envia pelo botão.
+        onKeyDown={enterAvancaCampo}
         className="flex flex-col gap-4"
         onSubmit={(e) => {
           e.preventDefault()

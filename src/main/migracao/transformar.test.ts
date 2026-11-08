@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   normalizarNomeProprio,
+  nomeVazio,
   dataOuNull,
   cpfOuNull,
   celularOuNull,
@@ -48,5 +49,18 @@ describe('transformar (migracao do MD Óculos - PRD secao 11)', () => {
     expect(mapearSituacaoOS('entregue')).toBe('ENTREGUE')
     expect(mapearSituacaoOS('valor-invalido')).toBe('EM ABERTO')
     expect(mapearSituacaoOS(null)).toBe('EM ABERTO')
+  })
+})
+
+describe('nomeVazio', () => {
+  it('null, vazio e so espacos sao vazios', () => {
+    expect(nomeVazio(null)).toBe(true)
+    expect(nomeVazio('')).toBe(true)
+    expect(nomeVazio('   ')).toBe(true)
+  })
+
+  it('qualquer nome com texto nao e vazio', () => {
+    expect(nomeVazio('Ana')).toBe(false)
+    expect(nomeVazio('  Jo  ')).toBe(false)
   })
 })

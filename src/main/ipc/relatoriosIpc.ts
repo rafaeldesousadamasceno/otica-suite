@@ -7,7 +7,8 @@ import {
   periodoQuerySchema,
   estoqueListQuerySchema
 } from '@shared/ipc'
-import { requirePermissao } from '@main/auth/session'
+import { app } from 'electron'
+import { requirePermissao, requireSessao } from '@main/auth/session'
 import { ordemServicoRepository } from '@main/repositories/ordemServicoRepository'
 import { receitaOpticaRepository } from '@main/repositories/receitaOpticaRepository'
 import { ordemServicoService } from '@main/services/ordemServicoService'
@@ -18,7 +19,7 @@ import { financeiroService } from '@main/services/financeiroService'
 import { listarComSaldo } from '@main/repositories/estoqueRepository'
 import { relatorioRepository } from '@main/repositories/relatorioRepository'
 import { empresaService } from '@main/services/empresaService'
-import { gerarESalvarPdf } from '@main/relatorios/pdf'
+import { gerarPdfVisualizacao } from '@main/relatorios/pdf'
 import { montarHtmlOrdemServico } from '@main/relatorios/ordemServicoHtml'
 import { montarHtmlProtocoloSaida } from '@main/relatorios/protocoloSaidaHtml'
 import { montarHtmlComprovanteVenda, montarHtmlCarneParcelas } from '@main/relatorios/vendaHtml'
@@ -31,12 +32,24 @@ import {
 } from '@main/relatorios/financeiroHtml'
 import { montarHtmlEstoque, calcularCurvaAbc, montarHtmlCurvaAbc } from '@main/relatorios/estoqueHtml'
 import { montarHtmlVendasPorVendedor, montarHtmlRankingVendedores, montarHtmlComissoes } from '@main/relatorios/vendedoresHtml'
+import { montarHtmlManual } from '@main/relatorios/manualHtml'
+import { secoesDoPerfil } from '@shared/ajuda'
 import { Errors } from '@main/errors'
 import { hojeLocal } from '@shared/data'
 
 const dataHojeSufixo = (): string => hojeLocal()
 
 export function registerRelatoriosIpc(): void {
+  // Manual do usuario: so as secoes que o perfil de quem pediu pode usar.
+  handleIpc(IPC.relatorios.manual, null, async () => {
+    const sessao = requireSessao()
+    const html = montarHtmlManual(secoesDoPerfil(sessao.usuario.perfil), empresaService.get(), {
+      versao: app.getVersion(),
+      geradoEm: hojeLocal()
+    })
+    return gerarPdfVisualizacao(html, 'Manual-do-Usuario.pdf', 'Manual do Usuário')
+  })
+
   handleIpc(IPC.relatorios.ordemServico, idSchema, async (input) => {
     requirePermissao('ordens_servico', 'ver')
     const os = ordemServicoRepository.buscarPorId(input.id)
@@ -44,7 +57,7 @@ export function registerRelatoriosIpc(): void {
     const receita = os.receitaOpticaId ? receitaOpticaRepository.buscarPorId(os.receitaOpticaId) : null
     const empresa = empresaService.get()
     const html = montarHtmlOrdemServico(os, receita, empresa)
-    return gerarESalvarPdf(html, `OS-${os.numero}.pdf`)
+    return gerarPdfVisualizacao(html, `OS-${os.numero}.pdf`)
   })
 
   handleIpc(IPC.relatorios.protocoloSaida, ordensServicoQuerySchema, async (input) => {
@@ -59,7 +72,7 @@ export function registerRelatoriosIpc(): void {
       dataFim: input.dataFim,
       situacao: input.situacao
     })
-    return gerarESalvarPdf(html, `Protocolo-de-Saida-${dataHojeSufixo()}.pdf`)
+    return gerarPdfVisualizacao(html, `Protocolo-de-Saida-${dataHojeSufixo()}.pdf`)
   })
 
   handleIpc(IPC.relatorios.comprovanteVenda, idSchema, async (input) => {
@@ -67,49 +80,49 @@ export function registerRelatoriosIpc(): void {
     const venda = vendaService.buscarPorId(input.id)
     const empresa = empresaService.get()
     const html = montarHtmlComprovanteVenda(venda, empresa)
-    return gerarESalvarPdf(html, `Comprovante-Venda-${venda.numero}.pdf`)
+    return gerarPdfVisualizacao(html, `Comprovante-Venda-${venda.numero}.pdf`)
   })
 
   handleIpc(IPC.relatorios.carneParcelas, idSchema, async (input) => {
     const venda = vendaService.buscarPorId(input.id)
     const empresa = empresaService.get()
     const html = montarHtmlCarneParcelas(venda, empresa)
-    return gerarESalvarPdf(html, `Carne-Parcelas-${venda.numero}.pdf`)
+    return gerarPdfVisualizacao(html, `Carne-Parcelas-${venda.numero}.pdf`)
   })
 
   handleIpc(IPC.relatorios.aniversariantes, aniversariantesQuerySchema, async (input) => {
     const clientes = clienteService.aniversariantes(input.mes)
     const empresa = empresaService.get()
     const html = montarHtmlAniversariantes(clientes, empresa, input.mes)
-    return gerarESalvarPdf(html, `Aniversariantes-${dataHojeSufixo()}.pdf`)
+    return gerarPdfVisualizacao(html, `Aniversariantes-${dataHojeSufixo()}.pdf`)
   })
 
   handleIpc(IPC.relatorios.receitasDespesas, periodoQuerySchema, async (input) => {
     const resultado = financeiroService.fluxoCaixa(input)
     const empresa = empresaService.get()
     const html = montarHtmlReceitasDespesas(resultado, empresa, input)
-    return gerarESalvarPdf(html, `Receitas-e-Despesas-${dataHojeSufixo()}.pdf`)
+    return gerarPdfVisualizacao(html, `Receitas-e-Despesas-${dataHojeSufixo()}.pdf`)
   })
 
   handleIpc(IPC.relatorios.fluxoCaixa, periodoQuerySchema, async (input) => {
     const resultado = financeiroService.fluxoCaixa(input)
     const empresa = empresaService.get()
     const html = montarHtmlFluxoCaixa(resultado, empresa, input)
-    return gerarESalvarPdf(html, `Fluxo-de-Caixa-${dataHojeSufixo()}.pdf`)
+    return gerarPdfVisualizacao(html, `Fluxo-de-Caixa-${dataHojeSufixo()}.pdf`)
   })
 
   handleIpc(IPC.relatorios.lucroPrejuizo, periodoQuerySchema, async (input) => {
     const resultado = financeiroService.lucroPrejuizo(input)
     const empresa = empresaService.get()
     const html = montarHtmlLucroPrejuizo(resultado, empresa, input)
-    return gerarESalvarPdf(html, `Lucro-Prejuizo-${dataHojeSufixo()}.pdf`)
+    return gerarPdfVisualizacao(html, `Lucro-Prejuizo-${dataHojeSufixo()}.pdf`)
   })
 
   handleIpc(IPC.relatorios.inadimplencia, null, async () => {
     const parcelas = contaReceberService.listar({ apenasVencidas: true })
     const empresa = empresaService.get()
     const html = montarHtmlInadimplencia(parcelas, empresa)
-    return gerarESalvarPdf(html, `Inadimplencia-${dataHojeSufixo()}.pdf`)
+    return gerarPdfVisualizacao(html, `Inadimplencia-${dataHojeSufixo()}.pdf`)
   })
 
   handleIpc(IPC.relatorios.posicaoEstoque, estoqueListQuerySchema, async (input) => {
@@ -117,7 +130,7 @@ export function registerRelatoriosIpc(): void {
     const itens = listarComSaldo(input)
     const empresa = empresaService.get()
     const html = montarHtmlEstoque('Posição de Estoque', itens, empresa)
-    return gerarESalvarPdf(html, `Posicao-Estoque-${dataHojeSufixo()}.pdf`)
+    return gerarPdfVisualizacao(html, `Posicao-Estoque-${dataHojeSufixo()}.pdf`)
   })
 
   handleIpc(IPC.relatorios.produtosAbaixoMinimo, null, async () => {
@@ -125,7 +138,7 @@ export function registerRelatoriosIpc(): void {
     const itens = listarComSaldo({ busca: '', categoria: '', situacao: 'abaixo_minimo' })
     const empresa = empresaService.get()
     const html = montarHtmlEstoque('Produtos Abaixo do Mínimo', itens, empresa)
-    return gerarESalvarPdf(html, `Produtos-Abaixo-Minimo-${dataHojeSufixo()}.pdf`)
+    return gerarPdfVisualizacao(html, `Produtos-Abaixo-Minimo-${dataHojeSufixo()}.pdf`)
   })
 
   handleIpc(IPC.relatorios.curvaAbc, periodoQuerySchema, async (input) => {
@@ -134,7 +147,7 @@ export function registerRelatoriosIpc(): void {
     const curva = calcularCurvaAbc(margem)
     const empresa = empresaService.get()
     const html = montarHtmlCurvaAbc(curva, empresa, input)
-    return gerarESalvarPdf(html, `Curva-ABC-${dataHojeSufixo()}.pdf`)
+    return gerarPdfVisualizacao(html, `Curva-ABC-${dataHojeSufixo()}.pdf`)
   })
 
   handleIpc(IPC.relatorios.vendasPorVendedor, periodoQuerySchema, async (input) => {
@@ -142,7 +155,7 @@ export function registerRelatoriosIpc(): void {
     const itens = relatorioRepository.vendasPorVendedor(input.dataInicio, input.dataFim)
     const empresa = empresaService.get()
     const html = montarHtmlVendasPorVendedor(itens, empresa, input)
-    return gerarESalvarPdf(html, `Vendas-por-Vendedor-${dataHojeSufixo()}.pdf`)
+    return gerarPdfVisualizacao(html, `Vendas-por-Vendedor-${dataHojeSufixo()}.pdf`)
   })
 
   handleIpc(IPC.relatorios.rankingVendedores, periodoQuerySchema, async (input) => {
@@ -150,7 +163,7 @@ export function registerRelatoriosIpc(): void {
     const itens = relatorioRepository.rankingVendedores(input.dataInicio, input.dataFim)
     const empresa = empresaService.get()
     const html = montarHtmlRankingVendedores(itens, empresa, input)
-    return gerarESalvarPdf(html, `Ranking-Vendedores-${dataHojeSufixo()}.pdf`)
+    return gerarPdfVisualizacao(html, `Ranking-Vendedores-${dataHojeSufixo()}.pdf`)
   })
 
   handleIpc(IPC.relatorios.comissoes, periodoQuerySchema, async (input) => {
@@ -160,6 +173,6 @@ export function registerRelatoriosIpc(): void {
     const itens = relatorioRepository.comissoes(input.dataInicio, input.dataFim, vendedorId)
     const empresa = empresaService.get()
     const html = montarHtmlComissoes(itens, empresa, input)
-    return gerarESalvarPdf(html, `Comissoes-${dataHojeSufixo()}.pdf`)
+    return gerarPdfVisualizacao(html, `Comissoes-${dataHojeSufixo()}.pdf`)
   })
 }

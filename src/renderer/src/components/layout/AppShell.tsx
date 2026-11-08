@@ -4,6 +4,7 @@ import { Sidebar } from './Sidebar'
 import { Topbar } from './Topbar'
 import { useAuthStore } from '@renderer/state/authStore'
 import { ChangePasswordDialog } from '@renderer/components/ChangePasswordDialog'
+import { PdfViewer } from '@renderer/components/pdf/PdfViewer'
 
 export function AppShell({ children }: { children: ReactNode }): ReactNode {
   const sessao = useAuthStore((s) => s.sessao)
@@ -19,8 +20,10 @@ export function AppShell({ children }: { children: ReactNode }): ReactNode {
       <Sidebar />
       <div className="flex min-w-0 flex-1 flex-col">
         <Topbar />
-        <main className="flex-1 overflow-y-auto p-6">{children}</main>
+        <main className="relative flex-1 overflow-y-auto p-6">{children}</main>
       </div>
+
+      <PdfViewer />
 
       <ChangePasswordDialog
         open={Boolean(precisaTrocarSenha)}

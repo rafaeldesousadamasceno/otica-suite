@@ -8,9 +8,18 @@ export interface PontoSerie {
   valor: number
 }
 
+export interface SerieComparacao {
+  nome: string
+  /** Um valor por ponto da serie principal (mesma posicao = mesmo "dia" relativo do periodo anterior). */
+  valores: number[]
+}
+
 interface Props {
   pontos: PontoSerie[]
   nomeSerie: string
+  /** Periodo de comparacao: linha tracejada neutra, sem area e sem cor nova. */
+  comparacao?: SerieComparacao
+
   formatarEixoX: (chave: string) => string
   formatarTitulo: (chave: string) => string
   formatarValor: (valor: number) => string
@@ -28,6 +37,7 @@ const MARGEM = { topo: 12, direita: 16, base: 26, esquerda: 56 }
 export function LineAreaChart({
   pontos,
   nomeSerie,
+  comparacao,
   formatarEixoX,
   formatarTitulo,
   formatarValor,
@@ -44,7 +54,7 @@ export function LineAreaChart({
   const y1 = altura - MARGEM.base
   const n = pontos.length
 
-  const maximo = Math.max(0, ...pontos.map((p) => p.valor))
+  const maximo = Math.max(0, ...pontos.map((p) => p.valor), ...(comparacao?.valores ?? []))
   const ticks = niceTicks(maximo)
   const topoEscala = ticks[ticks.length - 1]
 
@@ -53,6 +63,12 @@ export function LineAreaChart({
 
   const linha = pontos.map((p, i) => `${i === 0 ? 'M' : 'L'}${xEm(i)},${yEm(p.valor)}`).join(' ')
   const area = `${linha} L${xEm(n - 1)},${y1} L${xEm(0)},${y1} Z`
+  const linhaComparacao = comparacao
+    ? comparacao.valores
+        .slice(0, n)
+        .map((v, i) => `${i === 0 ? 'M' : 'L'}${xEm(i)},${yEm(v)}`)
+        .join(' ')
+    : ''
 
   const qtdRotulosX = Math.max(2, Math.min(6, Math.floor((x1 - x0) / 70)))
   const indicesRotulo = [
@@ -129,6 +145,16 @@ export function LineAreaChart({
           </text>
         ))}
 
+        {linhaComparacao && (
+          <path
+            d={linhaComparacao}
+            fill="none"
+            strokeWidth={1.5}
+            strokeDasharray="5 4"
+            strokeLinejoin="round"
+            style={{ stroke: 'var(--ink-3)' }}
+          />
+        )}
         <path d={area} style={{ fill: 'var(--viz-1)', opacity: 0.1 }} />
         <path
           d={linha}
@@ -178,7 +204,12 @@ export function LineAreaChart({
           y={y0}
           larguraContainer={largura}
           titulo={formatarTitulo(pontoAtivo.chave)}
-          linhas={[{ cor: 'var(--viz-1)', nome: nomeSerie, valor: formatarValor(pontoAtivo.valor) }]}
+          linhas={[
+            { cor: 'var(--viz-1)', nome: nomeSerie, valor: formatarValor(pontoAtivo.valor) },
+            ...(comparacao && ativo !== null && comparacao.valores[ativo] !== undefined
+              ? [{ cor: 'var(--ink-3)', nome: comparacao.nome, valor: formatarValor(comparacao.valores[ativo]) }]
+              : [])
+          ]}
         />
       )}
     </div>

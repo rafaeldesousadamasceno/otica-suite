@@ -10,6 +10,7 @@ import { unwrap, ApiCallError } from '@renderer/lib/ipc'
 import { ordemServicoCreateSchema } from '@shared/ipc'
 import { toast } from '@renderer/state/toastStore'
 import type { ClienteResumo } from '@shared/types'
+import { enterAvancaCampo } from '@renderer/lib/enterAvancaCampo'
 
 interface Props {
   open: boolean
@@ -78,6 +79,8 @@ export function OrdemServicoFormDialog({ open, onClose, clienteFixo, onCreated }
   return (
     <Dialog open={open} onClose={onClose} title="Nova Ordem de Serviço">
       <form
+        // Enter só passa para o próximo campo: o formulário só envia pelo botão.
+        onKeyDown={enterAvancaCampo}
         className="flex flex-col gap-4"
         onSubmit={(e) => {
           e.preventDefault()

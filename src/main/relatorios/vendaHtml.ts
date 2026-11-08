@@ -1,125 +1,114 @@
 import type { Empresa, VendaDetalhada } from '@shared/types'
-import { escapeHtml, formatarDataBr, formatarMoeda, montarLetterhead, texto } from './htmlUtils'
+import { escapeHtml, formatarContatos, formatarDataBr, formatarMoeda, texto } from './formatacao'
+import { assinatura, badge, campos, montarDocumento, resumoCards, secao, tabela, type Tom } from './layout'
 
-const ESTILO_BASE = `
-  * { box-sizing: border-box; }
-  body { font-family: Arial, Helvetica, sans-serif; color: #1a1a1a; font-size: 11px; margin: 0; }
-  .letterhead { display: flex; align-items: center; gap: 12px; border-bottom: 2px solid #1a1a1a; padding-bottom: 8px; margin-bottom: 10px; }
-  .logo { max-height: 48px; max-width: 100px; object-fit: contain; }
-  .empresa-nome { font-size: 16px; font-weight: bold; }
-  .empresa-detalhe { font-size: 9px; color: #444; }
-  h1 { font-size: 15px; margin: 0 0 10px; }
-  table { width: 100%; border-collapse: collapse; margin-bottom: 10px; }
-  th, td { border: 1px solid #999; padding: 4px 6px; text-align: left; font-size: 10px; }
-  thead th { background: #eee; text-transform: uppercase; font-size: 9px; }
-  .totais { display: flex; justify-content: flex-end; gap: 20px; margin-bottom: 10px; }
-  .totais .item { text-align: right; }
-  .totais .label { font-size: 9px; color: #555; text-transform: uppercase; }
-  .totais .valor { font-size: 13px; font-weight: bold; }
-  .assinatura { margin-top: 40px; border-top: 1px solid #333; width: 60%; padding-top: 4px; font-size: 9px; text-align: center; }
-`
+const TOM_PARCELA: Record<string, Tom> = { ABERTA: 'atencao', PAGA: 'ok', CANCELADA: 'perigo' }
 
 /** RF-12: "Comprovante de venda" - itens, pagamentos e total, para entregar ao cliente. */
 export function montarHtmlComprovanteVenda(venda: VendaDetalhada, empresa: Empresa): string {
-  const linhasItens = venda.itens
-    .map(
-      (it) => `<tr>
-        <td>${texto(it.descricao)}</td>
-        <td style="text-align:center">${it.quantidade}</td>
-        <td style="text-align:right">${formatarMoeda(it.precoUnitarioCentavos)}</td>
-        <td style="text-align:right">${formatarMoeda(it.descontoCentavos)}</td>
-        <td style="text-align:right">${formatarMoeda(it.totalCentavos)}</td>
-      </tr>`
-    )
-    .join('')
+  const itens = tabela({
+    colunas: [
+      { label: 'Item' },
+      { label: 'Qtd', alinhar: 'centro' },
+      { label: 'Unitário', alinhar: 'direita' },
+      { label: 'Desconto', alinhar: 'direita' },
+      { label: 'Total', alinhar: 'direita' }
+    ],
+    linhas: venda.itens.map((it) => [
+      texto(it.descricao),
+      String(it.quantidade),
+      formatarMoeda(it.precoUnitarioCentavos),
+      formatarMoeda(it.descontoCentavos),
+      formatarMoeda(it.totalCentavos)
+    ]),
+    vazio: 'Venda sem itens.'
+  })
 
-  const linhasPagamento = venda.pagamentos
-    .map(
-      (p) => `<tr>
-        <td>${texto(p.formaPagamento)}${p.parcelas > 1 ? ` em ${p.parcelas}x` : ''}</td>
-        <td style="text-align:right">${formatarMoeda(p.valorCentavos)}</td>
-      </tr>`
-    )
-    .join('')
+  const pagamentos = tabela({
+    colunas: [{ label: 'Forma de pagamento' }, { label: 'Valor', alinhar: 'direita' }],
+    linhas: venda.pagamentos.map((p) => [
+      `${texto(p.formaPagamento)}${p.parcelas > 1 ? ` em ${p.parcelas}x` : ''}`,
+      formatarMoeda(p.valorCentavos)
+    ]),
+    vazio: 'Nenhum pagamento registrado.'
+  })
 
-  return `<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-<meta charset="UTF-8" />
-<title>Comprovante de Venda ${escapeHtml(venda.numero)}</title>
-<style>
-  @page { size: A4; margin: 14mm; }
-  ${ESTILO_BASE}
-</style>
-</head>
-<body>
-  ${montarLetterhead(empresa)}
+  const corpo = [
+    secao(
+      'Venda',
+      campos([
+        { rotulo: 'Cliente', valor: texto(venda.clienteNome) },
+        { rotulo: 'Data', valor: formatarDataBr(venda.data) },
+        { rotulo: 'Vendedor(a)', valor: texto(venda.vendedorNome) },
+        ...(venda.situacao === 'CANCELADA' ? [{ rotulo: 'Situação', valor: badge('Cancelada', 'perigo') }] : [])
+      ])
+    ),
+    secao('Itens', itens),
+    resumoCards([
+      { label: 'Subtotal', valor: formatarMoeda(venda.subtotalCentavos) },
+      { label: 'Desconto', valor: formatarMoeda(venda.descontoCentavos) },
+      { label: 'Total', valor: formatarMoeda(venda.totalCentavos), tom: 'destaque' }
+    ]),
+    secao('Pagamento', pagamentos),
+    assinatura('Assinatura do cliente')
+  ].join('\n')
 
-  <h1>Comprovante de Venda ${escapeHtml(venda.numero)}</h1>
-  <p style="margin:0 0 10px;font-size:10px;color:#444;">
-    Cliente: ${texto(venda.clienteNome)} · Data: ${formatarDataBr(venda.data)} · Vendedor(a): ${texto(venda.vendedorNome)}
-  </p>
-
-  <table>
-    <thead>
-      <tr><th>Item</th><th>Qtd</th><th>Unitário</th><th>Desconto</th><th>Total</th></tr>
-    </thead>
-    <tbody>${linhasItens}</tbody>
-  </table>
-
-  <div class="totais">
-    <div class="item"><div class="label">Subtotal</div><div class="valor">${formatarMoeda(venda.subtotalCentavos)}</div></div>
-    <div class="item"><div class="label">Desconto</div><div class="valor">${formatarMoeda(venda.descontoCentavos)}</div></div>
-    <div class="item"><div class="label">Total</div><div class="valor">${formatarMoeda(venda.totalCentavos)}</div></div>
-  </div>
-
-  <table>
-    <thead><tr><th>Forma de Pagamento</th><th style="text-align:right">Valor</th></tr></thead>
-    <tbody>${linhasPagamento}</tbody>
-  </table>
-
-  <div class="assinatura">Assinatura do cliente</div>
-</body>
-</html>`
+  return montarDocumento({
+    titulo: `Comprovante de Venda ${venda.numero}`,
+    empresa,
+    orientacao: 'retrato',
+    corpo
+  })
 }
 
-/** RF-12: "Carnê de parcelas" - um "canhoto" por parcela em aberto, para o cliente parcelado levar. */
+const ESTILO_CARNE = `
+  .canhoto {
+    display: flex; align-items: stretch; gap: 14px;
+    border: 1px solid var(--rel-linha); border-left: 5px solid var(--rel-base);
+    border-radius: 6px; padding: 9px 12px; break-inside: avoid;
+  }
+  .canhoto .ident { flex: 1; }
+  .canhoto .loja { font-size: 8px; color: var(--rel-ink-3); margin-bottom: 3px; }
+  .canhoto .loja strong { color: var(--rel-forte); font-size: 9px; }
+  .canhoto .cliente { font-size: 11px; font-weight: 700; }
+  .canhoto .linha { margin-top: 2px; color: var(--rel-ink-2); }
+  .canhoto .valores { text-align: right; min-width: 150px; display: flex; flex-direction: column; justify-content: space-between; gap: 4px; }
+  .canhoto .venc { font-size: 8px; color: var(--rel-ink-3); text-transform: uppercase; letter-spacing: 0.05em; }
+  .canhoto .venc strong { display: block; font-size: 11px; color: var(--rel-ink); letter-spacing: 0; }
+  .canhoto .valor-parcela { font-size: 16px; font-weight: 700; color: var(--rel-forte); font-variant-numeric: tabular-nums; }
+  .canhoto .recebido { margin-top: 6px; font-size: 8px; color: var(--rel-ink-3); }
+  .corte { border-top: 1px dashed #b6c7c7; margin: 9px 0; position: relative; }
+  .corte::after { content: '✂'; position: absolute; left: -2px; top: -8px; font-size: 10px; color: #8a9a9e; background: #fff; padding-right: 3px; }
+`
+
+/** RF-12: "Carnê de parcelas" - um canhoto por parcela, para o cliente parcelado levar. */
 export function montarHtmlCarneParcelas(venda: VendaDetalhada, empresa: Empresa): string {
+  const contatos = formatarContatos(empresa)
   const canhotos = venda.parcelas
     .map(
       (p) => `
       <div class="canhoto">
-        ${montarLetterhead(empresa)}
-        <p class="linha"><strong>${texto(venda.clienteNome)}</strong></p>
-        <p class="linha">Venda ${escapeHtml(venda.numero)} · Parcela ${p.parcela}/${p.totalParcelas}</p>
-        <p class="linha">Vencimento: <strong>${formatarDataBr(p.vencimento)}</strong></p>
-        <p class="linha valor">${formatarMoeda(p.valorCentavos)}</p>
-        <p class="linha situacao">${p.situacao}</p>
+        <div class="ident">
+          <div class="loja"><strong>${escapeHtml(empresa.nomeFantasia)}</strong>${contatos ? ` · ${escapeHtml(contatos)}` : ''}</div>
+          <div class="cliente">${texto(venda.clienteNome)}</div>
+          <div class="linha">Venda ${escapeHtml(venda.numero)} · Parcela ${p.parcela}/${p.totalParcelas}</div>
+          <div class="recebido">Recebido em ____/____/______ por ______________________________</div>
+        </div>
+        <div class="valores">
+          <div class="venc">Vencimento <strong>${formatarDataBr(p.vencimento)}</strong></div>
+          <div class="valor-parcela">${formatarMoeda(p.valorCentavos)}</div>
+          <div>${badge(p.situacao, TOM_PARCELA[p.situacao] ?? 'neutro')}</div>
+        </div>
       </div>`
     )
     .join('<div class="corte"></div>')
 
-  return `<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-<meta charset="UTF-8" />
-<title>Carnê de Parcelas ${escapeHtml(venda.numero)}</title>
-<style>
-  @page { size: A4; margin: 14mm; }
-  * { box-sizing: border-box; }
-  body { font-family: Arial, Helvetica, sans-serif; color: #1a1a1a; font-size: 11px; margin: 0; }
-  .letterhead { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
-  .logo { max-height: 32px; max-width: 70px; object-fit: contain; }
-  .empresa-nome { font-size: 12px; font-weight: bold; }
-  .canhoto { border: 1px dashed #999; border-radius: 4px; padding: 10px; margin-bottom: 4px; }
-  .linha { margin: 2px 0; }
-  .valor { font-size: 14px; font-weight: bold; }
-  .situacao { font-size: 9px; text-transform: uppercase; color: #555; }
-  .corte { text-align: center; font-size: 9px; color: #999; margin: 4px 0; }
-</style>
-</head>
-<body>
-  ${venda.parcelas.length === 0 ? '<p>Esta venda não possui parcelas.</p>' : canhotos}
-</body>
-</html>`
+  return montarDocumento({
+    titulo: `Carnê de Parcelas ${venda.numero}`,
+    subtitulo: `${venda.clienteNome} · ${venda.parcelas.length} parcela(s)`,
+    empresa,
+    orientacao: 'retrato',
+    estiloExtra: ESTILO_CARNE,
+    corpo: venda.parcelas.length === 0 ? '<p>Esta venda não possui parcelas.</p>' : canhotos
+  })
 }

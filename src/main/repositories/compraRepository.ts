@@ -1,4 +1,5 @@
 import { getDb } from '@main/db/connection'
+import { maiusculo, termoBusca } from '@shared/texto'
 import { registrarMovimento, saldoAtual } from './estoqueRepository'
 import type { CompraCreateInput } from '@shared/ipc'
 import type { CompraDetalhada, CompraItemDetalhe, CompraResumo, SituacaoCompra } from '@shared/types'
@@ -83,13 +84,13 @@ export const compraRepository = {
     const rows = getDb()
       .prepare(
         `${SELECT_RESUMO}
-         WHERE (f.razao_social LIKE :termo OR c.numero_nf LIKE :termo)
+         WHERE (sem_acento(f.razao_social) LIKE :termo OR sem_acento(c.numero_nf) LIKE :termo)
            AND (:situacao = '' OR c.situacao = :situacao)
          ORDER BY c.data DESC, c.id DESC
          LIMIT 300`
       )
       .all({
-        termo: `%${query.busca?.trim() ?? ''}%`,
+        termo: termoBusca(query.busca),
         situacao: query.situacao?.trim() || ''
       }) as unknown as ResumoRow[]
     return rows.map(toResumo)
@@ -186,7 +187,7 @@ export const compraRepository = {
       ).run({
         compraId: id,
         fornecedorId: compra.fornecedor_id,
-        descricao: `Compra #${id}${numeroNf}`,
+        descricao: maiusculo(`Compra #${id}${numeroNf}`),
         valor: compra.valor_total_centavos,
         vencimento: vencimentoContaPagar
       })

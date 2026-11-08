@@ -1,5 +1,6 @@
 import type { DatabaseSync } from 'node:sqlite'
 import { getDb } from '@main/db/connection'
+import { termoBusca } from '@shared/texto'
 import { comissaoRepository } from './comissaoRepository'
 import type { ContaReceber, SituacaoContaReceber } from '@shared/types'
 import { hojeLocal } from '@shared/data'
@@ -60,14 +61,14 @@ export const contaReceberRepository = {
     const rows = getDb()
       .prepare(
         `${SELECT_CONTA_RECEBER}
-         WHERE (c.nome LIKE :termo OR v.numero LIKE :termo)
+         WHERE (sem_acento(c.nome) LIKE :termo OR sem_acento(v.numero) LIKE :termo)
            AND (:situacao = '' OR cr.situacao = :situacao)
            AND (:apenasVencidas = 0 OR (cr.situacao = 'ABERTA' AND cr.vencimento < :hoje))
          ORDER BY cr.vencimento ASC, cr.id ASC
          LIMIT 500`
       )
       .all({
-        termo: `%${query.busca?.trim() ?? ''}%`,
+        termo: termoBusca(query.busca),
         situacao: query.situacao?.trim() || '',
         apenasVencidas: query.apenasVencidas ? 1 : 0,
         hoje: hoje()

@@ -4,7 +4,7 @@ import { repararMojibake } from './transformar'
 
 export interface ClienteOrigemRow {
   id_cliente: number
-  nome: string
+  nome: string | null
   data_nasc: string | null
   cpf: string | null
   celular: string | null

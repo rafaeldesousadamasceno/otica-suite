@@ -1,12 +1,12 @@
 import { type ReactNode, useState } from 'react'
-import { useMutation, useQuery } from '@tanstack/react-query'
+import { useQuery } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import { Printer } from 'lucide-react'
 import { Card } from '@renderer/components/ui/Card'
 import { Select } from '@renderer/components/ui/Select'
 import { Button } from '@renderer/components/ui/Button'
-import { unwrap, ApiCallError } from '@renderer/lib/ipc'
-import { toast } from '@renderer/state/toastStore'
+import { unwrap } from '@renderer/lib/ipc'
+import { useGerarPdf } from '@renderer/lib/useGerarPdf'
 import { MESES } from '@shared/types'
 
 function formatarDataBr(iso: string | null): string {
@@ -24,13 +24,7 @@ export function AniversariantesPage(): ReactNode {
     queryFn: () => unwrap(window.api.clientes.aniversariantes({ mes }))
   })
 
-  const imprimir = useMutation({
-    mutationFn: () => unwrap(window.api.relatorios.aniversariantes({ mes })),
-    onSuccess: (resultado) => {
-      if (resultado) toast.ok(`PDF salvo em ${resultado.caminho}`)
-    },
-    onError: (err) => toast.error(err instanceof ApiCallError || err instanceof Error ? err.message : 'Erro inesperado.')
-  })
+  const imprimir = useGerarPdf(() => window.api.relatorios.aniversariantes({ mes }))
 
   return (
     <div className="flex flex-col gap-4">

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { produtoInputSchema } from './ipc'
+import { produtoInputSchema, receitaOpticaInputSchema } from './ipc'
 
 const BASE = {
   descricao: 'Armação teste',
@@ -38,5 +38,48 @@ describe('produtoInputSchema - dinheiro em formato brasileiro (PRD 10.4: centavo
   it('margem aceita percentual com virgula', () => {
     const r = produtoInputSchema.parse({ ...BASE, custoCentavos: '0', margem: '35,5', precoVendaCentavos: '0' })
     expect(r.margem).toBe(35.5)
+  })
+})
+
+// Payload como o formulario enviava antes da migracao 008: sem DP e com altura.
+const RECEITA_ANTIGA: Record<string, unknown> = {
+  clienteId: 1,
+  dataExame: '2026-11-07',
+  adicao: '',
+  altura: '18'
+}
+for (const lado of ['longeOd', 'longeOe', 'pertoOd', 'pertoOe']) {
+  for (const campo of ['Esf', 'Cil', 'Eixo', 'Dnp']) RECEITA_ANTIGA[`${lado}${campo}`] = ''
+}
+
+describe('receitaOpticaInputSchema - DP por olho (migracao 008)', () => {
+  it('aceita DP com virgula e converte para numero', () => {
+    const r = receitaOpticaInputSchema.parse({ ...RECEITA_ANTIGA, longeOdDp: '31,5', pertoOeDp: 30 })
+    expect(r.longeOdDp).toBe(31.5)
+    expect(r.pertoOeDp).toBe(30)
+  })
+
+  it('DP vazio vira null', () => {
+    const r = receitaOpticaInputSchema.parse({ ...RECEITA_ANTIGA, longeOeDp: '' })
+    expect(r.longeOeDp).toBeNull()
+  })
+
+  it('rejeita DP que nao e numero', () => {
+    const r = receitaOpticaInputSchema.safeParse({ ...RECEITA_ANTIGA, pertoOdDp: 'abc' })
+    expect(r.success).toBe(false)
+    expect(r.error?.issues[0].message).toBe('DP inválido')
+  })
+
+  it('payload antigo, sem DP, continua valido', () => {
+    const r = receitaOpticaInputSchema.parse(RECEITA_ANTIGA)
+    expect(r.longeOdDp).toBeUndefined()
+    expect(r.altura).toBe(18)
+  })
+
+  it('formulario novo nao envia altura e continua valido', () => {
+    const semAltura = { ...RECEITA_ANTIGA }
+    delete semAltura.altura
+    const r = receitaOpticaInputSchema.parse(semAltura)
+    expect(r.altura).toBeUndefined()
   })
 })

@@ -20,6 +20,7 @@ import { registerLicencaIpc } from './licencaIpc'
 import { registerMigracaoIpc } from './migracaoIpc'
 import { registerCaixaIpc } from './caixaIpc'
 import { registerRelatoriosIpc } from './relatoriosIpc'
+import { registerPdfIpc } from './pdfIpc'
 import { registerListasValorIpc } from './listasValorIpc'
 import { registerAuditoriaIpc } from './auditoriaIpc'
 import { registerSistemaIpc } from './sistemaIpc'
@@ -48,6 +49,7 @@ export function registerAllIpc(): void {
   registerMigracaoIpc()
   registerCaixaIpc()
   registerRelatoriosIpc()
+  registerPdfIpc()
   registerListasValorIpc()
   registerAuditoriaIpc()
   registerSistemaIpc()

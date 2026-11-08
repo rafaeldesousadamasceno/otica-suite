@@ -1,13 +1,14 @@
 import { type ReactNode, useState } from 'react'
-import { useMutation, useQuery } from '@tanstack/react-query'
+import { useSearchParams } from 'react-router-dom'
+import { useQuery } from '@tanstack/react-query'
 import { Search, FilePlus2, AlertTriangle, Printer } from 'lucide-react'
 import { Card } from '@renderer/components/ui/Card'
 import { Input } from '@renderer/components/ui/Input'
 import { Select } from '@renderer/components/ui/Select'
 import { Button } from '@renderer/components/ui/Button'
 import { Badge } from '@renderer/components/ui/Badge'
-import { unwrap, ApiCallError } from '@renderer/lib/ipc'
-import { toast } from '@renderer/state/toastStore'
+import { unwrap } from '@renderer/lib/ipc'
+import { useGerarPdf } from '@renderer/lib/useGerarPdf'
 import { useDebouncedValue } from '@renderer/lib/useDebouncedValue'
 import { TOM_SITUACAO_OS } from '@renderer/lib/situacaoOSTone'
 import { FLUXO_SITUACAO_OS } from '@shared/types'
@@ -28,8 +29,10 @@ function formatarDataBr(iso: string | null): string {
  */
 export function OrdensServicoPage(): ReactNode {
   const [busca, setBusca] = useState('')
-  const [situacao, setSituacao] = useState('')
-  const [apenasAtrasadas, setApenasAtrasadas] = useState(false)
+  // O painel abre esta tela ja filtrada (?atrasadas=1 ou ?situacao=CHEGOU).
+  const [params] = useSearchParams()
+  const [situacao, setSituacao] = useState(params.get('situacao') ?? '')
+  const [apenasAtrasadas, setApenasAtrasadas] = useState(params.get('atrasadas') === '1')
   const [novaOpen, setNovaOpen] = useState(false)
   const [osSelecionada, setOsSelecionada] = useState<number | null>(null)
   const buscaDebounced = useDebouncedValue(busca)
@@ -40,13 +43,7 @@ export function OrdensServicoPage(): ReactNode {
     queryFn: () => unwrap(window.api.ordensServico.list(query))
   })
 
-  const imprimirProtocolo = useMutation({
-    mutationFn: () => unwrap(window.api.relatorios.protocoloSaida(query)),
-    onSuccess: (resultado) => {
-      if (resultado) toast.ok(`PDF salvo em ${resultado.caminho}`)
-    },
-    onError: (err) => toast.error(err instanceof ApiCallError || err instanceof Error ? err.message : 'Erro inesperado.')
-  })
+  const imprimirProtocolo = useGerarPdf(() => window.api.relatorios.protocoloSaida(query))
 
   return (
     <div className="flex flex-col gap-4">

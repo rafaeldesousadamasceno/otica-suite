@@ -10,6 +10,7 @@ import { produtoInputSchema, type ProdutoInput } from '@shared/ipc'
 import { centavosParaTexto } from '@renderer/lib/dinheiro'
 import { toast } from '@renderer/state/toastStore'
 import type { CategoriaProduto, Produto } from '@shared/types'
+import { enterAvancaCampo } from '@renderer/lib/enterAvancaCampo'
 
 interface FormState {
   codigo: string
@@ -148,6 +149,8 @@ export function ProdutoFormDialog({ open, onClose, produtoExistente }: Props): R
   return (
     <Dialog open={open} onClose={onClose} title={editando ? 'Editar produto' : 'Novo produto'} className="max-w-2xl">
       <form
+        // Enter só passa para o próximo campo: o formulário só envia pelo botão.
+        onKeyDown={enterAvancaCampo}
         className="flex flex-col gap-5"
         onSubmit={(e) => {
           e.preventDefault()

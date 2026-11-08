@@ -16,6 +16,9 @@ import { VendaFormDialog } from '@renderer/components/VendaFormDialog'
 import { VendaDetailDialog } from '@renderer/components/VendaDetailDialog'
 import { TOM_SITUACAO_OS } from '@renderer/lib/situacaoOSTone'
 import { toast } from '@renderer/state/toastStore'
+import { useAuthStore } from '@renderer/state/authStore'
+import { possuiPermissao } from '@shared/permissions'
+import type { ReceitaOptica } from '@shared/types'
 import { dataLocalDeTimestampUtc } from '@shared/data'
 
 function formatarDataBr(iso: string | null): string {
@@ -29,8 +32,11 @@ export function ClienteDetailPage(): ReactNode {
   const clienteId = Number(id)
   const navigate = useNavigate()
   const queryClient = useQueryClient()
+  const perfil = useAuthStore((s) => s.sessao?.usuario.perfil)
+  const podeEditarReceita = perfil ? possuiPermissao(perfil, 'receitas_opticas', 'editar') : false
   const [editarOpen, setEditarOpen] = useState(false)
   const [novaReceitaOpen, setNovaReceitaOpen] = useState(false)
+  const [receitaEmEdicao, setReceitaEmEdicao] = useState<ReceitaOptica | null>(null)
   const [novaOsOpen, setNovaOsOpen] = useState(false)
   const [osSelecionada, setOsSelecionada] = useState<number | null>(null)
   const [novaVendaOpen, setNovaVendaOpen] = useState(false)
@@ -160,7 +166,7 @@ export function ClienteDetailPage(): ReactNode {
 
         <div className="flex flex-col gap-3">
           {receitas.data?.map((r) => (
-            <ReceitaOpticaCard key={r.id} receita={r} />
+            <ReceitaOpticaCard key={r.id} receita={r} onEditar={podeEditarReceita ? () => setReceitaEmEdicao(r) : undefined} />
           ))}
         </div>
       </div>
@@ -252,6 +258,12 @@ export function ClienteDetailPage(): ReactNode {
         open={novaReceitaOpen}
         onClose={() => setNovaReceitaOpen(false)}
         clienteId={clienteId}
+      />
+      <ReceitaOpticaFormDialog
+        open={receitaEmEdicao !== null}
+        onClose={() => setReceitaEmEdicao(null)}
+        clienteId={clienteId}
+        receita={receitaEmEdicao}
       />
       <OrdemServicoFormDialog
         open={novaOsOpen}

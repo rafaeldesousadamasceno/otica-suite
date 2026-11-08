@@ -1,5 +1,34 @@
+import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
-import { formatarBRLCompacto, niceTicks, retanguloTopoArredondado } from './chartUtils'
+import { PALETA_VIZ, arcoRosca, formatarBRLCompacto, niceTicks, retanguloTopoArredondado } from './graficos'
+
+describe('arcoRosca', () => {
+  it('gera um caminho fechado sem NaN', () => {
+    const d = arcoRosca(75, 75, 70, 45, 0, Math.PI / 2)
+    expect(d).toMatch(/^M.*Z$/)
+    expect(d).not.toMatch(/NaN|Infinity/)
+  })
+
+  it('uma fatia de volta inteira vira dois arcos (um arco so nao desenharia nada)', () => {
+    expect(arcoRosca(75, 75, 70, 45, 0, Math.PI * 2).match(/M/g)).toHaveLength(2)
+  })
+})
+
+describe('PALETA_VIZ', () => {
+  it('bate com as variaveis --viz-* do tema claro do app', () => {
+    const css = readFileSync(join(__dirname, '../renderer/src/index.css'), 'utf8')
+    const temaClaro = css.slice(css.indexOf(':root {'), css.indexOf(":root[data-theme='escuro']"))
+    const valor = (nome: string): string | undefined =>
+      new RegExp(`--${nome}:\\s*(#[0-9a-f]{6})`, 'i').exec(temaClaro)?.[1].toLowerCase()
+    expect(valor('viz-1')).toBe(PALETA_VIZ.categorica[0])
+    expect(valor('viz-2')).toBe(PALETA_VIZ.categorica[1])
+    expect(valor('viz-3')).toBe(PALETA_VIZ.categorica[2])
+    expect(valor('viz-4')).toBe(PALETA_VIZ.categorica[3])
+    expect(valor('viz-outros')).toBe(PALETA_VIZ.outros)
+    expect([valor('viz-ord-1'), valor('viz-ord-2'), valor('viz-ord-3')]).toEqual([...PALETA_VIZ.ordinal])
+  })
+})
 
 describe('niceTicks', () => {
   it('escolhe passos redondos e termina em um valor >= ao maximo', () => {

@@ -47,7 +47,7 @@ export function Sidebar(): ReactNode {
         </div>
       </div>
 
-      <nav className="flex flex-1 flex-col gap-0.5 p-3">
+      <nav className="flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto p-3">
         {items.map((item) => (
           <NavLink
             key={item.path}

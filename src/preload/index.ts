@@ -46,7 +46,8 @@ const api = {
   },
   receitas: {
     listByCliente: (input: unknown) => ipcRenderer.invoke(IPC.receitas.listByCliente, input),
-    create: (input: unknown) => ipcRenderer.invoke(IPC.receitas.create, input)
+    create: (input: unknown) => ipcRenderer.invoke(IPC.receitas.create, input),
+    update: (input: unknown) => ipcRenderer.invoke(IPC.receitas.update, input)
   },
   ordensServico: {
     list: (input: unknown) => ipcRenderer.invoke(IPC.ordensServico.list, input),
@@ -115,7 +116,7 @@ const api = {
     lucroPrejuizo: (input: unknown) => ipcRenderer.invoke(IPC.financeiro.lucroPrejuizo, input)
   },
   dashboard: {
-    get: () => ipcRenderer.invoke(IPC.dashboard.get)
+    get: (input: unknown) => ipcRenderer.invoke(IPC.dashboard.get, input)
   },
   backup: {
     status: () => ipcRenderer.invoke(IPC.backup.status),
@@ -128,7 +129,21 @@ const api = {
   },
   migracao: {
     testarConexao: (input: unknown) => ipcRenderer.invoke(IPC.migracao.testarConexao, input),
-    importar: (input: unknown) => ipcRenderer.invoke(IPC.migracao.importar, input)
+    analisar: (input: unknown) => ipcRenderer.invoke(IPC.migracao.analisar, input),
+    importar: (input: unknown) => ipcRenderer.invoke(IPC.migracao.importar, input),
+    pendenciasListar: (input: unknown) => ipcRenderer.invoke(IPC.migracao.pendenciasListar, input),
+    pendenciasResumo: (input: unknown) => ipcRenderer.invoke(IPC.migracao.pendenciasResumo, input),
+    pendenciaAplicar: (input: unknown) => ipcRenderer.invoke(IPC.migracao.pendenciaAplicar, input),
+    pendenciaResolver: (input: unknown) => ipcRenderer.invoke(IPC.migracao.pendenciaResolver, input),
+    pendenciaIgnorar: (input: unknown) => ipcRenderer.invoke(IPC.migracao.pendenciaIgnorar, input),
+    pendenciaReabrir: (input: unknown) => ipcRenderer.invoke(IPC.migracao.pendenciaReabrir, input),
+    pendenciaCorrigirDatas: (input: unknown) => ipcRenderer.invoke(IPC.migracao.pendenciaCorrigirDatas, input),
+    osAntigasAbertas: () => ipcRenderer.invoke(IPC.migracao.osAntigasAbertas),
+    encerrarOsAntigas: (input: unknown) => ipcRenderer.invoke(IPC.migracao.encerrarOsAntigas, input),
+    pendenciaDatasAtuais: (input: unknown) => ipcRenderer.invoke(IPC.migracao.pendenciaDatasAtuais, input),
+    pendenciaDetalhes: (input: unknown) => ipcRenderer.invoke(IPC.migracao.pendenciaDetalhes, input),
+    pendenciasAplicarVarias: (input: unknown) => ipcRenderer.invoke(IPC.migracao.pendenciasAplicarVarias, input),
+    pendenciasIgnorarVarias: (input: unknown) => ipcRenderer.invoke(IPC.migracao.pendenciasIgnorarVarias, input)
   },
   caixa: {
     atual: () => ipcRenderer.invoke(IPC.caixa.atual),
@@ -153,7 +168,13 @@ const api = {
     curvaAbc: (input: unknown) => ipcRenderer.invoke(IPC.relatorios.curvaAbc, input),
     vendasPorVendedor: (input: unknown) => ipcRenderer.invoke(IPC.relatorios.vendasPorVendedor, input),
     rankingVendedores: (input: unknown) => ipcRenderer.invoke(IPC.relatorios.rankingVendedores, input),
-    comissoes: (input: unknown) => ipcRenderer.invoke(IPC.relatorios.comissoes, input)
+    comissoes: (input: unknown) => ipcRenderer.invoke(IPC.relatorios.comissoes, input),
+    manual: () => ipcRenderer.invoke(IPC.relatorios.manual)
+  },
+  pdf: {
+    salvar: (input: unknown) => ipcRenderer.invoke(IPC.pdf.salvar, input),
+    imprimir: (input: unknown) => ipcRenderer.invoke(IPC.pdf.imprimir, input),
+    descartar: (input: unknown) => ipcRenderer.invoke(IPC.pdf.descartar, input)
   },
   sistema: {
     info: () => ipcRenderer.invoke(IPC.sistema.info)

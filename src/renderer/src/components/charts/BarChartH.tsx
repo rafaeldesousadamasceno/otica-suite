@@ -12,6 +12,8 @@ interface Props {
   itens: BarraItem[]
   formatarValor: (valor: number) => string
   ariaLabel: string
+  /** Largura maxima da coluna do rotulo, em px (padrao 132): aumente para nomes longos, como produtos. */
+  larguraRotulo?: number
 }
 
 /**
@@ -20,7 +22,7 @@ interface Props {
  * faixa inteira - a margem direita reservada e o lugar do valor da maior
  * barra, entao o rotulo nunca e cortado.
  */
-export function BarChartH({ itens, formatarValor, ariaLabel }: Props): ReactNode {
+export function BarChartH({ itens, formatarValor, ariaLabel, larguraRotulo = 132 }: Props): ReactNode {
   const maximo = Math.max(...itens.map((i) => i.valor), 0)
 
   return (
@@ -31,7 +33,8 @@ export function BarChartH({ itens, formatarValor, ariaLabel }: Props): ReactNode
           <li
             key={item.id}
             title={`${item.rotulo}: ${formatarValor(item.valor)}`}
-            className="grid grid-cols-[minmax(84px,132px)_1fr] items-center gap-3 rounded px-1 py-0.5 hover:bg-[var(--surface-2)]"
+            className="grid items-center gap-3 rounded px-1 py-0.5 hover:bg-[var(--surface-2)]"
+            style={{ gridTemplateColumns: `minmax(84px, ${larguraRotulo}px) 1fr` }}
           >
             <span className="truncate text-sm text-[var(--ink-2)]">{item.rotulo}</span>
             <div className="relative mr-24 h-4">

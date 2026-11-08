@@ -339,12 +339,16 @@ Preserva integralmente o modelo do sistema atual, corrigindo os defeitos.
 
 | | OD (olho direito) | OE (olho esquerdo) |
 |---|---|---|
-| **Longe** | Esférico, Cilíndrico, Eixo, DNP | Esférico, Cilíndrico, Eixo, DNP |
-| **Perto** | Esférico, Cilíndrico, Eixo, DNP | Esférico, Cilíndrico, Eixo, DNP |
+| **Longe** | Esférico, Cilíndrico, Eixo, DNP, DP | Esférico, Cilíndrico, Eixo, DNP, DP |
+| **Perto** | Esférico, Cilíndrico, Eixo, DNP, DP | Esférico, Cilíndrico, Eixo, DNP, DP |
 | **Adição** | valor único | |
 
-Complementos: altura, tipo de lente, tratamentos (múltipla escolha), armação, profissional
+Complementos: tipo de lente, tratamentos (múltipla escolha), armação, profissional
 responsável, data do exame, observações.
+
+> Revisão (nov/2026, migração 008): entrou o **DP** por olho, em longe e perto, logo depois do
+> DNP, também no PDF da OS. A **altura** saiu do formulário e do PDF; a coluna continua no banco
+> só para não perder o que já foi gravado.
 
 **Regras:**
 - **Cálculo automático**: `esférico perto = esférico longe + adição` (preservado de
@@ -898,12 +902,12 @@ profissional       (id, nome, registro, tipo, ativo)   -- optometrista / médico
 
 receita_optica     (id, cliente_id, profissional_id, data_exame,
                     -- longe
-                    longe_od_esf, longe_od_cil, longe_od_eixo, longe_od_dnp,
-                    longe_oe_esf, longe_oe_cil, longe_oe_eixo, longe_oe_dnp,
+                    longe_od_esf, longe_od_cil, longe_od_eixo, longe_od_dnp, longe_od_dp,
+                    longe_oe_esf, longe_oe_cil, longe_oe_eixo, longe_oe_dnp, longe_oe_dp,
                     -- perto
-                    perto_od_esf, perto_od_cil, perto_od_eixo, perto_od_dnp,
-                    perto_oe_esf, perto_oe_cil, perto_oe_eixo, perto_oe_dnp,
-                    adicao, altura, observacao, criado_em, criado_por)
+                    perto_od_esf, perto_od_cil, perto_od_eixo, perto_od_dnp, perto_od_dp,
+                    perto_oe_esf, perto_oe_cil, perto_oe_eixo, perto_oe_dnp, perto_oe_dp,
+                    adicao, altura /* legado */, observacao, criado_em, criado_por)
 ```
 
 **Produtos e estoque**
@@ -1132,6 +1136,7 @@ chave assinada. Mantém o registro das licenças emitidas.
 | **F5 — Gestão** | Caixa, fluxo, lucro/prejuízo, relatórios, dashboard | RF-11.3, RF-11.4, RF-12, RF-14 |
 | **F6 — Produto** | Backup, licença, instalador, atualização, migração de dados | RF-13, RF-16, seção 11 |
 | **F7 — Piloto** | Instalação em ótica real, ajustes, documentação, treinamento | — |
+| **F8 — Nuvem** (futuro) | Sincronização offline→online (Supabase) e app de gestão no celular, plano Premium. A base do banco já existe (migração 010) | ver `docs/Arquitetura-Sincronizacao.md` |
 
 **Sugestão de sequência de validação:** ao final de F2 o sistema já substitui o MD Óculos atual no
 essencial. Vale instalar numa ótica amiga nesse ponto, antes de construir F3–F5 — feedback real
@@ -1177,10 +1182,11 @@ sobre a receita óptica e a OS vale mais que qualquer suposição sobre estoque.
 | **Cilíndrico (CIL)** | Grau de astigmatismo, em dioptrias |
 | **Eixo** | Orientação do astigmatismo, de 0° a 180° |
 | **DNP** | Distância Naso-Pupilar — do centro do nariz ao centro da pupila, por olho, em mm |
+| **DP** | Distância Pupilar, registrada por olho, em longe e perto, em mm |
 | **Adição** | Grau adicional para perto, na presbiopia ("vista cansada") |
 | **Longe** | Prescrição para visão à distância |
 | **Perto** | Prescrição para leitura; esférico = longe + adição |
-| **Altura** | Posição vertical do centro óptico na armação, em mm |
+| **Altura** | Posição vertical do centro óptico na armação, em mm (campo legado, fora da tela desde a migração 008) |
 | **OS** | Ordem de Serviço — pedido de confecção do par |
 | **Protocolo de saída** | Controle dos pares enviados ao laboratório e ainda não entregues |
 | **Surfaçagem** | Processo de fabricação da lente conforme a receita |

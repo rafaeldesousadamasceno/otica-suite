@@ -1,4 +1,5 @@
 import { getDb } from '@main/db/connection'
+import { termoBusca } from '@shared/texto'
 import { registrarMovimento } from './estoqueRepository'
 import { comissaoRepository } from './comissaoRepository'
 import { contaReceberRepository } from './contaReceberRepository'
@@ -15,11 +16,12 @@ interface ProdutoParaVenda {
   id: number
   descricao: string
   categoria: string
+  custo_centavos: number
 }
 
 function buscarProdutoAtivo(db: ReturnType<typeof getDb>, id: number): ProdutoParaVenda | null {
   const row = db
-    .prepare('SELECT id, descricao, categoria FROM produto WHERE id = :id AND ativo = 1')
+    .prepare('SELECT id, descricao, categoria, custo_centavos FROM produto WHERE id = :id AND ativo = 1')
     .get({ id }) as ProdutoParaVenda | undefined
   return row ?? null
 }
@@ -121,9 +123,9 @@ export const vendaRepository = {
         db.prepare(
           `INSERT INTO venda_item (
              venda_id, produto_id, descricao, quantidade,
-             preco_unitario_centavos, desconto_centavos, total_centavos
+             preco_unitario_centavos, desconto_centavos, total_centavos, custo_unitario_centavos
            ) VALUES (
-             :vendaId, :produtoId, :descricao, :quantidade, :precoUnitario, :desconto, :total
+             :vendaId, :produtoId, :descricao, :quantidade, :precoUnitario, :desconto, :total, :custo
            )`
         ).run({
           vendaId,
@@ -132,7 +134,10 @@ export const vendaRepository = {
           quantidade: item.quantidade,
           precoUnitario: item.precoUnitarioCentavos,
           desconto: item.descontoCentavos,
-          total: totalItem
+          total: totalItem,
+          // Custo da epoca da venda. Custo zerado em produto com estoque e "nao cadastrado", nao "de graca":
+          // fica nulo para o painel nao inflar a margem. Servico sem custo e custo zero de verdade.
+          custo: produto.custo_centavos > 0 || produto.categoria === 'servico' ? produto.custo_centavos : null
         })
 
         // Servico nao tem estoque para baixar (RF-07/08).
@@ -305,14 +310,14 @@ export const vendaRepository = {
     const rows = getDb()
       .prepare(
         `${SELECT_RESUMO}
-         WHERE (c.nome LIKE :termo OR v.numero LIKE :termo)
+         WHERE (sem_acento(c.nome) LIKE :termo OR sem_acento(v.numero) LIKE :termo)
            AND (:dataInicio = '' OR v.data >= :dataInicio)
            AND (:dataFim = '' OR v.data <= :dataFim)
          ORDER BY v.data DESC, v.id DESC
          LIMIT 300`
       )
       .all({
-        termo: `%${query.busca?.trim() ?? ''}%`,
+        termo: termoBusca(query.busca),
         dataInicio: query.dataInicio?.trim() || '',
         dataFim: query.dataFim?.trim() || ''
       }) as unknown as ResumoRow[]

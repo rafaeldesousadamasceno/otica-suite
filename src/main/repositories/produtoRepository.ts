@@ -1,4 +1,5 @@
 import { getDb } from '@main/db/connection'
+import { maiusculoOuNulo, termoBusca } from '@shared/texto'
 import type { CategoriaProduto, Produto } from '@shared/types'
 import type { ProdutoInput, ProdutosListQuery } from '@shared/ipc'
 
@@ -75,12 +76,12 @@ export const produtoRepository = {
         `${SELECT_BASE}
          WHERE (:apenasAtivos = 0 OR p.ativo = 1)
            AND (:categoria = '' OR p.categoria = :categoria)
-           AND (p.descricao LIKE :termo OR p.codigo LIKE :termo OR p.codigo_barras LIKE :termo)
-         ORDER BY p.descricao
+           AND (sem_acento(p.descricao) LIKE :termo OR sem_acento(p.codigo) LIKE :termo OR sem_acento(p.codigo_barras) LIKE :termo)
+         ORDER BY sem_acento(p.descricao)
          LIMIT 300`
       )
       .all({
-        termo: `%${query.busca?.trim() ?? ''}%`,
+        termo: termoBusca(query.busca),
         categoria: query.categoria ?? '',
         apenasAtivos: query.apenasAtivos === false ? 0 : 1
       }) as unknown as ProdutoRow[]
@@ -123,7 +124,7 @@ export const produtoRepository = {
           marca: normalizar(data.marca)?.toUpperCase() ?? null,
           modelo: normalizar(data.modelo)?.toUpperCase() ?? null,
           cor: normalizar(data.cor)?.toUpperCase() ?? null,
-          tamanho: normalizar(data.tamanho),
+          tamanho: maiusculoOuNulo(data.tamanho),
           unidade: data.unidade,
           custoCentavos: data.custoCentavos,
           margem: data.margem,
@@ -138,9 +139,9 @@ export const produtoRepository = {
            VALUES (:id, :material, :indice, :tipo, :grauMin, :grauMax)`
         ).run({
           id,
-          material: normalizar(data.lenteMaterial),
+          material: maiusculoOuNulo(data.lenteMaterial),
           indice: data.lenteIndice ?? null,
-          tipo: normalizar(data.lenteTipo),
+          tipo: maiusculoOuNulo(data.lenteTipo),
           grauMin: data.lenteGrauMin ?? null,
           grauMax: data.lenteGrauMax ?? null
         })
@@ -175,7 +176,7 @@ export const produtoRepository = {
         marca: normalizar(data.marca)?.toUpperCase() ?? null,
         modelo: normalizar(data.modelo)?.toUpperCase() ?? null,
         cor: normalizar(data.cor)?.toUpperCase() ?? null,
-        tamanho: normalizar(data.tamanho),
+        tamanho: maiusculoOuNulo(data.tamanho),
         unidade: data.unidade,
         custoCentavos: data.custoCentavos,
         margem: data.margem,
@@ -190,9 +191,9 @@ export const produtoRepository = {
            VALUES (:id, :material, :indice, :tipo, :grauMin, :grauMax)`
         ).run({
           id,
-          material: normalizar(data.lenteMaterial),
+          material: maiusculoOuNulo(data.lenteMaterial),
           indice: data.lenteIndice ?? null,
-          tipo: normalizar(data.lenteTipo),
+          tipo: maiusculoOuNulo(data.lenteTipo),
           grauMin: data.lenteGrauMin ?? null,
           grauMax: data.lenteGrauMax ?? null
         })

@@ -13,6 +13,7 @@ import { usuarioCreateSchema, usuarioResetSenhaSchema } from '@shared/ipc'
 import { toast } from '@renderer/state/toastStore'
 import { useAuthStore } from '@renderer/state/authStore'
 import type { Usuario } from '@shared/types'
+import { enterAvancaCampo } from '@renderer/lib/enterAvancaCampo'
 
 function NovoUsuarioDialog({ open, onClose }: { open: boolean; onClose: () => void }): ReactNode {
   const [nome, setNome] = useState('')
@@ -37,6 +38,8 @@ function NovoUsuarioDialog({ open, onClose }: { open: boolean; onClose: () => vo
   return (
     <Dialog open={open} onClose={onClose} title="Novo usuário">
       <form
+        // Enter só passa para o próximo campo: o formulário só envia pelo botão.
+        onKeyDown={enterAvancaCampo}
         className="flex flex-col gap-4"
         onSubmit={(e) => {
           e.preventDefault()
@@ -107,6 +110,8 @@ function ResetarSenhaDialog({
       description="O usuário será obrigado a trocar essa senha no próximo acesso."
     >
       <form
+        // Enter só passa para o próximo campo: o formulário só envia pelo botão.
+        onKeyDown={enterAvancaCampo}
         className="flex flex-col gap-4"
         onSubmit={(e) => {
           e.preventDefault()

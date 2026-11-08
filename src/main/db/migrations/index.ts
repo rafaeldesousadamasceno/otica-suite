@@ -5,6 +5,10 @@ import estoqueConfigSql from './004_estoque_config.sql?raw'
 import logoFormatoSql from './005_empresa_logo_formato.sql?raw'
 import migracaoSql from './006_migracao.sql?raw'
 import relacionamentoSql from './007_relacionamento.sql?raw'
+import receitaDpSql from './008_receita_dp.sql?raw'
+import dashboardSql from './009_dashboard.sql?raw'
+import syncBaseSql from './010_sync_base.sql?raw'
+import migracaoPendenciaSql from './011_migracao_pendencia.sql?raw'
 
 export interface Migration {
   version: number
@@ -23,5 +27,9 @@ export const MIGRATIONS: Migration[] = [
   { version: 4, name: 'estoque_config', sql: estoqueConfigSql },
   { version: 5, name: 'empresa_logo_formato', sql: logoFormatoSql },
   { version: 6, name: 'migracao', sql: migracaoSql },
-  { version: 7, name: 'relacionamento', sql: relacionamentoSql }
+  { version: 7, name: 'relacionamento', sql: relacionamentoSql },
+  { version: 8, name: 'receita_dp', sql: receitaDpSql },
+  { version: 9, name: 'dashboard', sql: dashboardSql },
+  { version: 10, name: 'sync_base', sql: syncBaseSql },
+  { version: 11, name: 'migracao_pendencia', sql: migracaoPendenciaSql }
 ]

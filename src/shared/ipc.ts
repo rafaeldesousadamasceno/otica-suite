@@ -1,5 +1,7 @@
 import { z } from 'zod'
 import { MOTIVOS_CONTATO } from './types'
+import { PRESETS_PERIODO, validarPeriodo } from './periodos'
+import { CAMPOS_DATA_EXAME, TIPOS_PENDENCIA } from './importacao'
 
 /**
  * Contrato de IPC: os nomes de canal moram em `ipcChannels.ts` (sem
@@ -118,6 +120,10 @@ export type UsuarioResetSenhaInput = z.infer<typeof usuarioResetSenhaSchema>
 export const idSchema = z.object({ id: z.number().int().positive() })
 export type IdInput = z.infer<typeof idSchema>
 
+/** PDF aberto no visualizador (id gerado pelo main com `randomUUID`). */
+export const pdfIdSchema = z.object({ id: z.uuid() })
+export type PdfIdInput = z.infer<typeof pdfIdSchema>
+
 // ---------------------------------------------------------------------
 // Clientes (RF-04)
 // ---------------------------------------------------------------------
@@ -189,6 +195,15 @@ const dnp = z
   .refine((v) => v === null || Number.isFinite(v), 'DNP inválido')
   .nullable()
 
+// DP por olho (migracao 008): mesma regra do DNP. Opcional para continuar
+// aceitando payloads de antes do campo existir.
+const dp = z
+  .union([z.string(), z.number()])
+  .transform((v) => (v === '' || v === null || v === undefined ? null : Number(String(v).replace(',', '.'))))
+  .refine((v) => v === null || Number.isFinite(v), 'DP inválido')
+  .nullable()
+  .optional()
+
 export const receitaOpticaInputSchema = z.object({
   clienteId: z.number().int().positive(),
   profissionalNome: z.string().trim().optional().nullable().or(z.literal('')),
@@ -198,28 +213,37 @@ export const receitaOpticaInputSchema = z.object({
   longeOdCil: grauEsfCil,
   longeOdEixo: eixo,
   longeOdDnp: dnp,
+  longeOdDp: dp,
   longeOeEsf: grauEsfCil,
   longeOeCil: grauEsfCil,
   longeOeEixo: eixo,
   longeOeDnp: dnp,
+  longeOeDp: dp,
 
   pertoOdEsf: grauEsfCil,
   pertoOdCil: grauEsfCil,
   pertoOdEixo: eixo,
   pertoOdDnp: dnp,
+  pertoOdDp: dp,
   pertoOeEsf: grauEsfCil,
   pertoOeCil: grauEsfCil,
   pertoOeEixo: eixo,
   pertoOeDnp: dnp,
+  pertoOeDp: dp,
 
   adicao: grauEsfCil,
-  altura: dnp,
+  // Legado (migracao 008): o formulario nao envia mais.
+  altura: dnp.optional(),
   tipoLente: z.string().trim().optional().nullable().or(z.literal('')),
   tratamentos: z.string().trim().optional().nullable().or(z.literal('')),
   armacao: z.string().trim().optional().nullable().or(z.literal('')),
   observacao: z.string().trim().optional().nullable().or(z.literal(''))
 })
 export type ReceitaOpticaInput = z.infer<typeof receitaOpticaInputSchema>
+
+/** Edicao de uma receita ja salva: os mesmos campos da criacao, mais o id. O cliente nao muda. */
+export const receitaOpticaAtualizarSchema = receitaOpticaInputSchema.extend({ id: z.number().int().positive() })
+export type ReceitaOpticaAtualizarInput = z.infer<typeof receitaOpticaAtualizarSchema>
 
 export const receitaListByClienteSchema = z.object({ clienteId: z.number().int().positive() })
 export type ReceitaListByClienteInput = z.infer<typeof receitaListByClienteSchema>
@@ -547,6 +571,21 @@ export const periodoQuerySchema = z.object({
 })
 export type PeriodoQuery = z.infer<typeof periodoQuerySchema>
 
+/** Filtro do painel gerencial: periodo (com o atalho usado, que decide como comparar), comparacao e vendedor. */
+export const dashboardQuerySchema = z
+  .object({
+    dataInicio: z.string().trim(),
+    dataFim: z.string().trim(),
+    preset: z.enum(PRESETS_PERIODO).default('personalizado'),
+    comparar: z.boolean().default(true),
+    vendedorId: z.number().int().positive().optional()
+  })
+  .superRefine((q, ctx) => {
+    const erro = validarPeriodo({ inicio: q.dataInicio, fim: q.dataFim })
+    if (erro) ctx.addIssue({ code: 'custom', message: erro, path: ['dataInicio'] })
+  })
+export type DashboardQuery = z.infer<typeof dashboardQuerySchema>
+
 // ---------------------------------------------------------------------
 // Backup e licenca (RF-13 - fase F6)
 // ---------------------------------------------------------------------
@@ -589,6 +628,41 @@ export const migracaoConexaoSchema = z.object({
   banco: z.string().trim().min(1, 'Informe o nome do banco')
 })
 export type MigracaoConexaoInput = z.infer<typeof migracaoConexaoSchema>
+
+export const migracaoImportarSchema = z.object({
+  conexao: migracaoConexaoSchema,
+  aprovacoes: z.object({
+    mesclarDuplicados: z.boolean(),
+    removerCpfConflitante: z.boolean(),
+    removerRegistrosVazios: z.boolean()
+  })
+})
+export type MigracaoImportarInput = z.infer<typeof migracaoImportarSchema>
+
+export const pendenciasListQuerySchema = z.object({
+  status: z.enum(['ABERTA', 'RESOLVIDA', 'IGNORADA']).optional(),
+  tipo: z.enum(TIPOS_PENDENCIA).optional()
+})
+export type PendenciasListQuery = z.infer<typeof pendenciasListQuerySchema>
+
+export const pendenciasResumoQuerySchema = z.object({ status: z.enum(['ABERTA', 'RESOLVIDA', 'IGNORADA']).default('ABERTA') })
+export type PendenciasResumoQuery = z.infer<typeof pendenciasResumoQuerySchema>
+
+export const pendenciaCorrigirDatasSchema = z.object({
+  id: z.number().int().positive(),
+  alteracoes: z
+    .array(z.object({ campo: z.enum(CAMPOS_DATA_EXAME), data: z.string().trim().length(10, 'Informe a data') }))
+    .max(CAMPOS_DATA_EXAME.length),
+  /** Fecha a pendencia depois de salvar. Sem isso ela continua aberta, para corrigir outras datas do mesmo exame. */
+  concluir: z.boolean()
+})
+export type PendenciaCorrigirDatasInput = z.infer<typeof pendenciaCorrigirDatasSchema>
+
+export const encerrarOsAntigasSchema = z.object({ data: z.string().trim().length(10, 'Informe a data de entrega') })
+export type EncerrarOsAntigasInput = z.infer<typeof encerrarOsAntigasSchema>
+
+export const pendenciaIdsSchema = z.object({ ids: z.array(z.number().int().positive()).min(1).max(2000) })
+export type PendenciaIdsInput = z.infer<typeof pendenciaIdsSchema>
 
 // ---------------------------------------------------------------------
 // Listas de valor (RF-01)

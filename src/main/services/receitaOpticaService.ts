@@ -5,7 +5,7 @@ import { auditoriaRepository } from '@main/repositories/auditoriaRepository'
 import { requirePermissao } from '@main/auth/session'
 import { Errors } from '@main/errors'
 import type { ReceitaOptica } from '@shared/types'
-import type { ReceitaOpticaInput } from '@shared/ipc'
+import type { ReceitaOpticaAtualizarInput, ReceitaOpticaInput } from '@shared/ipc'
 
 /**
  * RN-02: esferico de perto = esferico de longe + adicao, calculado
@@ -59,5 +59,37 @@ export const receitaOpticaService = {
       .listarPorCliente(input.clienteId)
       .filter((r) => r.id === id)
     return criada
+  },
+
+  /**
+   * Corrige uma receita ja salva (ex.: digitada errado ou salva sem querer).
+   * Mexe no mesmo registro, entao OS e vendas ligadas a ela passam a mostrar o
+   * valor corrigido; o valor de antes fica na auditoria.
+   */
+  atualizar(input: ReceitaOpticaAtualizarInput): ReceitaOptica {
+    const sessao = requirePermissao('receitas_opticas', 'editar')
+
+    const atual = receitaOpticaRepository.buscarPorId(input.id)
+    if (!atual) throw Errors.naoEncontrado('Receita')
+    // A receita pertence a um cliente: editar nao a muda de ficha.
+    if (atual.clienteId !== input.clienteId) throw Errors.validacao('Esta receita pertence a outro cliente.')
+
+    const profissionalId = input.profissionalNome?.trim()
+      ? profissionalRepository.buscarOuCriarPorNome(input.profissionalNome)
+      : null
+
+    const dados = aplicarCalculoDeAdicao(input) as ReceitaOpticaAtualizarInput
+    receitaOpticaRepository.atualizar(dados, profissionalId)
+
+    auditoriaRepository.registrar({
+      usuarioId: sessao.usuario.id,
+      acao: 'ATUALIZAR',
+      entidade: 'receita_optica',
+      entidadeId: input.id,
+      valorAnterior: atual,
+      valorNovo: dados
+    })
+
+    return receitaOpticaRepository.buscarPorId(input.id)!
   }
 }

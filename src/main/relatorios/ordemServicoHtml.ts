@@ -1,4 +1,6 @@
 import type { Empresa, OrdemServico, ReceitaOptica } from '@shared/types'
+import { formatarDataBr, texto } from './formatacao'
+import { TOM_SITUACAO_OS, assinatura, badge, campos, montarDocumento, secao } from './layout'
 
 /**
  * RF-12 CA4: o sistema anterior imprimia a OS/receita via um relatorio
@@ -9,267 +11,116 @@ import type { Empresa, OrdemServico, ReceitaOptica } from '@shared/types'
  * dados da OS, receita optica OD/OE e assinatura do cliente na entrega).
  */
 
-function formatarDataBr(iso: string | null): string {
-  if (!iso) return '—'
-  const [ano, mes, dia] = iso.split('-')
-  return `${dia}/${mes}/${ano}`
-}
-
-function texto(valor: string | null | undefined): string {
-  return valor && valor.trim() ? escapeHtml(valor) : '—'
-}
-
-function escapeHtml(valor: string): string {
-  return valor
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-}
-
+/** Grau com sinal e virgula: +0,75 / -1,25. */
 function grau(valor: number | null): string {
   if (valor === null || valor === undefined || Number.isNaN(valor)) return '—'
   const sinal = valor > 0 ? '+' : ''
-  return `${sinal}${valor.toFixed(2)}`
+  return `${sinal}${valor.toFixed(2).replace('.', ',')}`
 }
 
-function eixoOuDnp(valor: number | null): string {
+/** Eixo, DNP e DP: sem sinal, com virgula decimal (31,5). */
+function eixoOuMedida(valor: number | null): string {
   if (valor === null || valor === undefined || Number.isNaN(valor)) return '—'
-  return String(valor)
+  return String(valor).replace('.', ',')
 }
 
-function montarLetterhead(empresa: Empresa): string {
-  const logo = empresa.logoPath
-    ? `<img src="${empresa.logoPath}" alt="Logo" class="logo" />`
-    : ''
-  const contatos = [empresa.telefone, empresa.whatsapp, empresa.email]
-    .filter((v): v is string => Boolean(v && v.trim()))
-    .join(' · ')
-  const enderecoPartes = [
-    empresa.logradouro,
-    empresa.numero,
-    empresa.bairro,
-    empresa.cidade,
-    empresa.uf
-  ].filter((v): v is string => Boolean(v && v.trim()))
-  const endereco = enderecoPartes.join(', ')
+const ESTILO_RECEITA = `
+  table.receita { width: 100%; border-collapse: separate; border-spacing: 0; margin-bottom: 10px; }
+  table.receita th {
+    background: var(--rel-base); color: var(--rel-tinta);
+    font-size: 8px; font-weight: 700; letter-spacing: 0.05em; padding: 5px 4px; text-align: center;
+  }
+  table.receita thead tr:first-child th { font-size: 8.5px; }
+  table.receita thead tr:first-child th:first-child { border-top-left-radius: 5px; }
+  table.receita thead tr:first-child th:last-child { border-top-right-radius: 5px; }
+  table.receita thead tr + tr th { background: var(--rel-suave); color: var(--rel-forte); }
+  table.receita th.olho-oe, table.receita td.olho-oe { border-left: 2px solid var(--rel-borda); }
+  table.receita td {
+    padding: 6px 4px; text-align: center; font-size: 10.5px; font-variant-numeric: tabular-nums;
+    border-bottom: 1px solid var(--rel-linha);
+  }
+  table.receita td.rotulo { text-align: left; font-weight: 700; color: var(--rel-forte); padding-left: 8px; }
+`
 
-  return `
-    <div class="letterhead">
-      ${logo}
-      <div class="empresa-info">
-        <div class="empresa-nome">${escapeHtml(empresa.nomeFantasia)}</div>
-        ${endereco ? `<div class="empresa-detalhe">${escapeHtml(endereco)}</div>` : ''}
-        ${contatos ? `<div class="empresa-detalhe">${escapeHtml(contatos)}</div>` : ''}
-      </div>
-    </div>
-  `
+function linhaGrau(rotulo: string, valores: (number | null)[][]): string {
+  // valores: [OD (esf, cil, eixo, dnp, dp), OE (...)]
+  const [od, oe] = valores
+  const celulas = (olho: (number | null)[], classeOe: boolean): string =>
+    olho
+      .map((v, i) => {
+        const conteudo = i < 2 ? grau(v) : eixoOuMedida(v)
+        return `<td${classeOe && i === 0 ? ' class="olho-oe"' : ''}>${conteudo}</td>`
+      })
+      .join('')
+  return `<tr><td class="rotulo">${rotulo}</td>${celulas(od, false)}${celulas(oe, true)}</tr>`
 }
 
 function montarTabelaReceita(receita: ReceitaOptica): string {
+  const cabecalhoOlho = (oe: boolean): string =>
+    ['ESF', 'CIL', 'EIXO', 'DNP', 'DP'].map((c, i) => `<th${oe && i === 0 ? ' class="olho-oe"' : ''}>${c}</th>`).join('')
+
   return `
     <table class="receita">
       <thead>
-        <tr>
-          <th></th>
-          <th colspan="4">Olho Direito (OD)</th>
-          <th colspan="4">Olho Esquerdo (OE)</th>
-        </tr>
-        <tr>
-          <th></th>
-          <th>ESF</th><th>CIL</th><th>EIXO</th><th>DNP</th>
-          <th>ESF</th><th>CIL</th><th>EIXO</th><th>DNP</th>
-        </tr>
+        <tr><th></th><th colspan="5">Olho Direito (OD)</th><th colspan="5" class="olho-oe">Olho Esquerdo (OE)</th></tr>
+        <tr><th></th>${cabecalhoOlho(false)}${cabecalhoOlho(true)}</tr>
       </thead>
       <tbody>
-        <tr>
-          <td class="rotulo">Longe</td>
-          <td>${grau(receita.longeOdEsf)}</td>
-          <td>${grau(receita.longeOdCil)}</td>
-          <td>${eixoOuDnp(receita.longeOdEixo)}</td>
-          <td>${eixoOuDnp(receita.longeOdDnp)}</td>
-          <td>${grau(receita.longeOeEsf)}</td>
-          <td>${grau(receita.longeOeCil)}</td>
-          <td>${eixoOuDnp(receita.longeOeEixo)}</td>
-          <td>${eixoOuDnp(receita.longeOeDnp)}</td>
-        </tr>
-        <tr>
-          <td class="rotulo">Perto</td>
-          <td>${grau(receita.pertoOdEsf)}</td>
-          <td>${grau(receita.pertoOdCil)}</td>
-          <td>${eixoOuDnp(receita.pertoOdEixo)}</td>
-          <td>${eixoOuDnp(receita.pertoOdDnp)}</td>
-          <td>${grau(receita.pertoOeEsf)}</td>
-          <td>${grau(receita.pertoOeCil)}</td>
-          <td>${eixoOuDnp(receita.pertoOeEixo)}</td>
-          <td>${eixoOuDnp(receita.pertoOeDnp)}</td>
-        </tr>
-        <tr>
-          <td class="rotulo">Adição</td>
-          <td colspan="8">${grau(receita.adicao)}</td>
-        </tr>
+        ${linhaGrau('Longe', [
+          [receita.longeOdEsf, receita.longeOdCil, receita.longeOdEixo, receita.longeOdDnp, receita.longeOdDp],
+          [receita.longeOeEsf, receita.longeOeCil, receita.longeOeEixo, receita.longeOeDnp, receita.longeOeDp]
+        ])}
+        ${linhaGrau('Perto', [
+          [receita.pertoOdEsf, receita.pertoOdCil, receita.pertoOdEixo, receita.pertoOdDnp, receita.pertoOdDp],
+          [receita.pertoOeEsf, receita.pertoOeCil, receita.pertoOeEixo, receita.pertoOeDnp, receita.pertoOeDp]
+        ])}
+        <tr><td class="rotulo">Adição</td><td colspan="10">${grau(receita.adicao)}</td></tr>
       </tbody>
     </table>
-    <div class="receita-extra">
-      ${receita.tipoLente ? `<p><strong>Tipo de lente:</strong> ${texto(receita.tipoLente)}</p>` : ''}
-      ${receita.tratamentos ? `<p><strong>Tratamentos:</strong> ${texto(receita.tratamentos)}</p>` : ''}
-      ${receita.armacao ? `<p><strong>Armação:</strong> ${texto(receita.armacao)}</p>` : ''}
-      <p><strong>Responsável:</strong> ${texto(receita.profissionalNome)}</p>
-      <p><strong>Data do exame:</strong> ${formatarDataBr(receita.dataExame)}</p>
-    </div>
+    ${campos([
+      { rotulo: 'Tipo de lente', valor: texto(receita.tipoLente) },
+      { rotulo: 'Tratamentos', valor: texto(receita.tratamentos) },
+      { rotulo: 'Armação', valor: texto(receita.armacao) },
+      { rotulo: 'Responsável', valor: texto(receita.profissionalNome) },
+      { rotulo: 'Data do exame', valor: formatarDataBr(receita.dataExame) }
+    ])}
   `
 }
 
-export function montarHtmlOrdemServico(
-  os: OrdemServico,
-  receita: ReceitaOptica | null,
-  empresa: Empresa
-): string {
-  const emitidoEm = new Date().toLocaleString('pt-BR')
+export function montarHtmlOrdemServico(os: OrdemServico, receita: ReceitaOptica | null, empresa: Empresa): string {
+  const corpo = [
+    secao(
+      'Cliente',
+      campos([
+        { rotulo: 'Nome', valor: texto(os.clienteNome) },
+        { rotulo: 'Celular', valor: texto(os.clienteCelular) }
+      ])
+    ),
+    secao(
+      'Dados da OS',
+      campos([
+        { rotulo: 'Situação', valor: badge(os.situacao, TOM_SITUACAO_OS[os.situacao] ?? 'neutro') },
+        { rotulo: 'Laboratório', valor: texto(os.laboratorio) },
+        { rotulo: 'Data de abertura', valor: formatarDataBr(os.dataAbertura) },
+        { rotulo: 'Data de envio', valor: formatarDataBr(os.dataEnvio) },
+        { rotulo: 'Previsão', valor: formatarDataBr(os.dataPrevisao) },
+        { rotulo: 'Data de chegada', valor: formatarDataBr(os.dataChegada) },
+        { rotulo: 'Data de entrega', valor: formatarDataBr(os.dataEntrega) }
+      ]) + (os.observacao ? `<p class="nota"><strong>Observações:</strong> ${texto(os.observacao)}</p>` : '')
+    ),
+    secao(
+      'Receita óptica',
+      receita ? montarTabelaReceita(receita) : '<p class="nota">Sem receita óptica vinculada.</p>'
+    ),
+    assinatura('Assinatura do cliente')
+  ].join('\n')
 
-  return `<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-<meta charset="UTF-8" />
-<title>Ordem de Serviço ${escapeHtml(os.numero)}</title>
-<style>
-  @page { size: A4; margin: 14mm; }
-  * { box-sizing: border-box; }
-  body {
-    font-family: Arial, Helvetica, sans-serif;
-    color: #1a1a1a;
-    font-size: 12px;
-    margin: 0;
-  }
-  .letterhead {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    border-bottom: 2px solid #1a1a1a;
-    padding-bottom: 10px;
-    margin-bottom: 14px;
-  }
-  .logo { max-height: 56px; max-width: 120px; object-fit: contain; }
-  .empresa-nome { font-size: 18px; font-weight: bold; }
-  .empresa-detalhe { font-size: 10px; color: #444; }
-  .titulo {
-    display: flex;
-    justify-content: space-between;
-    align-items: baseline;
-    margin-bottom: 14px;
-  }
-  .titulo h1 { font-size: 16px; margin: 0; }
-  .titulo .emitido { font-size: 10px; color: #555; }
-  section { margin-bottom: 16px; }
-  h2 {
-    font-size: 12px;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-    border-bottom: 1px solid #ccc;
-    padding-bottom: 4px;
-    margin: 0 0 8px 0;
-  }
-  .grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 8px 16px;
-  }
-  .campo .rotulo-campo { font-size: 9px; text-transform: uppercase; color: #666; }
-  .campo .valor-campo { font-size: 12px; }
-  .observacao { white-space: pre-wrap; }
-  table.receita { width: 100%; border-collapse: collapse; margin-bottom: 10px; }
-  table.receita th, table.receita td {
-    border: 1px solid #999;
-    padding: 5px 6px;
-    text-align: center;
-    font-size: 11px;
-  }
-  table.receita td.rotulo, table.receita th:first-child { text-align: left; font-weight: bold; }
-  .receita-extra p { margin: 3px 0; font-size: 11px; }
-  .sem-receita { font-style: italic; color: #555; }
-  .assinatura {
-    margin-top: 60px;
-    display: flex;
-    justify-content: center;
-  }
-  .assinatura .linha {
-    width: 320px;
-    text-align: center;
-  }
-  .assinatura .linha .traco {
-    border-top: 1px solid #1a1a1a;
-    margin-bottom: 4px;
-  }
-</style>
-</head>
-<body>
-  ${montarLetterhead(empresa)}
-
-  <div class="titulo">
-    <h1>Ordem de Serviço ${escapeHtml(os.numero)}</h1>
-    <span class="emitido">Impresso em ${emitidoEm}</span>
-  </div>
-
-  <section>
-    <h2>Cliente</h2>
-    <div class="grid">
-      <div class="campo">
-        <div class="rotulo-campo">Nome</div>
-        <div class="valor-campo">${texto(os.clienteNome)}</div>
-      </div>
-      <div class="campo">
-        <div class="rotulo-campo">Celular</div>
-        <div class="valor-campo">${texto(os.clienteCelular)}</div>
-      </div>
-    </div>
-  </section>
-
-  <section>
-    <h2>Dados da OS</h2>
-    <div class="grid">
-      <div class="campo">
-        <div class="rotulo-campo">Situação</div>
-        <div class="valor-campo">${texto(os.situacao)}</div>
-      </div>
-      <div class="campo">
-        <div class="rotulo-campo">Laboratório</div>
-        <div class="valor-campo">${texto(os.laboratorio)}</div>
-      </div>
-      <div class="campo">
-        <div class="rotulo-campo">Data de abertura</div>
-        <div class="valor-campo">${formatarDataBr(os.dataAbertura)}</div>
-      </div>
-      <div class="campo">
-        <div class="rotulo-campo">Data de envio</div>
-        <div class="valor-campo">${formatarDataBr(os.dataEnvio)}</div>
-      </div>
-      <div class="campo">
-        <div class="rotulo-campo">Previsão</div>
-        <div class="valor-campo">${formatarDataBr(os.dataPrevisao)}</div>
-      </div>
-      <div class="campo">
-        <div class="rotulo-campo">Data de chegada</div>
-        <div class="valor-campo">${formatarDataBr(os.dataChegada)}</div>
-      </div>
-      <div class="campo">
-        <div class="rotulo-campo">Data de entrega</div>
-        <div class="valor-campo">${formatarDataBr(os.dataEntrega)}</div>
-      </div>
-    </div>
-    ${os.observacao ? `<p class="observacao"><strong>Observações:</strong> ${texto(os.observacao)}</p>` : ''}
-  </section>
-
-  <section>
-    <h2>Receita óptica</h2>
-    ${receita ? montarTabelaReceita(receita) : '<p class="sem-receita">Sem receita óptica vinculada.</p>'}
-  </section>
-
-  <div class="assinatura">
-    <div class="linha">
-      <div class="traco"></div>
-      <div>Assinatura do cliente</div>
-    </div>
-  </div>
-</body>
-</html>`
+  return montarDocumento({
+    titulo: `Ordem de Serviço ${os.numero}`,
+    chips: os.atrasada ? ['Atrasada'] : [],
+    empresa,
+    orientacao: 'retrato',
+    estiloExtra: ESTILO_RECEITA,
+    corpo
+  })
 }

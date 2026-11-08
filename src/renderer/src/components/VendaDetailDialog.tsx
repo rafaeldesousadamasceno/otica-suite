@@ -7,6 +7,7 @@ import { Button } from '@renderer/components/ui/Button'
 import { AuthorizeAdminDialog } from '@renderer/components/AuthorizeAdminDialog'
 import { BaixaParcelaDialog } from '@renderer/components/BaixaParcelaDialog'
 import { unwrap, ApiCallError } from '@renderer/lib/ipc'
+import { useGerarPdf } from '@renderer/lib/useGerarPdf'
 import { centavosParaBRL } from '@renderer/lib/dinheiro'
 import { toast } from '@renderer/state/toastStore'
 import type { CredencialAdminInput } from '@shared/ipc'
@@ -80,21 +81,9 @@ export function VendaDetailDialog({ vendaId, onClose }: Props): ReactNode {
     }
   })
 
-  const imprimirComprovante = useMutation({
-    mutationFn: () => unwrap(window.api.relatorios.comprovanteVenda({ id: vendaId! })),
-    onSuccess: (resultado) => {
-      if (resultado) toast.ok(`PDF salvo em ${resultado.caminho}`)
-    },
-    onError: (err) => toast.error(err instanceof ApiCallError || err instanceof Error ? err.message : 'Erro inesperado.')
-  })
+  const imprimirComprovante = useGerarPdf(() => window.api.relatorios.comprovanteVenda({ id: vendaId! }))
 
-  const imprimirCarne = useMutation({
-    mutationFn: () => unwrap(window.api.relatorios.carneParcelas({ id: vendaId! })),
-    onSuccess: (resultado) => {
-      if (resultado) toast.ok(`PDF salvo em ${resultado.caminho}`)
-    },
-    onError: (err) => toast.error(err instanceof ApiCallError || err instanceof Error ? err.message : 'Erro inesperado.')
-  })
+  const imprimirCarne = useGerarPdf(() => window.api.relatorios.carneParcelas({ id: vendaId! }))
 
   if (vendaId === null || !venda.data) return null
   const v = venda.data
