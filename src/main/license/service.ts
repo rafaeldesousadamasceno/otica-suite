@@ -36,7 +36,7 @@ function chavePublicaEmUso(): string {
   return !app.isPackaged && teste ? teste : CHAVE_PUBLICA_PEM
 }
 
-/** Em desenvolvimento a cobrança fica desligada (senão o ambiente de teste vira somente leitura em 14 dias). */
+/** Em desenvolvimento a cobrança fica desligada (senão o ambiente de teste vira somente leitura em 30 dias). */
 function cobrancaDesligada(): boolean {
   return !app.isPackaged && process.env['OTICASUITE_FORCAR_LICENCA'] !== '1'
 }

@@ -22,27 +22,27 @@ function entrada(sobra: Partial<EntradaEstado> = {}): EntradaEstado {
 }
 
 describe('calcularLicenca — período de teste (sem chave)', () => {
-  it('no dia da primeira abertura sobram os 14 dias inteiros', () => {
+  it('no dia da primeira abertura sobram os 30 dias inteiros', () => {
     const r = calcularLicenca(entrada())
     expect(r.estado).toBe('teste')
     expect(r.diasParaVencer).toBe(TESTE_DIAS)
     expect(r.somenteLeitura).toBe(false)
   })
 
-  it('no 14º dia (13 dias depois) ainda é teste, com 1 dia restante', () => {
-    const r = calcularLicenca(entrada({ inicioTeste: '2026-10-01', hoje: '2026-10-14' }))
+  it('no 30º dia (29 dias depois) ainda é teste, com 1 dia restante', () => {
+    const r = calcularLicenca(entrada({ inicioTeste: '2026-10-01', hoje: '2026-10-30' }))
     expect(r.estado).toBe('teste')
     expect(r.diasParaVencer).toBe(1)
   })
 
-  it('14 dias depois o teste encerra e o app fica somente leitura', () => {
-    const r = calcularLicenca(entrada({ inicioTeste: '2026-10-01', hoje: '2026-10-15' }))
+  it('30 dias depois o teste encerra e o app fica somente leitura', () => {
+    const r = calcularLicenca(entrada({ inicioTeste: '2026-10-01', hoje: '2026-10-31' }))
     expect(r.estado).toBe('teste_encerrado')
     expect(r.somenteLeitura).toBe(true)
     expect(r.diasParaVencer).toBe(0)
   })
 
-  it('início do teste no futuro nunca dá mais de 14 dias', () => {
+  it('início do teste no futuro nunca dá mais de 30 dias', () => {
     const r = calcularLicenca(entrada({ inicioTeste: '2030-01-01' }))
     expect(r.diasParaVencer).toBe(TESTE_DIAS)
   })

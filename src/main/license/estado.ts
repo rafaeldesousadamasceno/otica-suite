@@ -6,7 +6,7 @@ import type { LicencaPayload } from './chave'
 export { CARENCIA_DIAS }
 
 /** Dias de avaliação a partir da primeira abertura (dia da abertura conta como o 1º). */
-export const TESTE_DIAS = 14
+export const TESTE_DIAS = 30
 /** Quantos dias antes do vencimento o aviso vermelho aparece (vale para qualquer plano). */
 export const AVISO_DIAS = 10
 
