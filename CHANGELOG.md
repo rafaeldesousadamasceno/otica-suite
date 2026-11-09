@@ -2,6 +2,11 @@
 
 ## Próxima versão
 
+- Período de teste grátis passa de 14 para 30 dias. Quem já está em teste ganha os
+  dias a mais, porque a contagem parte da data da primeira abertura. Depois do
+  teste o sistema fica somente leitura, sem apagar nenhum dado, até a ativação da
+  licença.
+
 - Importação do MD Óculos em duas etapas: "Analisar" (não grava nada e mostra o
   que vai acontecer, com a explicação de cada problema) e "Importar agora"
   (com backup antes; sem backup a importação não começa). CPF repetido pode ser
