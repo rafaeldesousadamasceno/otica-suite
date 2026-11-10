@@ -307,6 +307,15 @@ export const SECOES_AJUDA: SecaoAjuda[] = [
         texto: 'Quem já foi chamado por aquela ocorrência sai da lista. Só volta se surgir outra (um novo aniversário, uma nova parcela vencida...).'
       },
       {
+        tipo: 'paragrafo',
+        texto:
+          'O Administrador vê no topo a seção "Resultados" (últimos 30 ou 90 dias): quantos contatos foram feitos, quantos clientes voltaram, quanto foi vendido depois do contato e quantas parcelas vencidas foram recuperadas. "Voltar" quer dizer comprar (aniversário, pós-venda e renovação), retirar o óculos (retirada) ou pagar a parcela vencida (cobrança), até 30 dias depois do contato. "Ver por motivo" mostra o detalhe de cada um.'
+      },
+      {
+        tipo: 'dica',
+        texto: 'Os resultados mostram o que veio depois do contato, não provam que foi por causa dele: o cliente também poderia voltar sozinho. Só contam os contatos marcados com "Contatado", então registre todos.'
+      },
+      {
         tipo: 'dica',
         texto: 'Para um cliente que não quer receber contato, use o ícone do sino cortado: ele deixa de aparecer na lista. O Administrador também pode editar os modelos de mensagem.'
       }

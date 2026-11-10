@@ -22,6 +22,7 @@ export type Recurso =
   | 'aniversariantes'
   | 'relacionamento'
   | 'relacionamento.modelos'
+  | 'relacionamento.resultados'
   | 'vendas'
   | 'vendas.cancelar'
   | 'vendas.desconto_sem_limite'
@@ -60,6 +61,7 @@ export const PERMISSOES: MatrizPermissoes = {
     aniversariantes: SO_VER,
     relacionamento: VER_CRIAR_EDITAR,
     'relacionamento.modelos': ['ver', 'editar'],
+    'relacionamento.resultados': SO_VER,
     vendas: TUDO,
     'vendas.cancelar': SO_VER,
     'vendas.desconto_sem_limite': SO_VER,

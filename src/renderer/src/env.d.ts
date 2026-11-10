@@ -33,7 +33,8 @@ import type {
   SistemaInfo,
   ContatoPendente,
   ClienteSemContato,
-  ModelosMensagem
+  ModelosMensagem,
+  ResultadosRelacionamento
 } from '@shared/types'
 import type {
   SetupInput,
@@ -88,6 +89,7 @@ import type {
   ContatoRefInput,
   ContatoMarcarInput,
   AceitaContatoInput,
+  ResultadosRelacionamentoInput,
   ModelosMensagemInput,
   LicencaAtivarInput,
   PrimeiroAcessoInput,
@@ -281,6 +283,7 @@ interface Api {
   relacionamento: {
     listar: () => Promise<ApiResult<ContatoPendente[]>>
     semContato: () => Promise<ApiResult<ClienteSemContato[]>>
+    resultados: (input: ResultadosRelacionamentoInput) => Promise<ApiResult<ResultadosRelacionamento>>
     abrirWhatsapp: (input: ContatoRefInput) => Promise<ApiResult<null>>
     marcarContatado: (input: ContatoMarcarInput) => Promise<ApiResult<null>>
     definirAceitaContato: (input: AceitaContatoInput) => Promise<ApiResult<null>>

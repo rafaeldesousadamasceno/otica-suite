@@ -183,6 +183,7 @@ export const IPC = {
     abrirWhatsapp: 'relacionamento:abrirWhatsapp',
     marcarContatado: 'relacionamento:marcarContatado',
     definirAceitaContato: 'relacionamento:definirAceitaContato',
+    resultados: 'relacionamento:resultados',
     modelosObter: 'relacionamento:modelosObter',
     modelosSalvar: 'relacionamento:modelosSalvar'
   }
