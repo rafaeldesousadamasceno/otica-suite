@@ -32,6 +32,11 @@ describe('matriz de permissoes (PRD secao 7.4)', () => {
     expect(possuiPermissao('vendedor', 'relacionamento.modelos', 'editar')).toBe(false)
   })
 
+  it('resultados do relacionamento (R$ vendido e recuperado): so o admin ve', () => {
+    expect(possuiPermissao('admin', 'relacionamento.resultados', 'ver')).toBe(true)
+    expect(possuiPermissao('vendedor', 'relacionamento.resultados', 'ver')).toBe(false)
+  })
+
   it('recurso nao mapeado para o perfil nunca autoriza', () => {
     expect(possuiPermissao('vendedor', 'usuarios', 'ver')).toBe(false)
     expect(possuiPermissao('vendedor', 'auditoria', 'ver')).toBe(false)

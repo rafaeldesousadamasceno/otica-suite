@@ -729,3 +729,43 @@ export interface ClienteSemContato {
 
 /** Uma mensagem por motivo, com placeholders como {nome} e {otica}. */
 export type ModelosMensagem = Record<MotivoContato, string>
+
+/** Quantos dias para tras o painel "Resultados" olha os contatos feitos. */
+export const PERIODOS_RESULTADOS = [30, 90] as const
+export type PeriodoResultados = (typeof PERIODOS_RESULTADOS)[number]
+
+/** Quantos dias depois do contato um retorno ainda e atribuido a ele. */
+export const JANELA_RETORNO_DIAS = 30
+
+export interface ResultadoPorMotivo {
+  motivo: MotivoContato
+  /** Contatos registrados no periodo. */
+  contatos: number
+  /**
+   * Quantos tiveram retorno ate `JANELA_RETORNO_DIAS` depois: compra (aniversario,
+   * pos-venda, renovacao), OS entregue (retirada) ou pagamento de parcela vencida (cobranca).
+   */
+  voltaram: number
+}
+
+/**
+ * Resultados do Relacionamento. Mostra o que aconteceu DEPOIS do contato, nao prova
+ * que foi por causa dele - o cliente poderia voltar sozinho.
+ */
+export interface ResultadosRelacionamento {
+  dias: PeriodoResultados
+  janelaDias: number
+  /** Primeiro dia do periodo (ISO). */
+  desde: string
+  contatos: number
+  voltaram: number
+  /** 0-100 com uma casa; `null` quando nao houve contato no periodo. */
+  percentualVoltaram: number | null
+  /** Vendas feitas depois de contatos de aniversario, pos-venda e renovacao (cada venda conta uma vez). */
+  vendasAposContato: number
+  vendidoCentavos: number
+  /** Parcelas vencidas que receberam pagamento depois da cobranca (cada parcela conta uma vez). */
+  parcelasRecuperadas: number
+  recuperadoCentavos: number
+  porMotivo: ResultadoPorMotivo[]
+}

@@ -2,6 +2,13 @@
 
 ## Próxima versão
 
+- Relacionamento: nova seção "Resultados" (só para o Administrador), com os últimos
+  30 ou 90 dias: contatos feitos, quantos clientes voltaram (e o percentual), quanto
+  foi vendido depois do contato e quantas parcelas vencidas foram recuperadas, com o
+  detalhe por motivo. "Voltar" é comprar (aniversário, pós-venda e renovação), retirar
+  o óculos (retirada) ou pagar a parcela vencida (cobrança) até 30 dias depois do
+  contato. Mostra o que veio depois do contato, não prova que foi por causa dele.
+
 - Período de teste grátis passa de 14 para 30 dias. Quem já está em teste ganha os
   dias a mais, porque a contagem parte da data da primeira abertura. Depois do
   teste o sistema fica somente leitura, sem apagar nenhum dado, até a ativação da

@@ -1,7 +1,15 @@
 import { getDb } from '@main/db/connection'
-import { MOTIVOS_CONTATO } from '@shared/types'
+import { JANELA_RETORNO_DIAS, MOTIVOS_CONTATO } from '@shared/types'
+import { dataLocalDeTimestampUtc } from '@shared/data'
 import { normalizarCelularBR, primeiroNome } from '@shared/whatsapp'
-import type { ClienteSemContato, ContatoPendente, MotivoContato } from '@shared/types'
+import type {
+  ClienteSemContato,
+  ContatoPendente,
+  MotivoContato,
+  PeriodoResultados,
+  ResultadoPorMotivo,
+  ResultadosRelacionamento
+} from '@shared/types'
 
 /**
  * Janelas de cada gatilho. Sao janelas (nao "tudo que ja passou") de proposito:
@@ -278,5 +286,129 @@ export const relacionamentoRepository = {
       .prepare('UPDATE cliente SET aceita_contato = :aceita WHERE id = :clienteId')
       .run({ aceita: aceita ? 1 : 0, clienteId })
     return Number(info.changes) > 0
+  },
+
+  /**
+   * Resultados dos contatos feitos nos ultimos `dias` (hoje incluido). Para cada
+   * contato olha o que aconteceu entre o dia dele e `JANELA_RETORNO_DIAS` depois:
+   *  - RETIRADA: a OS do contato foi entregue;
+   *  - COBRANCA: houve pagamento de parcela do cliente que ja estava vencida no dia do contato;
+   *  - ANIVERSARIO, POS_VENDA, RENOVACAO: o cliente comprou (venda nao cancelada).
+   * Venda e pagamento contam UMA vez mesmo que sigam dois contatos do mesmo cliente.
+   * So mostra o que veio depois do contato - nao prova que foi por causa dele.
+   */
+  resultados(hoje: string, dias: PeriodoResultados): ResultadosRelacionamento {
+    const db = getDb()
+    const desde = somarDias(hoje, -(dias - 1))
+
+    // `contato.criado_em` e UTC: converte para o dia local antes de comparar com as datas de negocio.
+    const contatos = (
+      db.prepare('SELECT cliente_id, motivo, referencia, criado_em FROM contato').all() as unknown as {
+        cliente_id: number
+        motivo: MotivoContato
+        referencia: string
+        criado_em: string
+      }[]
+    )
+      .map((c) => ({ clienteId: c.cliente_id, motivo: c.motivo, referencia: c.referencia, dia: dataLocalDeTimestampUtc(c.criado_em) }))
+      .filter((c) => c.dia >= desde && c.dia <= hoje)
+
+    const vendasPorCliente = new Map<number, { id: number; data: string; total: number }[]>()
+    for (const v of db
+      .prepare(
+        `SELECT id, cliente_id, substr(data, 1, 10) AS data, total_centavos
+         FROM venda WHERE situacao != 'CANCELADA' AND cliente_id IS NOT NULL AND substr(data, 1, 10) >= :desde`
+      )
+      .all({ desde }) as unknown as { id: number; cliente_id: number; data: string; total_centavos: number }[]) {
+      const lista = vendasPorCliente.get(v.cliente_id) ?? []
+      lista.push({ id: v.id, data: v.data, total: v.total_centavos })
+      vendasPorCliente.set(v.cliente_id, lista)
+    }
+
+    const recebimentosPorCliente = new Map<number, { id: number; parcelaId: number; data: string; valor: number; vencimento: string }[]>()
+    for (const r of db
+      .prepare(
+        `SELECT r.id, r.conta_receber_id, substr(r.data, 1, 10) AS data, r.valor_centavos, cr.cliente_id, cr.vencimento
+         FROM recebimento r
+         INNER JOIN conta_receber cr ON cr.id = r.conta_receber_id
+         WHERE cr.situacao != 'CANCELADA' AND cr.cliente_id IS NOT NULL AND substr(r.data, 1, 10) >= :desde`
+      )
+      .all({ desde }) as unknown as {
+      id: number
+      conta_receber_id: number
+      data: string
+      valor_centavos: number
+      cliente_id: number
+      vencimento: string
+    }[]) {
+      const lista = recebimentosPorCliente.get(r.cliente_id) ?? []
+      lista.push({ id: r.id, parcelaId: r.conta_receber_id, data: r.data, valor: r.valor_centavos, vencimento: r.vencimento })
+      recebimentosPorCliente.set(r.cliente_id, lista)
+    }
+
+    const idsOs = [
+      ...new Set(contatos.filter((c) => c.motivo === 'RETIRADA').map((c) => Number(c.referencia)).filter((n) => Number.isInteger(n) && n > 0))
+    ]
+    const osPorId = new Map<number, { situacao: string; entrega: string | null }>()
+    if (idsOs.length > 0) {
+      for (const o of db
+        .prepare(`SELECT id, situacao, substr(data_entrega, 1, 10) AS entrega FROM ordem_servico WHERE id IN (${idsOs.map(() => '?').join(',')})`)
+        .all(...idsOs) as unknown as { id: number; situacao: string; entrega: string | null }[]) {
+        osPorId.set(o.id, { situacao: o.situacao, entrega: o.entrega })
+      }
+    }
+
+    const porMotivo = new Map<MotivoContato, ResultadoPorMotivo>(MOTIVOS_CONTATO.map((m) => [m, { motivo: m, contatos: 0, voltaram: 0 }]))
+    const vendasContadas = new Map<number, number>()
+    const recebimentosContados = new Map<number, number>()
+    const parcelasRecuperadas = new Set<number>()
+
+    for (const c of contatos) {
+      const fim = somarDias(c.dia, JANELA_RETORNO_DIAS)
+      const linha = porMotivo.get(c.motivo)!
+      linha.contatos++
+      let voltou = false
+
+      if (c.motivo === 'RETIRADA') {
+        const os = osPorId.get(Number(c.referencia))
+        voltou = !!os && os.situacao === 'ENTREGUE' && !!os.entrega && os.entrega >= c.dia && os.entrega <= fim
+      } else if (c.motivo === 'COBRANCA') {
+        for (const r of recebimentosPorCliente.get(c.clienteId) ?? []) {
+          if (r.vencimento < c.dia && r.data >= c.dia && r.data <= fim) {
+            voltou = true
+            recebimentosContados.set(r.id, r.valor)
+            parcelasRecuperadas.add(r.parcelaId)
+          }
+        }
+      } else {
+        for (const v of vendasPorCliente.get(c.clienteId) ?? []) {
+          if (v.data >= c.dia && v.data <= fim) {
+            voltou = true
+            vendasContadas.set(v.id, v.total)
+          }
+        }
+      }
+
+      if (voltou) linha.voltaram++
+    }
+
+    const total = [...porMotivo.values()]
+    const nContatos = total.reduce((s, l) => s + l.contatos, 0)
+    const nVoltaram = total.reduce((s, l) => s + l.voltaram, 0)
+    const soma = (m: Map<number, number>): number => [...m.values()].reduce((s, v) => s + v, 0)
+
+    return {
+      dias,
+      janelaDias: JANELA_RETORNO_DIAS,
+      desde,
+      contatos: nContatos,
+      voltaram: nVoltaram,
+      percentualVoltaram: nContatos > 0 ? Math.round((nVoltaram / nContatos) * 1000) / 10 : null,
+      vendasAposContato: vendasContadas.size,
+      vendidoCentavos: soma(vendasContadas),
+      parcelasRecuperadas: parcelasRecuperadas.size,
+      recuperadoCentavos: soma(recebimentosContados),
+      porMotivo: total
+    }
   }
 }

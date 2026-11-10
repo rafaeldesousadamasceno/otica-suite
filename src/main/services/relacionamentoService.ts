@@ -6,8 +6,14 @@ import { requirePermissao } from '@main/auth/session'
 import { Errors } from '@main/errors'
 import { MOTIVOS_CONTATO } from '@shared/types'
 import { montarLinkWhatsapp, normalizarCelularBR, preencherModelo } from '@shared/whatsapp'
-import type { ClienteSemContato, ContatoPendente, ModelosMensagem, MotivoContato } from '@shared/types'
-import type { AceitaContatoInput, ContatoMarcarInput, ContatoRefInput, ModelosMensagemInput } from '@shared/ipc'
+import type { ClienteSemContato, ContatoPendente, ModelosMensagem, MotivoContato, ResultadosRelacionamento } from '@shared/types'
+import type {
+  AceitaContatoInput,
+  ContatoMarcarInput,
+  ContatoRefInput,
+  ModelosMensagemInput,
+  ResultadosRelacionamentoInput
+} from '@shared/ipc'
 import { hojeLocal } from '@shared/data'
 
 function hoje(): string {
@@ -38,6 +44,12 @@ export const relacionamentoService = {
   semContato(): ClienteSemContato[] {
     requirePermissao('relacionamento', 'ver')
     return relacionamentoRepository.listarSemContato()
+  },
+
+  /** Administrador: o que aconteceu depois dos contatos feitos nos ultimos 30/90 dias (traz valores em R$). */
+  resultados(input: ResultadosRelacionamentoInput): ResultadosRelacionamento {
+    requirePermissao('relacionamento.resultados', 'ver')
+    return relacionamentoRepository.resultados(hoje(), input.dias)
   },
 
   /** Devolve o link `https://wa.me/...` com a mensagem do motivo ja preenchida. */

@@ -7,20 +7,14 @@ import { Button } from '@renderer/components/ui/Button'
 import { Badge } from '@renderer/components/ui/Badge'
 import { Dialog } from '@renderer/components/ui/Dialog'
 import { ModelosMensagemDialog } from '@renderer/components/ModelosMensagemDialog'
+import { ResultadosRelacionamento } from '@renderer/components/ResultadosRelacionamento'
+import { ROTULO_MOTIVO } from '@renderer/lib/motivosContato'
 import { unwrap, ApiCallError } from '@renderer/lib/ipc'
 import { toast } from '@renderer/state/toastStore'
 import { useAuthStore } from '@renderer/state/authStore'
 import { possuiPermissao } from '@shared/permissions'
 import { MOTIVOS_CONTATO } from '@shared/types'
 import type { ContatoPendente, MotivoContato } from '@shared/types'
-
-const ROTULO_MOTIVO: Record<MotivoContato, string> = {
-  RETIRADA: 'Retirada',
-  COBRANCA: 'Cobrança',
-  ANIVERSARIO: 'Aniversário',
-  POS_VENDA: 'Pós-venda',
-  RENOVACAO: 'Renovação'
-}
 
 const TOM_MOTIVO: Record<MotivoContato, 'accent' | 'danger' | 'warn' | 'neutral'> = {
   RETIRADA: 'accent',
@@ -45,6 +39,7 @@ export function RelacionamentoPage(): ReactNode {
   const navigate = useNavigate()
   const sessao = useAuthStore((s) => s.sessao)
   const podeEditarModelos = sessao ? possuiPermissao(sessao.usuario.perfil, 'relacionamento.modelos', 'editar') : false
+  const podeVerResultados = sessao ? possuiPermissao(sessao.usuario.perfil, 'relacionamento.resultados', 'ver') : false
 
   const [filtro, setFiltro] = useState<MotivoContato | 'TODOS'>('TODOS')
   const [modelosAbertos, setModelosAbertos] = useState(false)
@@ -66,6 +61,7 @@ export function RelacionamentoPage(): ReactNode {
   const atualizar = (): void => {
     queryClient.invalidateQueries({ queryKey: ['relacionamento'] })
     queryClient.invalidateQueries({ queryKey: ['relacionamentoSemContato'] })
+    queryClient.invalidateQueries({ queryKey: ['relacionamentoResultados'] })
   }
 
   const abrirWhatsapp = useMutation({
@@ -124,6 +120,8 @@ export function RelacionamentoPage(): ReactNode {
           </Button>
         )}
       </div>
+
+      {podeVerResultados && <ResultadosRelacionamento />}
 
       <div className="flex flex-wrap gap-2" role="group" aria-label="Filtrar por motivo">
         {(['TODOS', ...MOTIVOS_CONTATO] as const).map((m) => {

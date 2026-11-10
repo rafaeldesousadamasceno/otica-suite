@@ -703,6 +703,9 @@ export const aceitaContatoSchema = z.object({
 })
 export type AceitaContatoInput = z.infer<typeof aceitaContatoSchema>
 
+export const resultadosRelacionamentoSchema = z.object({ dias: z.union([z.literal(30), z.literal(90)]) })
+export type ResultadosRelacionamentoInput = z.infer<typeof resultadosRelacionamentoSchema>
+
 const modeloMensagem = z.string().trim().min(1, 'A mensagem não pode ficar vazia').max(700, 'Mensagem longa demais (máximo 700 caracteres)')
 export const modelosMensagemSchema = z.object({
   RETIRADA: modeloMensagem,

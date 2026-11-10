@@ -182,6 +182,7 @@ const api = {
   relacionamento: {
     listar: () => ipcRenderer.invoke(IPC.relacionamento.listar),
     semContato: () => ipcRenderer.invoke(IPC.relacionamento.semContato),
+    resultados: (input: unknown) => ipcRenderer.invoke(IPC.relacionamento.resultados, input),
     abrirWhatsapp: (input: unknown) => ipcRenderer.invoke(IPC.relacionamento.abrirWhatsapp, input),
     marcarContatado: (input: unknown) => ipcRenderer.invoke(IPC.relacionamento.marcarContatado, input),
     definirAceitaContato: (input: unknown) => ipcRenderer.invoke(IPC.relacionamento.definirAceitaContato, input),

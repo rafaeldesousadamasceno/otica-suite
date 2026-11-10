@@ -82,6 +82,26 @@ Não será implementado agora. Depende de S1 para painéis de leitura e de S2 pa
 - **Segunda versão**: aprovar descontos, consultar cliente e receita, avisos por notificação.
 - Tecnologia a decidir (app nativo ou web instalável); a escolha não afeta a base de dados.
 
+## Backup na nuvem (Google Drive do cliente), no radar
+
+Não será implementado agora. Hoje os backups ficam na mesma máquina, em `backups/` dentro da pasta de dados. Eles protegem contra erro, arquivo corrompido e atualização com problema, mas **não** contra HD queimado, roubo ou formatação, porque o backup some junto com os dados.
+
+Este item é **independente** da sincronização com o Supabase: o arquivo vai para o Drive **do próprio cliente**, sem passar pela nossa infraestrutura.
+
+**Fase 0 (simples, vale já):** deixar escolher a pasta de destino do backup. Se o cliente apontar para a pasta do "Google Drive para computador", o arquivo sobe sozinho. Sem OAuth, funciona offline e não depende de conta nossa.
+
+**Fase 1 (integração direta com a API do Drive):**
+- Login do Google (OAuth) com o escopo `drive.file`: o app só enxerga os arquivos que ele mesmo criou, nunca o resto do Drive. Confirmar no Google Cloud se esse escopo dispensa a verificação demorada da tela de consentimento.
+- O token fica guardado com `safeStorage` do Electron, nunca em texto puro; o cliente pode desconectar a qualquer hora.
+- Depois de cada backup **íntegro**, enfileirar o envio. Sem internet, tenta de novo depois, sem travar o sistema.
+- Enviar um backup por dia ao Drive (não todos os de 4 em 4 horas) e manter uns 30 dias lá, para não encher o espaço do cliente.
+- A tela Backup mostra "último envio ao Drive" e alerta se passar de 48 horas sem enviar, como já faz com o backup local.
+- Restaurar pelo Drive dentro do app: resolve a **troca de computador** (instala, conecta o Google, baixa o último backup).
+
+**LGPD e segurança:** o backup contém a receita óptica (dado de saúde). Criptografar o arquivo antes de enviar (AES-GCM com `node:crypto`, senha definida pela ótica). Cuidado: sem a senha o backup não abre, então a tela deve avisar isso e pedir para guardá-la.
+
+**Valor comercial:** responde à pergunta "e se meu computador quebrar?" e pode entrar como argumento de venda ou como item de um plano superior.
+
 ## Próximos passos
 
 1. Criar o projeto Supabase (região de São Paulo) e o esquema espelho das tabelas da lista.
