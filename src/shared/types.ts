@@ -16,6 +16,19 @@ export interface Usuario {
   criadoEm: string
 }
 
+/** Recuperacao de senha: o pedido (maquina + numero de uso unico) que o dono envia ao fornecedor. */
+export interface PedidoRecuperacao {
+  pedido: string
+}
+
+/** Administrador que a recuperacao autorizada pode redefinir. So e mostrado depois de um codigo valido. */
+export interface AdminRecuperavel {
+  id: number
+  nome: string
+  login: string
+  ativo: boolean
+}
+
 /** Sessao ativa no processo main. Nunca inclui o hash da senha. */
 export interface Sessao {
   usuario: Usuario

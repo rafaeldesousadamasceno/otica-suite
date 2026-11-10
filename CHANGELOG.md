@@ -2,6 +2,15 @@
 
 ## Próxima versão
 
+- Recuperação de senha do Administrador: "Esqueci minha senha" na tela de login. O
+  sistema mostra um pedido; o dono o envia ao suporte, que devolve um código
+  assinado. Com o código, o sistema lista os Administradores (resolve também o
+  login esquecido) e deixa definir a senha nova, sem internet. O código vale só
+  para aquele computador e uma única vez, então um funcionário com acesso ao
+  Windows não consegue virar Administrador. Funciona mesmo com a licença vencida,
+  reativa a conta se estava inativa, tira o bloqueio por tentativas e fica na
+  Auditoria. Para o suporte: `node tools/gerar-codigo-recuperacao.mjs <PEDIDO> --chave <chave-privada.pem>`.
+
 - Relacionamento: nova seção "Resultados" (só para o Administrador), com os últimos
   30 ou 90 dias: contatos feitos, quantos clientes voltaram (e o percentual), quanto
   foi vendido depois do contato e quantas parcelas vencidas foram recuperadas, com o

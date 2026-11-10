@@ -698,7 +698,7 @@ export const SECOES_AJUDA: SecaoAjuda[] = [
     rotas: ['/ajuda'],
     resumo: 'Respostas rápidas para as dúvidas mais comuns.',
     blocos: [
-      { tipo: 'paragrafo', texto: 'Esqueci a senha, e agora? Só um Administrador pode redefinir a senha de outro usuário, na tela Usuários. Se for a senha do único Administrador, será preciso suporte técnico.' },
+      { tipo: 'paragrafo', texto: 'Esqueci a senha, e agora? Só um Administrador pode redefinir a senha de outro usuário, na tela Usuários. Se foi o único Administrador que esqueceu, use "Esqueci minha senha" na tela de login: o sistema mostra um pedido, você o envia ao suporte, que confirma que é você e devolve um código. Cole o código, escolha o Administrador (isso também mostra o login, se você o esqueceu) e defina a nova senha. Não precisa de internet, e cada código vale uma única vez, só para este computador.' },
       { tipo: 'paragrafo', texto: 'Um Vendedor pode dar qualquer desconto? Não. Acima do limite de Configurações, o sistema exige a autorização de um Administrador na hora.' },
       { tipo: 'paragrafo', texto: 'Apaguei um cliente por engano, meus dados sumiram? Se o cliente já tinha venda, receita ou OS, ele nunca é apagado de verdade: só fica inativo. Peça a um Administrador para reativar.' },
       { tipo: 'paragrafo', texto: 'O sistema funciona sem internet? Sim. O uso do dia a dia e a ativação da licença não dependem de internet.' },

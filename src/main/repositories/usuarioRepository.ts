@@ -123,6 +123,30 @@ export const usuarioRepository = {
       .run({ id, senhaHash })
   },
 
+  listarAdmins(): Usuario[] {
+    const rows = getDb()
+      .prepare("SELECT * FROM usuario WHERE perfil = 'admin' ORDER BY ativo DESC, nome")
+      .all() as unknown as UsuarioRow[]
+    return rows.map(toDomain)
+  },
+
+  /**
+   * Recuperacao de senha autorizada pelo fornecedor: a propria pessoa acabou de
+   * escolher a senha (nao precisa trocar de novo), o bloqueio por tentativas cai e
+   * a conta volta a ficar ativa - sem isso a recuperacao nao daria acesso.
+   * Restrito a admin no proprio SQL: a recuperacao nunca mexe em conta de vendedor.
+   */
+  redefinirSenhaRecuperacao(id: number, senhaHash: string): boolean {
+    const info = getDb()
+      .prepare(
+        `UPDATE usuario SET senha_hash = :senhaHash, deve_trocar_senha = 0, ativo = 1,
+           tentativas_login = 0, bloqueado_ate = NULL, atualizado_em = datetime('now')
+         WHERE id = :id AND perfil = 'admin'`
+      )
+      .run({ id, senhaHash })
+    return Number(info.changes) === 1
+  },
+
   trocarPropriaSenha(id: number, senhaHash: string): void {
     getDb()
       .prepare(
