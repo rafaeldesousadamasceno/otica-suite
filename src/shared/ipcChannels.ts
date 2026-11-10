@@ -19,7 +19,10 @@ export const IPC = {
     getSession: 'auth:getSession',
     trocarSenha: 'auth:trocarSenha',
     primeiroAcesso: 'auth:primeiroAcesso',
-    autorizarAcao: 'auth:autorizarAcao'
+    autorizarAcao: 'auth:autorizarAcao',
+    recuperacaoPedido: 'auth:recuperacaoPedido',
+    recuperacaoVerificar: 'auth:recuperacaoVerificar',
+    recuperacaoRedefinir: 'auth:recuperacaoRedefinir'
   },
   empresa: {
     get: 'empresa:get',

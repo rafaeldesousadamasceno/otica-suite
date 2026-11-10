@@ -31,7 +31,7 @@ const MSG_VENCIDA =
  * fora dele, `OTICASUITE_CHAVE_PUBLICA_TESTE` (PEM) permite testar a ativação de ponta
  * a ponta com um par de chaves descartável, sem ter a privada do produto real.
  */
-function chavePublicaEmUso(): string {
+export function chavePublicaEmUso(): string {
   const teste = process.env['OTICASUITE_CHAVE_PUBLICA_TESTE']
   return !app.isPackaged && teste ? teste : CHAVE_PUBLICA_PEM
 }

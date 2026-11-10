@@ -4,6 +4,8 @@ import type {
   ApiResult,
   BootstrapState,
   Sessao,
+  PedidoRecuperacao,
+  AdminRecuperavel,
   Empresa,
   Usuario,
   Cliente,
@@ -93,6 +95,8 @@ import type {
   ModelosMensagemInput,
   LicencaAtivarInput,
   PrimeiroAcessoInput,
+  RecuperacaoCodigoInput,
+  RecuperacaoRedefinirInput,
   MigracaoConexaoInput,
   MigracaoImportarInput,
   PendenciasListQuery,
@@ -124,6 +128,9 @@ interface Api {
     trocarSenha: (input: TrocarSenhaInput) => Promise<ApiResult<void>>
     primeiroAcesso: (input: PrimeiroAcessoInput) => Promise<ApiResult<Sessao>>
     autorizarAcao: (input: AutorizarAcaoInput) => Promise<ApiResult<Usuario>>
+    recuperacaoPedido: () => Promise<ApiResult<PedidoRecuperacao>>
+    recuperacaoVerificar: (input: RecuperacaoCodigoInput) => Promise<ApiResult<AdminRecuperavel[]>>
+    recuperacaoRedefinir: (input: RecuperacaoRedefinirInput) => Promise<ApiResult<{ login: string }>>
   }
   empresa: {
     get: () => Promise<ApiResult<Empresa>>

@@ -51,6 +51,18 @@ export const primeiroAcessoSchema = z.object({
 })
 export type PrimeiroAcessoInput = z.infer<typeof primeiroAcessoSchema>
 
+/** Recuperacao de senha do Admin: o codigo assinado que o fornecedor devolveu para o pedido mostrado na tela. */
+export const recuperacaoCodigoSchema = z.object({
+  codigo: z.string().trim().min(1, 'Cole o código de recuperação que você recebeu')
+})
+export type RecuperacaoCodigoInput = z.infer<typeof recuperacaoCodigoSchema>
+
+export const recuperacaoRedefinirSchema = recuperacaoCodigoSchema.extend({
+  usuarioId: z.number().int().positive('Escolha o usuário'),
+  novaSenha: z.string().min(8, 'A senha precisa de pelo menos 8 caracteres')
+})
+export type RecuperacaoRedefinirInput = z.infer<typeof recuperacaoRedefinirSchema>
+
 /** RF-03.4: autoriza uma acao pontual do vendedor com credencial de Admin. */
 export const autorizarAcaoSchema = z.object({
   loginAdmin: z.string().trim().min(1),

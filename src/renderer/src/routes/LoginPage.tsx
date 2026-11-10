@@ -6,6 +6,7 @@ import { Input } from '@renderer/components/ui/Input'
 import { Button } from '@renderer/components/ui/Button'
 import { unwrap, ApiCallError } from '@renderer/lib/ipc'
 import { loginSchema, primeiroAcessoSchema } from '@shared/ipc'
+import { RecuperarSenhaPanel } from './RecuperarSenhaPanel'
 import type { Empresa, Sessao } from '@shared/types'
 
 interface Props {
@@ -19,6 +20,8 @@ export function LoginPage({ empresa, onLogin }: Props): ReactNode {
   const [confirmar, setConfirmar] = useState('')
   const [primeiroAcesso, setPrimeiroAcesso] = useState(false)
   const [erro, setErro] = useState<string | null>(null)
+  const [recuperando, setRecuperando] = useState(false)
+  const [aviso, setAviso] = useState<string | null>(null)
 
   const mutation = useMutation({
     mutationFn: async () => {
@@ -47,12 +50,31 @@ export function LoginPage({ empresa, onLogin }: Props): ReactNode {
           )}
           <h1 className="text-lg font-semibold text-[var(--ink)]">{empresa?.nomeFantasia ?? 'OptiAleph'}</h1>
           <p className="mt-1 text-sm text-[var(--ink-3)]">
-            {primeiroAcesso
-              ? 'Primeiro acesso: informe seu login e escolha uma senha.'
-              : 'Entre com seu usuário e senha.'}
+            {recuperando
+              ? 'Recuperação de senha do Administrador.'
+              : primeiroAcesso
+                ? 'Primeiro acesso: informe seu login e escolha uma senha.'
+                : 'Entre com seu usuário e senha.'}
           </p>
         </div>
 
+        {aviso && !recuperando && (
+          <p className="mb-4 rounded-md border border-[var(--rule)] bg-[var(--surface-2)] px-3 py-2 text-sm text-[var(--ink)]">{aviso}</p>
+        )}
+
+        {recuperando ? (
+          <RecuperarSenhaPanel
+            onVoltar={() => setRecuperando(false)}
+            onConcluir={(loginRecuperado) => {
+              setRecuperando(false)
+              setPrimeiroAcesso(false)
+              setLogin(loginRecuperado)
+              setSenha('')
+              setErro(null)
+              setAviso(`Senha redefinida! Entre com o login "${loginRecuperado}" e a senha nova.`)
+            }}
+          />
+        ) : (
         <form
           className="flex flex-col gap-4"
           onSubmit={(e) => {
@@ -94,7 +116,19 @@ export function LoginPage({ empresa, onLogin }: Props): ReactNode {
           >
             {primeiroAcesso ? 'Voltar para o login' : 'Primeiro acesso? Escolha sua senha'}
           </button>
+          <button
+            type="button"
+            className="text-center text-sm text-[var(--ink-3)] underline underline-offset-2"
+            onClick={() => {
+              setRecuperando(true)
+              setAviso(null)
+              setErro(null)
+            }}
+          >
+            Esqueci minha senha
+          </button>
         </form>
+        )}
       </div>
     </div>
   )

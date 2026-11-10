@@ -22,7 +22,10 @@ const api = {
     getSession: () => ipcRenderer.invoke(IPC.auth.getSession),
     trocarSenha: (input: unknown) => ipcRenderer.invoke(IPC.auth.trocarSenha, input),
     primeiroAcesso: (input: unknown) => ipcRenderer.invoke(IPC.auth.primeiroAcesso, input),
-    autorizarAcao: (input: unknown) => ipcRenderer.invoke(IPC.auth.autorizarAcao, input)
+    autorizarAcao: (input: unknown) => ipcRenderer.invoke(IPC.auth.autorizarAcao, input),
+    recuperacaoPedido: () => ipcRenderer.invoke(IPC.auth.recuperacaoPedido),
+    recuperacaoVerificar: (input: unknown) => ipcRenderer.invoke(IPC.auth.recuperacaoVerificar, input),
+    recuperacaoRedefinir: (input: unknown) => ipcRenderer.invoke(IPC.auth.recuperacaoRedefinir, input)
   },
   empresa: {
     get: () => ipcRenderer.invoke(IPC.empresa.get),

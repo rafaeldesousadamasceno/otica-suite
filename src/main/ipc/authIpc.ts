@@ -1,6 +1,15 @@
 import { handleIpc } from './handle'
-import { IPC, loginSchema, trocarSenhaSchema, primeiroAcessoSchema, autorizarAcaoSchema } from '@shared/ipc'
+import {
+  IPC,
+  loginSchema,
+  trocarSenhaSchema,
+  primeiroAcessoSchema,
+  autorizarAcaoSchema,
+  recuperacaoCodigoSchema,
+  recuperacaoRedefinirSchema
+} from '@shared/ipc'
 import { authService } from '@main/services/authService'
+import { recuperacaoSenhaService } from '@main/services/recuperacaoSenhaService'
 import { limparPdfs } from '@main/relatorios/pdf'
 
 export function registerAuthIpc(): void {
@@ -14,5 +23,13 @@ export function registerAuthIpc(): void {
   handleIpc(IPC.auth.primeiroAcesso, primeiroAcessoSchema, (input) => authService.primeiroAcesso(input))
   handleIpc(IPC.auth.autorizarAcao, autorizarAcaoSchema, (input) =>
     authService.autorizarComoAdmin(input)
+  )
+  // Recuperacao de senha do Admin: antes do login, protegida pelo codigo assinado.
+  handleIpc(IPC.auth.recuperacaoPedido, null, () => recuperacaoSenhaService.gerarPedido())
+  handleIpc(IPC.auth.recuperacaoVerificar, recuperacaoCodigoSchema, (input) =>
+    recuperacaoSenhaService.verificarCodigo(input)
+  )
+  handleIpc(IPC.auth.recuperacaoRedefinir, recuperacaoRedefinirSchema, (input) =>
+    recuperacaoSenhaService.redefinir(input)
   )
 }
