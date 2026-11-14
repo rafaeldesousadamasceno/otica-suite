@@ -170,14 +170,14 @@ export const SECOES_AJUDA: SecaoAjuda[] = [
           'Na ficha, clique em "Nova receita".',
           'Informe a data do exame e, se quiser, o profissional (optometrista) que atendeu.',
           'Preencha as duas tabelas, Longe e Perto. Cada uma tem uma linha para o olho direito (OD) e outra para o esquerdo (OE), com as colunas Esférico, Cilíndrico, Eixo, DNP e DP.',
-          'Preencha a Adição, o Tipo de lente e os Tratamentos, e depois a Armação e as Observações.',
+          'Preencha a Adição e o Tipo de lente, marque os Tratamentos (pode marcar mais de um, por exemplo Antirreflexo e Antirrisco) e depois preencha a Armação e as Observações.',
           'Clique em "Salvar receita".'
         ]
       },
       {
         tipo: 'dica',
         titulo: 'Cálculo automático do Perto',
-        texto: 'Se você preencher a Adição e deixar o esférico de Perto em branco, o sistema calcula sozinho (Longe mais Adição) para cada olho.'
+        texto: 'Ao digitar a Adição, o esférico de Perto de cada olho é preenchido na hora (Longe mais Adição, em passos de 0,25) e aparece com um fundo levemente colorido. Se você digitar outro valor no Perto, ele é respeitado e o cálculo para de mexer naquele olho. Para voltar ao cálculo, apague o campo e altere a Adição.'
       },
       {
         tipo: 'paragrafo',

@@ -4,6 +4,7 @@ import { profissionalRepository } from '@main/repositories/profissionalRepositor
 import { auditoriaRepository } from '@main/repositories/auditoriaRepository'
 import { requirePermissao } from '@main/auth/session'
 import { Errors } from '@main/errors'
+import { calcularPertoEsf } from '@shared/receitaCalculo'
 import type { ReceitaOptica } from '@shared/types'
 import type { ReceitaOpticaAtualizarInput, ReceitaOpticaInput } from '@shared/ipc'
 
@@ -12,17 +13,17 @@ import type { ReceitaOpticaAtualizarInput, ReceitaOpticaInput } from '@shared/ip
  * automaticamente - mas so quando o campo de perto foi deixado em branco.
  * Se o profissional digitou um valor de perto diferente, isso e
  * respeitado (a regra e um atalho, nao uma imposicao).
+ *
+ * O formulario faz a mesma conta na tela, enquanto se digita a adicao
+ * (`calcularPertoEsf`, compartilhada); aqui fica a garantia para quem salva sem
+ * passar pela tela (importacao, outro cliente da API).
  */
 function aplicarCalculoDeAdicao(input: ReceitaOpticaInput): ReceitaOpticaInput {
   if (input.adicao === null) return input
 
   const calculado = { ...input }
-  if (calculado.pertoOdEsf === null && calculado.longeOdEsf !== null) {
-    calculado.pertoOdEsf = Math.round((calculado.longeOdEsf! + input.adicao!) * 4) / 4
-  }
-  if (calculado.pertoOeEsf === null && calculado.longeOeEsf !== null) {
-    calculado.pertoOeEsf = Math.round((calculado.longeOeEsf! + input.adicao!) * 4) / 4
-  }
+  if (calculado.pertoOdEsf === null) calculado.pertoOdEsf = calcularPertoEsf(calculado.longeOdEsf, input.adicao)
+  if (calculado.pertoOeEsf === null) calculado.pertoOeEsf = calcularPertoEsf(calculado.longeOeEsf, input.adicao)
   return calculado
 }
 

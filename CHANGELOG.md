@@ -2,6 +2,17 @@
 
 ## Próxima versão
 
+- Receita óptica: os tratamentos da lente agora são caixinhas de marcar, e dá para
+  escolher mais de um (ex.: antirreflexo e filtro azul). Receitas antigas com um
+  tratamento só continuam iguais; um valor antigo que não está mais na lista
+  aparece marcado, com "(fora da lista)", e nada se perde ao editar.
+- Receita óptica: ao digitar a Adição, o esférico de Perto de cada olho é calculado
+  na hora (Longe mais Adição), sem precisar salvar. Se você digitar outro valor no
+  Perto, ele é respeitado. Ao editar uma receita, um Perto diferente de Longe mais
+  Adição não é sobrescrito.
+- Tratamento de lente "ENDURECEDOR" passa a se chamar "ANTIRRISCO" na lista de
+  opções. As receitas já gravadas com ENDURECEDOR não são alteradas.
+
 - Recuperação de senha do Administrador: "Esqueci minha senha" na tela de login. O
   sistema mostra um pedido; o dono o envia ao suporte, que devolve um código
   assinado. Com o código, o sistema lista os Administradores (resolve também o
