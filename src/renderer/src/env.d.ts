@@ -36,6 +36,7 @@ import type {
   CaixaResumo,
   SistemaInfo,
   ContatoPendente,
+  ContatoFeito,
   ClienteSemContato,
   ModelosMensagem,
   ResultadosRelacionamento
@@ -103,6 +104,7 @@ import type {
   BackupRestaurarInput,
   ContatoRefInput,
   ContatoMarcarInput,
+  ContatoDesfazerInput,
   AceitaContatoInput,
   ResultadosRelacionamentoInput,
   ModelosMensagemInput,
@@ -321,6 +323,8 @@ interface Api {
     resultados: (input: ResultadosRelacionamentoInput) => Promise<ApiResult<ResultadosRelacionamento>>
     abrirWhatsapp: (input: ContatoRefInput) => Promise<ApiResult<null>>
     marcarContatado: (input: ContatoMarcarInput) => Promise<ApiResult<null>>
+    contatados: () => Promise<ApiResult<ContatoFeito[]>>
+    desfazerContato: (input: ContatoDesfazerInput) => Promise<ApiResult<null>>
     definirAceitaContato: (input: AceitaContatoInput) => Promise<ApiResult<null>>
     modelosObter: () => Promise<ApiResult<ModelosMensagem>>
     modelosSalvar: (input: ModelosMensagemInput) => Promise<ApiResult<null>>

@@ -3,12 +3,13 @@ import { configuracaoRepository } from '@main/repositories/configuracaoRepositor
 import { empresaRepository } from '@main/repositories/empresaRepository'
 import { auditoriaRepository } from '@main/repositories/auditoriaRepository'
 import { requirePermissao } from '@main/auth/session'
-import { Errors } from '@main/errors'
-import { MOTIVOS_CONTATO } from '@shared/types'
+import { AppError, Errors } from '@main/errors'
+import { JANELA_CONTATADOS_DIAS, MOTIVOS_CONTATO } from '@shared/types'
 import { montarLinkWhatsapp, normalizarCelularBR, preencherModelo } from '@shared/whatsapp'
-import type { ClienteSemContato, ContatoPendente, ModelosMensagem, MotivoContato, ResultadosRelacionamento } from '@shared/types'
+import type { ClienteSemContato, ContatoFeito, ContatoPendente, ModelosMensagem, MotivoContato, ResultadosRelacionamento } from '@shared/types'
 import type {
   AceitaContatoInput,
+  ContatoDesfazerInput,
   ContatoMarcarInput,
   ContatoRefInput,
   ModelosMensagemInput,
@@ -88,6 +89,42 @@ export const relacionamentoService = {
       entidade: 'cliente',
       entidadeId: input.clienteId,
       valorNovo: { motivo: input.motivo, referencia: input.referencia, observacao: input.observacao ?? null }
+    })
+  },
+
+  /** Contatos marcados nos ultimos JANELA_CONTATADOS_DIAS dias (todos os usuarios), mais recentes primeiro. */
+  contatados(): ContatoFeito[] {
+    const sessao = requirePermissao('relacionamento', 'ver')
+    // `criado_em` e UTC 'AAAA-MM-DD HH:MM:SS': o corte tem que estar no mesmo formato para comparar como texto.
+    const desde = new Date(Date.now() - JANELA_CONTATADOS_DIAS * 86_400_000).toISOString().slice(0, 19).replace('T', ' ')
+    return relacionamentoRepository.listarContatados(desde).map(({ usuarioId, ...c }) => ({
+      ...c,
+      podeDesfazer: sessao.usuario.perfil === 'admin' || usuarioId === sessao.usuario.id
+    }))
+  },
+
+  /** Remove a marcacao de contato: a pessoa volta para a lista de pendentes (se a ocorrencia ainda valer). */
+  desfazerContato(input: ContatoDesfazerInput): void {
+    const sessao = requirePermissao('relacionamento', 'criar')
+    const contato = relacionamentoRepository.buscarContato(input.id)
+    if (!contato) throw Errors.naoEncontrado('Contato')
+    // Vendedor so desfaz o que ele mesmo marcou; contato antigo sem usuario so o Administrador desfaz.
+    if (sessao.usuario.perfil !== 'admin' && contato.usuarioId !== sessao.usuario.id) throw new AppError('SEM_PERMISSAO', 'Você só pode desfazer os contatos que você mesmo marcou.')
+    if (!relacionamentoRepository.removerContato(input.id)) throw Errors.naoEncontrado('Contato')
+
+    auditoriaRepository.registrar({
+      usuarioId: sessao.usuario.id,
+      acao: 'DESFAZER_CONTATO',
+      entidade: 'contato',
+      entidadeId: contato.id,
+      valorAnterior: {
+        clienteId: contato.clienteId,
+        motivo: contato.motivo,
+        referencia: contato.referencia,
+        observacao: contato.observacao,
+        usuarioId: contato.usuarioId,
+        criadoEm: contato.criadoEm
+      }
     })
   },
 

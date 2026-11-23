@@ -206,3 +206,45 @@ describe('relacionamentoRepository - registro de contato e opt-out', () => {
     expect((db.prepare('SELECT COUNT(*) AS n FROM contato WHERE cliente_id = :c').get({ c }) as { n: number }).n).toBe(0)
   })
 })
+
+describe('relacionamentoRepository - contatados (listar e desfazer)', () => {
+  function contatoEm(clienteId: number, motivo: string, referencia: string, criadoEm: string, usuarioId: number | null = ids.usuario): number {
+    return Number(
+      db
+        .prepare(
+          `INSERT INTO contato (cliente_id, motivo, referencia, observacao, usuario_id, criado_em)
+           VALUES (:clienteId, :motivo, :referencia, 'obs', :usuarioId, :criadoEm)`
+        )
+        .run({ clienteId, motivo, referencia, usuarioId, criadoEm }).lastInsertRowid
+    )
+  }
+
+  it('lista so a partir do corte, do mais recente para o mais antigo, com cliente e usuario', () => {
+    const c = cliente('contatadoLista', { nome: 'Lista Contatados' })
+    const antigo = contatoEm(c, 'RENOVACAO', 'a', '2026-07-01 09:00:00')
+    const meio = contatoEm(c, 'POS_VENDA', 'b', '2026-09-10 12:00:00')
+    const recente = contatoEm(c, 'ANIVERSARIO', 'c', '2026-09-18 10:00:00')
+    const empate = contatoEm(c, 'COBRANCA', 'd', '2026-09-18 10:00:00')
+
+    const lista = relacionamentoRepository.listarContatados('2026-08-20 15:00:00').filter((x) => x.clienteId === c)
+    expect(lista.map((x) => x.id)).toEqual([empate, recente, meio]) // empate: o de maior id primeiro
+    expect(lista.map((x) => x.id)).not.toContain(antigo)
+    expect(lista[0]).toMatchObject({ clienteNome: 'Lista Contatados', usuarioNome: 'Atendente', usuarioId: ids.usuario, observacao: 'obs' })
+  })
+
+  it('contato sem usuario aparece com usuarioNome nulo', () => {
+    const c = cliente('contatadoSemUsuario', { nome: 'Sem Usuario' })
+    const id = contatoEm(c, 'RENOVACAO', 'x', '2026-09-18 10:00:00', null)
+    expect(relacionamentoRepository.buscarContato(id)).toMatchObject({ usuarioId: null, usuarioNome: null })
+  })
+
+  it('remover devolve a ocorrencia a lista de pendentes; id inexistente devolve false', () => {
+    expect(pendentesDe('anaHoje')).toEqual([]) // contatada num teste anterior deste arquivo
+    const marcado = (db.prepare("SELECT id FROM contato WHERE cliente_id = :c AND motivo = 'ANIVERSARIO'").get({ c: ids.anaHoje }) as { id: number }).id
+
+    expect(relacionamentoRepository.removerContato(marcado)).toBe(true)
+    expect(relacionamentoRepository.buscarContato(marcado)).toBeNull()
+    expect(pendentesDe('anaHoje')).toEqual(['ANIVERSARIO'])
+    expect(relacionamentoRepository.removerContato(marcado)).toBe(false)
+  })
+})

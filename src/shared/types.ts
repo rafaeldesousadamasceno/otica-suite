@@ -812,6 +812,25 @@ export interface ContatoPendente {
   temWhatsapp: boolean
 }
 
+/** Contato ja marcado como feito (aba "Contatados"): da para desfazer se foi engano. */
+export interface ContatoFeito {
+  id: number
+  clienteId: number
+  clienteNome: string
+  motivo: MotivoContato
+  referencia: string
+  observacao: string | null
+  /** Nome de quem marcou; null para contato antigo sem usuario. */
+  usuarioNome: string | null
+  /** 'AAAA-MM-DD HH:MM:SS' em UTC (datetime('now') do SQLite). */
+  criadoEm: string
+  /** Administrador desfaz qualquer um; Vendedor so os que ele mesmo marcou. */
+  podeDesfazer: boolean
+}
+
+/** Quantos dias para tras a lista "Contatados" mostra. */
+export const JANELA_CONTATADOS_DIAS = 30
+
 export interface ClienteSemContato {
   id: number
   nome: string

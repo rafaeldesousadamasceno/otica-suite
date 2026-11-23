@@ -131,3 +131,105 @@ describe('relacionamentoService - lista, contato e auditoria', () => {
     expect(relacionamentoService.modelosObter().ANIVERSARIO).toBe('Parabéns, {nome}! — {otica}')
   })
 })
+
+describe('relacionamentoService - contatados e desfazer', () => {
+  let adminId: number
+  let outroId: number
+  let meuId: number
+  const comoVendedor = (): void => {
+    sessao.usuario.id = meuId
+    sessao.usuario.perfil = 'vendedor'
+  }
+  const comoAdmin = (): void => {
+    sessao.usuario.id = adminId
+    sessao.usuario.perfil = 'admin'
+  }
+
+  function contatoEm(clienteId: number, motivo: string, referencia: string, criadoEm: string, usuarioId: number | null): number {
+    return Number(
+      db
+        .prepare(
+          `INSERT INTO contato (cliente_id, motivo, referencia, observacao, usuario_id, criado_em)
+           VALUES (:clienteId, :motivo, :referencia, 'anotacao', :usuarioId, :criadoEm)`
+        )
+        .run({ clienteId, motivo, referencia, usuarioId, criadoEm }).lastInsertRowid
+    )
+  }
+
+  beforeAll(() => {
+    meuId = sessao.usuario.id
+    const usuario = db.prepare('INSERT INTO usuario (nome, login, senha_hash, perfil) VALUES (:nome, :login, :s, :perfil)')
+    adminId = Number(usuario.run({ nome: 'Chefe', login: 'chefe', s: 'x', perfil: 'admin' }).lastInsertRowid)
+    outroId = Number(usuario.run({ nome: 'Outro Vendedor', login: 'outro', s: 'x', perfil: 'vendedor' }).lastInsertRowid)
+  })
+
+  it('lista so os ultimos 30 dias, do mais recente para o mais antigo, e diz quem pode desfazer', () => {
+    comoVendedor()
+    const c = Number(db.prepare("INSERT INTO cliente (nome, celular) VALUES ('Contatado Janela', '(11) 98888-7777')").run().lastInsertRowid)
+    // "agora" nestes testes e 2026-09-19 15:00Z: o corte e 2026-08-20 15:00
+    const fora = contatoEm(c, 'RENOVACAO', 'a', '2026-08-20 14:59:59', meuId)
+    const dentroAntigo = contatoEm(c, 'POS_VENDA', 'b', '2026-08-20 15:00:00', outroId)
+    const dentroRecente = contatoEm(c, 'ANIVERSARIO', 'c', '2026-09-19 12:00:00', meuId)
+    const semUsuario = contatoEm(c, 'COBRANCA', 'd', '2026-09-01 08:00:00', null)
+
+    const lista = relacionamentoService.contatados().filter((x) => x.clienteId === c)
+    expect(lista.map((x) => x.id)).toEqual([dentroRecente, semUsuario, dentroAntigo])
+    expect(lista.map((x) => x.id)).not.toContain(fora)
+    expect(lista.map((x) => x.podeDesfazer)).toEqual([true, false, false]) // so o proprio: de outro usuario e sem usuario, nao
+    expect(lista[0]).toMatchObject({ clienteNome: 'Contatado Janela', usuarioNome: 'Atendente', observacao: 'anotacao' })
+    expect(lista[0]).not.toHaveProperty('usuarioId')
+
+    comoAdmin()
+    expect(relacionamentoService.contatados().filter((x) => x.clienteId === c).every((x) => x.podeDesfazer)).toBe(true)
+    comoVendedor()
+  })
+
+  it('desfazer devolve a pessoa a lista de pendentes e grava na auditoria com o valor anterior', () => {
+    comoVendedor()
+    const r = ref('fabio')
+    relacionamentoService.marcarContatado({ ...r, observacao: 'engano' })
+    expect(relacionamentoService.listar().some((p) => p.clienteId === ids.fabio)).toBe(false)
+
+    const feito = relacionamentoService.contatados().find((x) => x.clienteId === ids.fabio)!
+    expect(feito).toMatchObject({ motivo: 'RETIRADA', observacao: 'engano', podeDesfazer: true })
+
+    relacionamentoService.desfazerContato({ id: feito.id })
+    expect(relacionamentoService.listar().some((p) => p.clienteId === ids.fabio)).toBe(true)
+    expect(relacionamentoService.contatados().some((x) => x.id === feito.id)).toBe(false)
+
+    const auditoria = db.prepare("SELECT usuario_id, entidade, entidade_id, valor_anterior FROM auditoria WHERE acao = 'DESFAZER_CONTATO'").all() as {
+      usuario_id: number
+      entidade: string
+      entidade_id: number
+      valor_anterior: string
+    }[]
+    expect(auditoria).toHaveLength(1)
+    expect(auditoria[0]).toMatchObject({ usuario_id: meuId, entidade: 'contato', entidade_id: feito.id })
+    expect(JSON.parse(auditoria[0].valor_anterior)).toMatchObject({ clienteId: ids.fabio, motivo: 'RETIRADA', observacao: 'engano', usuarioId: meuId })
+  })
+
+  it('vendedor nao desfaz contato de outro usuario nem o antigo sem usuario; o administrador desfaz', () => {
+    comoVendedor()
+    const c = Number(db.prepare("INSERT INTO cliente (nome) VALUES ('Contatado Alheio')").run().lastInsertRowid)
+    const doOutro = contatoEm(c, 'POS_VENDA', 'x', '2026-09-18 10:00:00', outroId)
+    const semUsuario = contatoEm(c, 'RENOVACAO', 'y', '2026-09-18 10:00:00', null)
+    const existe = (id: number): boolean => db.prepare('SELECT 1 FROM contato WHERE id = :id').get({ id }) !== undefined
+
+    expect(codigoDoErro(() => relacionamentoService.desfazerContato({ id: doOutro }))).toBe('SEM_PERMISSAO')
+    expect(codigoDoErro(() => relacionamentoService.desfazerContato({ id: semUsuario }))).toBe('SEM_PERMISSAO')
+    expect(existe(doOutro) && existe(semUsuario)).toBe(true)
+
+    comoAdmin()
+    relacionamentoService.desfazerContato({ id: doOutro })
+    relacionamentoService.desfazerContato({ id: semUsuario })
+    expect(existe(doOutro) || existe(semUsuario)).toBe(false)
+    comoVendedor()
+  })
+
+  it('id inexistente da NAO_ENCONTRADO e nao grava auditoria', () => {
+    const contar = (): unknown => db.prepare("SELECT COUNT(*) AS n FROM auditoria WHERE acao = 'DESFAZER_CONTATO'").get()
+    const antes = contar()
+    expect(codigoDoErro(() => relacionamentoService.desfazerContato({ id: 987654 }))).toBe('NAO_ENCONTRADO')
+    expect(contar()).toEqual(antes)
+  })
+})
