@@ -2,6 +2,8 @@ import { handleIpc } from './handle'
 import {
   IPC,
   idSchema,
+  ordemServicoImprimirSchema,
+  prescricaoImprimirSchema,
   ordensServicoQuerySchema,
   aniversariantesQuerySchema,
   periodoQuerySchema,
@@ -11,6 +13,7 @@ import { app } from 'electron'
 import { requirePermissao, requireSessao } from '@main/auth/session'
 import { ordemServicoRepository } from '@main/repositories/ordemServicoRepository'
 import { receitaOpticaRepository } from '@main/repositories/receitaOpticaRepository'
+import { clienteRepository } from '@main/repositories/clienteRepository'
 import { ordemServicoService } from '@main/services/ordemServicoService'
 import { vendaService } from '@main/services/vendaService'
 import { clienteService } from '@main/services/clienteService'
@@ -21,6 +24,7 @@ import { relatorioRepository } from '@main/repositories/relatorioRepository'
 import { empresaService } from '@main/services/empresaService'
 import { gerarPdfVisualizacao } from '@main/relatorios/pdf'
 import { montarHtmlOrdemServico } from '@main/relatorios/ordemServicoHtml'
+import { montarHtmlPrescricao } from '@main/relatorios/prescricaoHtml'
 import { montarHtmlProtocoloSaida } from '@main/relatorios/protocoloSaidaHtml'
 import { montarHtmlComprovanteVenda, montarHtmlCarneParcelas } from '@main/relatorios/vendaHtml'
 import { montarHtmlAniversariantes } from '@main/relatorios/aniversariantesHtml'
@@ -50,13 +54,23 @@ export function registerRelatoriosIpc(): void {
     return gerarPdfVisualizacao(html, 'Manual-do-Usuario.pdf', 'Manual do Usuário')
   })
 
-  handleIpc(IPC.relatorios.ordemServico, idSchema, async (input) => {
+  handleIpc(IPC.relatorios.prescricao, prescricaoImprimirSchema, async (input) => {
+    requirePermissao('receitas_opticas', 'ver')
+    const receita = receitaOpticaRepository.buscarPorId(input.id)
+    if (!receita) throw Errors.naoEncontrado('Prescrição')
+    const cliente = clienteRepository.buscarPorId(receita.clienteId)
+    if (!cliente) throw Errors.naoEncontrado('Cliente')
+    const html = montarHtmlPrescricao(receita, cliente, empresaService.get(), { exibirDp: input.exibirDp })
+    return gerarPdfVisualizacao(html, `Prescricao-${dataHojeSufixo()}.pdf`, 'Prescrição')
+  })
+
+  handleIpc(IPC.relatorios.ordemServico, ordemServicoImprimirSchema, async (input) => {
     requirePermissao('ordens_servico', 'ver')
     const os = ordemServicoRepository.buscarPorId(input.id)
     if (!os) throw Errors.naoEncontrado('Ordem de Serviço')
     const receita = os.receitaOpticaId ? receitaOpticaRepository.buscarPorId(os.receitaOpticaId) : null
     const empresa = empresaService.get()
-    const html = montarHtmlOrdemServico(os, receita, empresa)
+    const html = montarHtmlOrdemServico(os, receita, empresa, { exibirDp: input.exibirDp })
     return gerarPdfVisualizacao(html, `OS-${os.numero}.pdf`)
   })
 

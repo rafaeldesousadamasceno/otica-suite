@@ -1,6 +1,8 @@
 // Tipos de dominio compartilhados entre main e renderer. O renderer nunca
 // importa nada do processo main - so estes tipos e o contrato de IPC.
 
+import type { BasePrisma } from './prescricao'
+
 export type Perfil = 'admin' | 'vendedor'
 
 export interface Usuario {
@@ -121,15 +123,45 @@ export interface ReceitaOptica {
   pertoOeEixo: number | null
   pertoOeDnp: number | null
   pertoOeDp: number | null
+  /** Adicao unica de antes da migracao 014: so leitura. A atual e por olho (`adicaoOd` / `adicaoOe`). */
   adicao: number | null
   /** Legado: nao aparece mais na tela nem no PDF (migracao 008). Mantido para nao perder o dado antigo. */
   altura: number | null
   tipoLente: string | null
   tratamentos: string | null
+  /** Texto livre de antes da migracao 014 (hoje vira `armacaoModelo`); so leitura. */
   armacao: string | null
   observacao: string | null
   versao: number
   criadoEm: string
+
+  // Prescricao no formato atual (migracao 014)
+  longeOdAlt: number | null
+  longeOeAlt: number | null
+  longeOdPrisma: number
+  longeOePrisma: number
+  longeOdBasePrisma: BasePrisma
+  longeOeBasePrisma: BasePrisma
+  adicaoOd: number | null
+  adicaoOe: number | null
+  indiceRefracao: string | null
+  armacaoTipo: string | null
+  armacaoModelo: string | null
+  armacaoMarca: string | null
+  armacaoCor: string | null
+  ponte: number | null
+  horizontal: number | null
+  vertical: number | null
+  diagonalMaior: number | null
+  /** DNP direito + DNP esquerdo; sempre gravada (mostrar ou nao e preferencia do computador). */
+  dpLonge: number | null
+  dpPerto: number | null
+  /**
+   * true = prescricao gravada antes do formato novo cujo perto nao e Longe + Adicao:
+   * `pertoOd*`/`pertoOe*` sao os valores ORIGINAIS, so para leitura. Nas demais,
+   * o perto (esferico, cilindro e eixo) e calculado na leitura e nunca gravado.
+   */
+  formatoAnterior: boolean
 }
 
 /**
@@ -148,7 +180,13 @@ export interface OrdemServico {
   clienteCelular: string | null
   receitaOpticaId: number | null
   receitaTipoLente: string | null
+  /** Nome do laboratorio: o do cadastro (muda junto se for renomeado) ou, nas OS sem vinculo, o texto de antes. */
   laboratorio: string | null
+  laboratorioId: number | null
+  /** Quem leva a armacao ao laboratorio (sem cadastro proprio): fica gravado na propria OS. */
+  entregadorNome: string | null
+  /** So os digitos (10 ou 11). */
+  entregadorContato: string | null
   situacao: SituacaoOS
   dataAbertura: string
   dataEnvio: string | null
@@ -275,6 +313,25 @@ export interface VendaDetalhada extends VendaResumo {
 // ---------------------------------------------------------------------
 // Estoque, fornecedores e compras (RF-08, RF-09, RF-11.2 - fase F4)
 // ---------------------------------------------------------------------
+
+/** Laboratorio para onde as OS sao enviadas (RG-02: nunca some se tiver OS; so inativa). */
+export interface Laboratorio {
+  id: number
+  nome: string
+  razaoSocial: string | null
+  /** So os digitos. */
+  cnpj: string | null
+  telefone: string | null
+  whatsapp: string | null
+  email: string | null
+  endereco: string | null
+  contatoResponsavel: string | null
+  prazoMedioDias: number | null
+  observacoes: string | null
+  ativo: boolean
+  /** Quantas OS (de qualquer situacao) usam este laboratorio. */
+  osVinculadas: number
+}
 
 export interface Fornecedor {
   id: number
@@ -668,6 +725,8 @@ export type TipoListaValor =
   | 'laboratorio'
   | 'categoria_despesa'
   | 'unidade_medida'
+  | 'indice_refracao'
+  | 'tipo_armacao'
 
 /**
  * Como o produto e contado no estoque (lista `unidade_medida`). A sigla e o que
@@ -752,6 +811,25 @@ export interface ContatoPendente {
   /** false quando nao ha celular valido para abrir o WhatsApp. */
   temWhatsapp: boolean
 }
+
+/** Contato ja marcado como feito (aba "Contatados"): da para desfazer se foi engano. */
+export interface ContatoFeito {
+  id: number
+  clienteId: number
+  clienteNome: string
+  motivo: MotivoContato
+  referencia: string
+  observacao: string | null
+  /** Nome de quem marcou; null para contato antigo sem usuario. */
+  usuarioNome: string | null
+  /** 'AAAA-MM-DD HH:MM:SS' em UTC (datetime('now') do SQLite). */
+  criadoEm: string
+  /** Administrador desfaz qualquer um; Vendedor so os que ele mesmo marcou. */
+  podeDesfazer: boolean
+}
+
+/** Quantos dias para tras a lista "Contatados" mostra. */
+export const JANELA_CONTATADOS_DIAS = 30
 
 export interface ClienteSemContato {
   id: number

@@ -56,6 +56,14 @@ END;
 `
 }
 
+/**
+ * SQL de sincronização de UMA tabela que nasce depois da 010: colunas, índices e gatilhos. Vai colado na
+ * migração que cria a tabela (depois dos INSERTs de carga inicial, para as linhas já nascerem com uuid).
+ */
+export function sqlSyncTabelaNova(t: TabelaSync, colunas: string[]): string {
+  return tabelaSql(t, colunas)
+}
+
 export function gerarSyncSql(tabelas: TabelaSync[], colunasDe: (tabela: string) => string[]): string {
   const cabecalho = `-- GERADO por scripts/gerar-sync-sql.mjs a partir de src/main/sync/tabelasSincronizaveis.ts.
 -- NAO EDITE A MAO: rode "node scripts/gerar-sync-sql.mjs" e confira com "npm test".

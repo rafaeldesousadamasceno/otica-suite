@@ -8,6 +8,7 @@ import { Button } from '@renderer/components/ui/Button'
 import { Badge } from '@renderer/components/ui/Badge'
 import { unwrap, ApiCallError } from '@renderer/lib/ipc'
 import { toast } from '@renderer/state/toastStore'
+import { useConfirm } from '@renderer/lib/confirmar'
 import {
   ROTULO_TIPO_PENDENCIA,
   type MigracaoAnalise,
@@ -49,6 +50,7 @@ function mensagem(err: unknown): string {
 }
 
 export function ImportarDadosPage(): ReactNode {
+  const confirmar = useConfirm()
   const [form, setForm] = useState<FormState>(VALORES_PADRAO)
   const [analise, setAnalise] = useState<MigracaoAnalise | null>(null)
   const [resultado, setResultado] = useState<MigracaoResultado | null>(null)
@@ -93,10 +95,13 @@ export function ImportarDadosPage(): ReactNode {
     onError: (err) => toast.error(mensagem(err))
   })
 
-  function onImportarClick(): void {
-    const confirmado = window.confirm(
-      'Vou tirar um backup do sistema e importar os dados do sistema antigo. O que for duvidoso fica na tela de Pendências para você conferir. Continuar?'
-    )
+  async function onImportarClick(): Promise<void> {
+    const confirmado = await confirmar({
+      titulo: 'Importar dados do sistema antigo?',
+      mensagem:
+        'Vou tirar um backup do sistema e importar os dados do sistema antigo. O que for duvidoso fica na tela de Pendências para você conferir.',
+      rotuloConfirmar: 'Importar'
+    })
     if (confirmado) importar.mutate()
   }
 
@@ -315,7 +320,7 @@ function ResultadoCard({ resultado }: { resultado: MigracaoResultado }): ReactNo
       </CardHeader>
       <CardBody className="flex flex-col gap-4">
         <p className="text-xs text-[var(--ink-3)]">
-          Cada exame antigo vira uma receita óptica, uma venda e uma ordem de serviço no novo sistema. Backup feito antes:{' '}
+          Cada exame antigo vira uma prescrição, uma venda e uma ordem de serviço no novo sistema. Backup feito antes:{' '}
           <span className="font-mono-tab">{resultado.backupArquivo}</span>
         </p>
 
@@ -324,11 +329,11 @@ function ResultadoCard({ resultado }: { resultado: MigracaoResultado }): ReactNo
           <ResumoItem label="Clientes unidos a outro cadastro" valor={resultado.clientesMesclados} />
           <ResumoItem label="Clientes que já estavam importados" valor={resultado.clientesJaImportados} />
           <ResumoItem label="Clientes com falha" valor={resultado.clientesComFalha} destaque={resultado.clientesComFalha > 0} />
-          <ResumoItem label="Clientes sem nome e sem receita (não importados)" valor={resultado.clientesSemNomeIgnorados} />
-          <ResumoItem label="Clientes sem nome e sem receita removidos" valor={resultado.clientesSemNomeRemovidos} />
+          <ResumoItem label="Clientes sem nome e sem prescrição (não importados)" valor={resultado.clientesSemNomeIgnorados} />
+          <ResumoItem label="Clientes sem nome e sem prescrição removidos" valor={resultado.clientesSemNomeRemovidos} />
           <ResumoItem label="Registros em branco não importados" valor={resultado.registrosVaziosIgnorados} />
           <ResumoItem label="Registros em branco removidos" valor={resultado.registrosVaziosRemovidos} />
-          <ResumoItem label="Receitas ópticas e vendas importadas" valor={resultado.examesImportados} />
+          <ResumoItem label="Prescrições e vendas importadas" valor={resultado.examesImportados} />
           <ResumoItem label="Exames que já estavam importados" valor={resultado.examesJaImportados} />
           <ResumoItem label="Exames com falha" valor={resultado.examesComFalha} destaque={resultado.examesComFalha > 0} />
           <ResumoItem label="Despesas importadas" valor={resultado.despesasImportadas} />
@@ -377,6 +382,7 @@ function ResumoItem({ label, valor, destaque }: { label: string; valor: number; 
 
 function OsAntigasCard(): ReactNode {
   const queryClient = useQueryClient()
+  const confirmarAcao = useConfirm()
   const resumo = useQuery({
     queryKey: ['migracao', 'os-antigas'],
     queryFn: () => unwrap(window.api.migracao.osAntigasAbertas())
@@ -397,15 +403,14 @@ function OsAntigasCard(): ReactNode {
 
   const total = resumo.data?.total ?? 0
 
-  function confirmar(): void {
+  async function confirmar(): Promise<void> {
     const br = `${dataEscolhida.slice(8, 10)}/${dataEscolhida.slice(5, 7)}/${dataEscolhida.slice(0, 4)}`
-    if (
-      window.confirm(
-        `Marcar as ${total} ordens de serviço antigas em aberto como ENTREGUES em ${br}? Elas deixam as telas de pesquisa, o painel e o Relacionamento. Um backup é feito antes e tudo fica na Auditoria.`
-      )
-    ) {
-      encerrar.mutate()
-    }
+    const ok = await confirmarAcao({
+      titulo: 'Encerrar as ordens de serviço antigas?',
+      mensagem: `Marcar as ${total} ordens de serviço antigas em aberto como ENTREGUES em ${br}? Elas deixam as telas de pesquisa, o painel e o Relacionamento. Um backup é feito antes e tudo fica na Auditoria.`,
+      rotuloConfirmar: 'Marcar como entregues'
+    })
+    if (ok) encerrar.mutate()
   }
 
   return (

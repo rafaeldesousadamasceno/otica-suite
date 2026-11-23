@@ -1,6 +1,8 @@
 import { type ReactNode, useEffect, useMemo, useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { Plus } from 'lucide-react'
+import { DioptriaInput } from '@renderer/components/ui/DioptriaInput'
+import { LIMITES_GRAU_LENTE, validarFaixaDeGrau } from '@shared/dioptria'
 import { Dialog } from '@renderer/components/ui/Dialog'
 import { Field } from '@renderer/components/ui/Field'
 import { Input } from '@renderer/components/ui/Input'
@@ -34,8 +36,8 @@ interface FormState {
   lenteMaterial: string
   lenteIndice: string
   lenteTipo: string
-  lenteGrauMin: string
-  lenteGrauMax: string
+  lenteGrauMin: number | null
+  lenteGrauMax: number | null
 }
 
 const VAZIO: FormState = {
@@ -55,8 +57,8 @@ const VAZIO: FormState = {
   lenteMaterial: '',
   lenteIndice: '',
   lenteTipo: '',
-  lenteGrauMin: '',
-  lenteGrauMax: ''
+  lenteGrauMin: null,
+  lenteGrauMax: null
 }
 
 function produtoParaForm(p: Produto): FormState {
@@ -77,8 +79,8 @@ function produtoParaForm(p: Produto): FormState {
     lenteMaterial: p.lenteMaterial ?? '',
     lenteIndice: p.lenteIndice !== null ? String(p.lenteIndice) : '',
     lenteTipo: p.lenteTipo ?? '',
-    lenteGrauMin: p.lenteGrauMin !== null ? String(p.lenteGrauMin) : '',
-    lenteGrauMax: p.lenteGrauMax !== null ? String(p.lenteGrauMax) : ''
+    lenteGrauMin: p.lenteGrauMin,
+    lenteGrauMax: p.lenteGrauMax
   }
 }
 
@@ -127,8 +129,15 @@ export function ProdutoFormDialog({ open, onClose, produtoExistente }: Props): R
     return custo * (1 + margem / 100)
   }, [form.custoTexto, form.margemTexto])
 
+  // Grau minimo/maximo so valem para lente; a mesma regra do servidor (minimo nunca maior que o maximo).
+  const problemaGrau = useMemo(
+    () => (form.categoria === 'lente' ? validarFaixaDeGrau(form.lenteGrauMin, form.lenteGrauMax) : null),
+    [form.categoria, form.lenteGrauMin, form.lenteGrauMax]
+  )
+
   const mutation = useMutation({
     mutationFn: async () => {
+      if (problemaGrau) throw new Error(problemaGrau.mensagem)
       const dados: ProdutoInput = produtoInputSchema.parse({
         codigo: form.codigo,
         codigoBarras: form.codigoBarras,
@@ -269,11 +278,25 @@ export function ProdutoFormDialog({ open, onClose, produtoExistente }: Props): R
               <Input value={form.lenteTipo} onChange={(e) => set('lenteTipo', e.target.value)} placeholder="Visão simples, multifocal…" />
             </Field>
             <div className="grid grid-cols-2 gap-3">
-              <Field label="Grau mín.">
-                <Input className="font-mono-tab" value={form.lenteGrauMin} onChange={(e) => set('lenteGrauMin', e.target.value)} />
+              <Field label="Grau mín." error={problemaGrau?.campo === 'min' ? problemaGrau.mensagem : undefined}>
+                <DioptriaInput
+                  aria-label="Grau mínimo"
+                  value={form.lenteGrauMin}
+                  min={LIMITES_GRAU_LENTE.min}
+                  max={LIMITES_GRAU_LENTE.max}
+                  invalid={problemaGrau?.campo === 'min'}
+                  onChange={(v) => set('lenteGrauMin', v)}
+                />
               </Field>
-              <Field label="Grau máx.">
-                <Input className="font-mono-tab" value={form.lenteGrauMax} onChange={(e) => set('lenteGrauMax', e.target.value)} />
+              <Field label="Grau máx." error={problemaGrau?.campo === 'max' ? problemaGrau.mensagem : undefined}>
+                <DioptriaInput
+                  aria-label="Grau máximo"
+                  value={form.lenteGrauMax}
+                  min={LIMITES_GRAU_LENTE.min}
+                  max={LIMITES_GRAU_LENTE.max}
+                  invalid={problemaGrau?.campo === 'max'}
+                  onChange={(v) => set('lenteGrauMax', v)}
+                />
               </Field>
             </div>
           </fieldset>

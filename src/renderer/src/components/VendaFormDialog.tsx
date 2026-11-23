@@ -223,7 +223,7 @@ export function VendaFormDialog({ open, onClose, clienteFixo, onCreated }: Props
         </Field>
 
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <Field label="Receita óptica vinculada" hint="Opcional">
+          <Field label="Prescrição vinculada" hint="Opcional">
             <Select value={receitaOpticaId} onChange={(e) => setReceitaOpticaId(e.target.value)} disabled={!cliente}>
               <option value="">— nenhuma —</option>
               {receitas.data?.map((r) => (

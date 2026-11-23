@@ -1,6 +1,7 @@
 import { vendaRepository } from '@main/repositories/vendaRepository'
 import { clienteRepository } from '@main/repositories/clienteRepository'
 import { ordemServicoRepository } from '@main/repositories/ordemServicoRepository'
+import { receitaOpticaRepository } from '@main/repositories/receitaOpticaRepository'
 import { configuracaoRepository } from '@main/repositories/configuracaoRepository'
 import { saldoAtualProduto } from '@main/repositories/estoqueRepository'
 import { auditoriaRepository } from '@main/repositories/auditoriaRepository'
@@ -53,6 +54,13 @@ export const vendaService = {
 
     if (!clienteRepository.buscarPorId(input.clienteId)) {
       throw Errors.naoEncontrado('Cliente')
+    }
+
+    if (input.receitaOpticaId) {
+      const receita = receitaOpticaRepository.buscarPorId(input.receitaOpticaId)
+      if (!receita || receita.clienteId !== input.clienteId) {
+        throw Errors.validacao('A prescrição selecionada não existe mais ou não pertence a este cliente.')
+      }
     }
 
     if (input.ordemServicoId) {

@@ -11,6 +11,7 @@ import { ClienteFormDialog } from '@renderer/components/ClienteFormDialog'
 import { DetalhesDoExame, formatarDataOuAviso } from '@renderer/components/DetalhesDoExame'
 import { unwrap, ApiCallError } from '@renderer/lib/ipc'
 import { toast } from '@renderer/state/toastStore'
+import { useConfirm } from '@renderer/lib/confirmar'
 import type { Cliente } from '@shared/types'
 import { contemBusca } from '@shared/texto'
 import {
@@ -57,6 +58,7 @@ function ehEstimativa(p: Pendencia): boolean {
 }
 
 export function PendenciasImportacaoPage(): ReactNode {
+  const confirmar = useConfirm()
   const [status, setStatus] = useState<StatusPendencia>('ABERTA')
   const [tipo, setTipo] = useState<TipoPendencia | ''>('')
   const [busca, setBusca] = useState('')
@@ -148,16 +150,22 @@ export function PendenciasImportacaoPage(): ReactNode {
   const comSugestao = filtradas.filter((p) => temSugestaoDeData(p) && !ehEstimativa(p))
   const abertasNoFiltro = status === 'ABERTA' ? filtradas : []
 
-  function confirmarIgnorarTodas(): void {
+  async function confirmarIgnorarTodas(): Promise<void> {
     const onde = tipo ? `do tipo “${ROTULO_TIPO_PENDENCIA[tipo]}”` : 'listadas'
-    if (window.confirm(`Ignorar as ${abertasNoFiltro.length} pendências ${onde}? Elas saem da lista de abertas e não voltam numa nova importação.`)) {
-      ignorarVarias.mutate(abertasNoFiltro.map((p) => p.id))
-    }
+    const ok = await confirmar({
+      titulo: 'Ignorar as pendências?',
+      mensagem: `Ignorar as ${abertasNoFiltro.length} pendências ${onde}? Elas saem da lista de abertas e não voltam numa nova importação.`,
+      rotuloConfirmar: 'Ignorar'
+    })
+    if (ok) ignorarVarias.mutate(abertasNoFiltro.map((p) => p.id))
   }
-  function confirmarAplicarSugestoes(): void {
-    if (window.confirm(`Aplicar a data sugerida em ${comSugestao.length} exame(s)? Cada correção fica registrada na Auditoria.`)) {
-      aplicarVarias.mutate(comSugestao.map((p) => p.id))
-    }
+  async function confirmarAplicarSugestoes(): Promise<void> {
+    const ok = await confirmar({
+      titulo: 'Aplicar as datas sugeridas?',
+      mensagem: `Aplicar a data sugerida em ${comSugestao.length} exame(s)? Cada correção fica registrada na Auditoria.`,
+      rotuloConfirmar: 'Aplicar'
+    })
+    if (ok) aplicarVarias.mutate(comSugestao.map((p) => p.id))
   }
 
   return (

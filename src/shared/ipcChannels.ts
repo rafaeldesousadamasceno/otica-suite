@@ -47,7 +47,8 @@ export const IPC = {
   receitas: {
     listByCliente: 'receitas:listByCliente',
     create: 'receitas:create',
-    update: 'receitas:update'
+    update: 'receitas:update',
+    excluir: 'receitas:excluir'
   },
   ordensServico: {
     list: 'ordensServico:list',
@@ -89,6 +90,13 @@ export const IPC = {
   },
   auditoria: {
     list: 'auditoria:list'
+  },
+  laboratorios: {
+    list: 'laboratorios:list',
+    create: 'laboratorios:create',
+    update: 'laboratorios:update',
+    setAtivo: 'laboratorios:setAtivo',
+    excluir: 'laboratorios:excluir'
   },
   fornecedores: {
     list: 'fornecedores:list',
@@ -161,6 +169,7 @@ export const IPC = {
   },
   relatorios: {
     ordemServico: 'relatorios:ordemServico',
+    prescricao: 'relatorios:prescricao',
     protocoloSaida: 'relatorios:protocoloSaida',
     comprovanteVenda: 'relatorios:comprovanteVenda',
     carneParcelas: 'relatorios:carneParcelas',
@@ -191,6 +200,8 @@ export const IPC = {
     semContato: 'relacionamento:semContato',
     abrirWhatsapp: 'relacionamento:abrirWhatsapp',
     marcarContatado: 'relacionamento:marcarContatado',
+    contatados: 'relacionamento:contatados',
+    desfazerContato: 'relacionamento:desfazerContato',
     definirAceitaContato: 'relacionamento:definirAceitaContato',
     resultados: 'relacionamento:resultados',
     modelosObter: 'relacionamento:modelosObter',

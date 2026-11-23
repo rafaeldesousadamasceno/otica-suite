@@ -2,7 +2,7 @@ import { DatabaseSync } from 'node:sqlite'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { MIGRATIONS } from '@main/db/migrations'
 import { AppError } from '@main/errors'
-import { receitaOpticaAtualizarSchema } from '@shared/ipc'
+import { receitaExcluirSchema, receitaOpticaAtualizarSchema, receitaOpticaInputSchema } from '@shared/ipc'
 
 const { banco, permissao } = vi.hoisted(() => ({ banco: { db: null as DatabaseSync | null }, permissao: { negar: false } }))
 vi.mock('@main/db/connection', () => ({ getDb: () => banco.db }))
@@ -18,13 +18,19 @@ vi.mock('@main/auth/session', async () => {
 
 import { receitaOpticaService } from './receitaOpticaService'
 
-function entrada(extra: Record<string, unknown> & { id: number; clienteId?: number }) {
-  const base: Record<string, unknown> = { clienteId: 1, dataExame: '2026-11-07', adicao: '' }
-  for (const lado of ['longeOd', 'longeOe', 'pertoOd', 'pertoOe']) {
-    for (const campo of ['Esf', 'Cil', 'Eixo', 'Dnp']) base[`${lado}${campo}`] = ''
+/** Uma prescricao valida (OD com cilindro, OE sem), com o que o teste quiser trocar. */
+function dados(extra: Record<string, unknown> = {}): Record<string, unknown> {
+  return {
+    clienteId: 1,
+    dataExame: '2026-11-07',
+    longeOdEsf: -1, longeOdCil: -0.5, longeOdEixo: 90, longeOdDnp: 31.5, longeOdAlt: '', longeOdPrisma: 0, longeOdBasePrisma: 'NENHUM', adicaoOd: 2, pertoOdDnp: '',
+    longeOeEsf: 0, longeOeCil: 0, longeOeEixo: '', longeOeDnp: 32, longeOeAlt: '', longeOePrisma: 0, longeOeBasePrisma: 'NENHUM', adicaoOe: 2, pertoOeDnp: '',
+    ponte: '', horizontal: '', vertical: '', diagonalMaior: '',
+    ...extra
   }
-  return receitaOpticaAtualizarSchema.parse({ ...base, ...extra })
 }
+const nova = (extra: Record<string, unknown> = {}) => receitaOpticaInputSchema.parse(dados(extra))
+const edicao = (id: number, extra: Record<string, unknown> = {}) => receitaOpticaAtualizarSchema.parse({ ...dados(extra), id })
 
 function codigo(fn: () => unknown): string | undefined {
   try {
@@ -35,46 +41,148 @@ function codigo(fn: () => unknown): string | undefined {
   return undefined
 }
 
-describe('receitaOpticaService.atualizar', () => {
+function mensagem(fn: () => unknown): string {
+  try {
+    fn()
+  } catch (e) {
+    return e instanceof AppError ? e.message : 'OUTRO'
+  }
+  return ''
+}
+
+describe('receitaOpticaService', () => {
   beforeEach(() => {
     const db = new DatabaseSync(':memory:')
     db.exec('PRAGMA foreign_keys = ON')
     for (const m of MIGRATIONS) db.exec(m.sql)
     db.prepare("INSERT INTO usuario (nome, login, senha_hash, perfil) VALUES ('Ana', 'ana', 'x', 'admin')").run()
     db.prepare("INSERT INTO cliente (nome) VALUES ('Ana'), ('Bia')").run()
-    db.prepare("INSERT INTO receita_optica (cliente_id, data_exame, longe_od_esf, versao) VALUES (1, '2026-11-01', -1, 1)").run()
     banco.db = db
     permissao.negar = false
   })
 
-  it('corrige a receita e guarda o valor de antes na auditoria', () => {
-    const r = receitaOpticaService.atualizar(entrada({ id: 1, longeOdEsf: '-1,75', profissionalNome: 'Dra. Lima' }))
-    expect(r.longeOdEsf).toBe(-1.75)
-    expect(r.profissionalNome).toBe('DRA. LIMA')
-    expect(r.versao).toBe(1)
+  describe('criar', () => {
+    it('grava e devolve com o Perto calculado e a DP somada', () => {
+      const r = receitaOpticaService.criar(nova({ profissionalNome: 'Dra. Lima' }))
+      expect(r.versao).toBe(1)
+      expect(r.profissionalNome).toBe('DRA. LIMA')
+      expect([r.pertoOdEsf, r.pertoOdCil, r.pertoOdEixo]).toEqual([1, -0.5, 90])
+      expect(r.dpLonge).toBe(63.5)
+      expect(banco.db!.prepare("SELECT acao FROM auditoria WHERE entidade = 'receita_optica'").get()).toEqual({ acao: 'CRIAR' })
+    })
 
-    const aud = banco.db!.prepare("SELECT acao, valor_anterior, valor_novo FROM auditoria WHERE entidade = 'receita_optica'").get() as {
-      acao: string
-      valor_anterior: string
-      valor_novo: string
-    }
-    expect(aud.acao).toBe('ATUALIZAR')
-    expect(JSON.parse(aud.valor_anterior).longeOdEsf).toBe(-1)
-    expect(JSON.parse(aud.valor_novo).longeOdEsf).toBe(-1.75)
+    it('a DNP é opcional: sem ela salva, e sem DNP dos dois lados não há DP', () => {
+      const r = receitaOpticaService.criar(nova({ longeOdDnp: '', longeOeDnp: '' }))
+      expect([r.longeOdDnp, r.longeOeDnp, r.dpLonge]).toEqual([null, null, null])
+      expect(receitaOpticaService.criar(nova({ longeOeDnp: '' })).dpLonge).toBeNull()
+    })
+
+    it('DNP preenchida fora da faixa continua barrando', () => {
+      expect(mensagem(() => receitaOpticaService.criar(nova({ longeOeDnp: 50 })))).toContain('a DNP vai de 20 a 45 mm')
+    })
+
+    it('eixo é obrigatório com cilindro; sem cilindro o eixo é descartado', () => {
+      expect(mensagem(() => receitaOpticaService.criar(nova({ longeOdEixo: '' })))).toContain('o eixo, ele é obrigatório')
+      const r = receitaOpticaService.criar(nova({ longeOeCil: 0, longeOeEixo: 120 }))
+      expect(r.longeOeEixo).toBeNull()
+    })
+
+    it('prisma exige a base; sem prisma a base volta para "Nenhum"', () => {
+      expect(mensagem(() => receitaOpticaService.criar(nova({ longeOdPrisma: 2, longeOdBasePrisma: 'NENHUM' })))).toBe('Direito: escolha a base do prisma')
+      expect(receitaOpticaService.criar(nova({ longeOdPrisma: 2, longeOdBasePrisma: 'NASAL' })).longeOdBasePrisma).toBe('NASAL')
+      expect(receitaOpticaService.criar(nova({ longeOdPrisma: 0, longeOdBasePrisma: 'NASAL' })).longeOdBasePrisma).toBe('NENHUM')
+    })
+
+    it('medida da armação fora da grade impede salvar; vazia é permitida', () => {
+      expect(mensagem(() => receitaOpticaService.criar(nova({ ponte: 9 })))).toBe('⚠ Valor fora da grade — Ponte: a grade permitida é de 10 a 35')
+      expect(receitaOpticaService.criar(nova({ ponte: 18 })).ponte).toBe(18)
+    })
+
+    it('cliente que não existe', () => {
+      expect(codigo(() => receitaOpticaService.criar(nova({ clienteId: 99 })))).toBe('NAO_ENCONTRADO')
+    })
+
+    it('exige permissão de criação', () => {
+      permissao.negar = true
+      expect(codigo(() => receitaOpticaService.criar(nova()))).toBe('SEM_PERMISSAO')
+    })
   })
 
-  it('a adicao continua preenchendo o Perto em branco', () => {
-    const r = receitaOpticaService.atualizar(entrada({ id: 1, longeOdEsf: '-1,00', adicao: '2' }))
-    expect(r.pertoOdEsf).toBe(1)
+  describe('atualizar', () => {
+    it('corrige a prescrição e guarda o valor de antes na auditoria', () => {
+      const criada = receitaOpticaService.criar(nova())
+      const r = receitaOpticaService.atualizar(edicao(criada.id, { longeOdEsf: -1.75, adicaoOd: 1.5 }))
+      expect(r.longeOdEsf).toBe(-1.75)
+      expect(r.pertoOdEsf).toBe(-0.25) // -1,75 + 1,50
+      expect(r.versao).toBe(1)
+
+      const aud = banco.db!.prepare("SELECT acao, valor_anterior, valor_novo FROM auditoria WHERE entidade = 'receita_optica' AND acao = 'ATUALIZAR'").get() as {
+        valor_anterior: string
+        valor_novo: string
+      }
+      expect(JSON.parse(aud.valor_anterior).longeOdEsf).toBe(-1)
+      expect(JSON.parse(aud.valor_novo).longeOdEsf).toBe(-1.75)
+    })
+
+    it('a adição de cada olho é independente e só mexe no esférico de perto', () => {
+      const criada = receitaOpticaService.criar(nova({ longeOeEsf: -2, adicaoOd: 2, adicaoOe: 1 }))
+      expect([criada.pertoOdEsf, criada.pertoOeEsf]).toEqual([1, -1])
+      expect([criada.pertoOdCil, criada.pertoOdEixo]).toEqual([-0.5, 90])
+    })
+
+    it('não passa a prescrição para outro cliente, nem edita o que não existe', () => {
+      const criada = receitaOpticaService.criar(nova())
+      expect(codigo(() => receitaOpticaService.atualizar(edicao(criada.id, { clienteId: 2 })))).toBe('VALIDACAO')
+      expect(codigo(() => receitaOpticaService.atualizar(edicao(99)))).toBe('NAO_ENCONTRADO')
+    })
+
+    it('valida do mesmo jeito que ao criar', () => {
+      const criada = receitaOpticaService.criar(nova())
+      expect(codigo(() => receitaOpticaService.atualizar(edicao(criada.id, { longeOdDnp: 50 })))).toBe('VALIDACAO')
+    })
+
+    it('exige permissão de edição', () => {
+      const criada = receitaOpticaService.criar(nova())
+      permissao.negar = true
+      expect(codigo(() => receitaOpticaService.atualizar(edicao(criada.id)))).toBe('SEM_PERMISSAO')
+    })
   })
 
-  it('nao deixa passar uma receita para outro cliente, nem editar o que nao existe', () => {
-    expect(codigo(() => receitaOpticaService.atualizar(entrada({ id: 1, clienteId: 2 })))).toBe('VALIDACAO')
-    expect(codigo(() => receitaOpticaService.atualizar(entrada({ id: 99 })))).toBe('NAO_ENCONTRADO')
-  })
+  describe('excluir', () => {
+    it('exclui de forma lógica, registra na auditoria e some da lista', () => {
+      const criada = receitaOpticaService.criar(nova())
+      receitaOpticaService.excluir(receitaExcluirSchema.parse({ id: criada.id, motivo: ' lançada por engano ' }))
 
-  it('exige permissao de edicao', () => {
-    permissao.negar = true
-    expect(codigo(() => receitaOpticaService.atualizar(entrada({ id: 1 })))).toBe('SEM_PERMISSAO')
+      expect(receitaOpticaService.listarPorCliente(1)).toEqual([])
+      const aud = banco.db!.prepare("SELECT valor_novo FROM auditoria WHERE acao = 'EXCLUIR'").get() as { valor_novo: string }
+      expect(JSON.parse(aud.valor_novo)).toEqual({ motivo: 'lançada por engano' })
+      expect(codigo(() => receitaOpticaService.excluir({ id: criada.id }))).toBe('NAO_ENCONTRADO')
+    })
+
+    it('bloqueia se há OS ou venda vinculada e diz quais são', () => {
+      const criada = receitaOpticaService.criar(nova())
+      const db = banco.db!
+      db.prepare("INSERT INTO ordem_servico (numero, cliente_id, receita_optica_id, situacao) VALUES ('2026-00012', 1, ?, 'EM ABERTO')").run(criada.id)
+      db.prepare("INSERT INTO venda (numero, cliente_id, vendedor_id, receita_optica_id, total_centavos) VALUES ('2026-00034', 1, 1, ?, 100)").run(criada.id)
+
+      const texto = mensagem(() => receitaOpticaService.excluir({ id: criada.id }))
+      expect(codigo(() => receitaOpticaService.excluir({ id: criada.id }))).toBe('CONFLITO')
+      expect(texto).toContain('OS 2026-00012 (em aberto)')
+      expect(texto).toContain('Venda 2026-00034 (concluida)')
+      expect(receitaOpticaService.listarPorCliente(1)).toHaveLength(1)
+    })
+
+    it('com a OS cancelada, a exclusão é permitida', () => {
+      const criada = receitaOpticaService.criar(nova())
+      banco.db!.prepare("INSERT INTO ordem_servico (numero, cliente_id, receita_optica_id, situacao) VALUES ('OS-1', 1, ?, 'CANCELADA')").run(criada.id)
+      receitaOpticaService.excluir({ id: criada.id })
+      expect(receitaOpticaService.listarPorCliente(1)).toEqual([])
+    })
+
+    it('exige permissão de exclusão', () => {
+      const criada = receitaOpticaService.criar(nova())
+      permissao.negar = true
+      expect(codigo(() => receitaOpticaService.excluir({ id: criada.id }))).toBe('SEM_PERMISSAO')
+    })
   })
 })

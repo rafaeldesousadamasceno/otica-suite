@@ -9,6 +9,7 @@ import { Button } from '@renderer/components/ui/Button'
 import { unwrap, ApiCallError } from '@renderer/lib/ipc'
 import { centavosParaBRL } from '@renderer/lib/dinheiro'
 import { toast } from '@renderer/state/toastStore'
+import { useConfirm } from '@renderer/lib/confirmar'
 import type { SituacaoCompra } from '@shared/types'
 import { hojeLocal } from '@shared/data'
 
@@ -29,6 +30,7 @@ interface Props {
 }
 
 export function CompraDetailDialog({ compraId, onClose }: Props): ReactNode {
+  const confirmar = useConfirm()
   const queryClient = useQueryClient()
   const [vencimento, setVencimento] = useState('')
   const [erro, setErro] = useState<string | null>(null)
@@ -120,7 +122,19 @@ export function CompraDetailDialog({ compraId, onClose }: Props): ReactNode {
               <Input type="date" value={vencimento} onChange={(e) => setVencimento(e.target.value)} />
             </Field>
             <div className="flex justify-end gap-2">
-              <Button variant="danger" loading={cancelar.isPending} onClick={() => cancelar.mutate()}>
+              <Button
+                variant="danger"
+                loading={cancelar.isPending}
+                onClick={async () => {
+                  const ok = await confirmar({
+                    titulo: 'Cancelar a compra?',
+                    mensagem: 'A ordem de compra é cancelada e nada entra no estoque nem no contas a pagar. Esta ação não pode ser desfeita.',
+                    rotuloConfirmar: 'Cancelar compra',
+                    rotuloCancelar: 'Voltar'
+                  })
+                  if (ok) cancelar.mutate()
+                }}
+              >
                 <Ban className="size-4" /> Cancelar compra
               </Button>
               <Button loading={confirmarEntrada.isPending} disabled={!vencimento} onClick={() => confirmarEntrada.mutate()}>

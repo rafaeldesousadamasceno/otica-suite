@@ -1,7 +1,7 @@
 import { type ReactNode, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
-import { BellOff, CheckCheck, ChevronDown, ChevronRight, MessageCircle, MessageSquareText } from 'lucide-react'
+import { BellOff, CheckCheck, ChevronDown, ChevronRight, MessageCircle, MessageSquareText, Undo2 } from 'lucide-react'
 import { Card } from '@renderer/components/ui/Card'
 import { Button } from '@renderer/components/ui/Button'
 import { Badge } from '@renderer/components/ui/Badge'
@@ -13,8 +13,8 @@ import { unwrap, ApiCallError } from '@renderer/lib/ipc'
 import { toast } from '@renderer/state/toastStore'
 import { useAuthStore } from '@renderer/state/authStore'
 import { possuiPermissao } from '@shared/permissions'
-import { MOTIVOS_CONTATO } from '@shared/types'
-import type { ContatoPendente, MotivoContato } from '@shared/types'
+import { JANELA_CONTATADOS_DIAS, MOTIVOS_CONTATO } from '@shared/types'
+import type { ContatoFeito, ContatoPendente, MotivoContato } from '@shared/types'
 
 const TOM_MOTIVO: Record<MotivoContato, 'accent' | 'danger' | 'warn' | 'neutral'> = {
   RETIRADA: 'accent',
@@ -26,6 +26,12 @@ const TOM_MOTIVO: Record<MotivoContato, 'accent' | 'danger' | 'warn' | 'neutral'
 
 function mensagemDeErro(err: unknown): string {
   return err instanceof ApiCallError || err instanceof Error ? err.message : 'Erro inesperado.'
+}
+
+/** `criado_em` vem em UTC ('AAAA-MM-DD HH:MM:SS'): mostra no horario do computador. */
+function formatarDataHora(utc: string): string {
+  const d = new Date(`${utc.replace(' ', 'T')}Z`)
+  return Number.isNaN(d.getTime()) ? utc : d.toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })
 }
 
 /**
@@ -47,6 +53,7 @@ export function RelacionamentoPage(): ReactNode {
   const [observacao, setObservacao] = useState('')
   const [paraSair, setParaSair] = useState<ContatoPendente | null>(null)
   const [semContatoAberto, setSemContatoAberto] = useState(false)
+  const [contatadosAberto, setContatadosAberto] = useState(true)
 
   const pendentes = useQuery({
     queryKey: ['relacionamento'],
@@ -58,8 +65,14 @@ export function RelacionamentoPage(): ReactNode {
     queryFn: () => unwrap(window.api.relacionamento.semContato())
   })
 
+  const contatados = useQuery({
+    queryKey: ['relacionamentoContatados'],
+    queryFn: () => unwrap(window.api.relacionamento.contatados())
+  })
+
   const atualizar = (): void => {
     queryClient.invalidateQueries({ queryKey: ['relacionamento'] })
+    queryClient.invalidateQueries({ queryKey: ['relacionamentoContatados'] })
     queryClient.invalidateQueries({ queryKey: ['relacionamentoSemContato'] })
     queryClient.invalidateQueries({ queryKey: ['relacionamentoResultados'] })
   }
@@ -92,6 +105,18 @@ export function RelacionamentoPage(): ReactNode {
     onError: (err) => toast.error(mensagemDeErro(err))
   })
 
+  const desfazer = useMutation({
+    mutationFn: (c: ContatoFeito) => unwrap(window.api.relacionamento.desfazerContato({ id: c.id })),
+    onSuccess: (_d, c) => {
+      toast.ok(`Contato desfeito. ${c.clienteNome} voltou para a lista, se ainda for o caso.`)
+      atualizar()
+    },
+    onError: (err) => {
+      toast.error(mensagemDeErro(err))
+      atualizar()
+    }
+  })
+
   const definirAceita = useMutation({
     mutationFn: (v: { clienteId: number; aceita: boolean }) => unwrap(window.api.relacionamento.definirAceitaContato(v)),
     onSuccess: (_d, v) => {
@@ -106,6 +131,7 @@ export function RelacionamentoPage(): ReactNode {
   const visiveis = filtro === 'TODOS' ? todos : todos.filter((p) => p.motivo === filtro)
   const contagem = (m: MotivoContato): number => todos.filter((p) => p.motivo === m).length
   const excluidos = semContato.data ?? []
+  const feitos = contatados.data ?? []
 
   return (
     <div className="flex flex-col gap-4">
@@ -212,6 +238,65 @@ export function RelacionamentoPage(): ReactNode {
           </ul>
         )}
       </Card>
+
+      <div>
+        <button
+          type="button"
+          aria-expanded={contatadosAberto}
+          onClick={() => setContatadosAberto((v) => !v)}
+          className="flex items-center gap-1 text-sm font-medium text-[var(--ink-2)] hover:text-[var(--ink)]"
+        >
+          {contatadosAberto ? <ChevronDown className="size-4" /> : <ChevronRight className="size-4" />}
+          Contatados ({feitos.length})
+          <span className="font-normal text-[var(--ink-3)]">· últimos {JANELA_CONTATADOS_DIAS} dias</span>
+        </button>
+        {contatadosAberto && (
+          <Card className="mt-2 overflow-hidden">
+            {contatados.isLoading ? (
+              <p className="px-4 py-6 text-center text-[var(--ink-3)]">Carregando…</p>
+            ) : feitos.length === 0 ? (
+              <p className="px-4 py-6 text-center text-[var(--ink-3)]">
+                Nenhum contato marcado nos últimos {JANELA_CONTATADOS_DIAS} dias.
+              </p>
+            ) : (
+              <ul className="max-h-96 divide-y divide-[var(--rule)] overflow-y-auto">
+                {feitos.map((c) => (
+                  <li key={c.id} className="flex flex-wrap items-center gap-x-4 gap-y-2 px-4 py-2.5">
+                    <Badge tone={TOM_MOTIVO[c.motivo]} className="w-24 justify-center">
+                      {ROTULO_MOTIVO[c.motivo]}
+                    </Badge>
+                    <div className="min-w-0 flex-1 basis-64">
+                      <button
+                        type="button"
+                        onClick={() => navigate(`/clientes/${c.clienteId}`)}
+                        className="text-left font-medium text-[var(--ink)] hover:text-[var(--accent)] hover:underline"
+                      >
+                        {c.clienteNome}
+                      </button>
+                      <p className="text-xs text-[var(--ink-3)]">
+                        {c.usuarioNome ? `Marcado por ${c.usuarioNome}` : 'Marcado'} em {formatarDataHora(c.criadoEm)}
+                      </p>
+                      {c.observacao && <p className="text-sm text-[var(--ink-2)]">{c.observacao}</p>}
+                    </div>
+                    {c.podeDesfazer && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        loading={desfazer.isPending && desfazer.variables?.id === c.id}
+                        title="Desfazer: a pessoa volta para a lista de pendentes"
+                        aria-label={`Desfazer contato com ${c.clienteNome}`}
+                        onClick={() => desfazer.mutate(c)}
+                      >
+                        <Undo2 className="size-4" /> Desfazer
+                      </Button>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </Card>
+        )}
+      </div>
 
       {excluidos.length > 0 && (
         <div>

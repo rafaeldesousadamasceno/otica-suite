@@ -18,6 +18,12 @@ export interface TabelaSync {
   filtroLocal?: string
   /** Só recebe registros novos, nunca edição: não existe conflito de edição. */
   somenteAcrescenta?: boolean
+  /**
+   * Tabela criada DEPOIS da migração 010: ela traz os próprios uuid, sync_rev e gatilhos na migração
+   * em que nasce (mesmo SQL do gerador, `sqlSyncTabelaNova`) e fica de fora do `010_sync_base.sql`,
+   * que não muda depois de publicado. Número da migração que criou a tabela.
+   */
+  desdeMigracao?: number
 }
 
 /** Chaves de `configuracao` que pertencem a este computador e não podem viajar. */
@@ -35,6 +41,7 @@ export const TABELAS_SINCRONIZAVEIS: TabelaSync[] = [
   { nome: 'usuario', chaveNatural: 'login', colunasLocais: ['senha_hash', 'tentativas_login', 'bloqueado_ate', 'ultimo_acesso'] },
   { nome: 'lista_valor' },
   { nome: 'profissional' },
+  { nome: 'laboratorio', desdeMigracao: 15 },
 
   // Clientes e receitas
   { nome: 'cliente' },

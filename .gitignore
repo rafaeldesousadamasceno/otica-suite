@@ -24,3 +24,6 @@ tools/chave-privada.pem
 # Logo do sistema anterior (MD Óculos), sem uso no app novo - so ficava
 # solto na raiz por heranca da migracao de pastas
 logoMDOculos.png
+
+# Cache do tsc gerado por "npm run typecheck"
+*.tsbuildinfo

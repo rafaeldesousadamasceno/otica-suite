@@ -9,6 +9,7 @@ import { registerProdutosIpc } from './produtosIpc'
 import { registerVendasIpc } from './vendasIpc'
 import { registerContasReceberIpc } from './contasReceberIpc'
 import { registerFornecedoresIpc } from './fornecedoresIpc'
+import { registerLaboratoriosIpc } from './laboratoriosIpc'
 import { registerComprasIpc } from './comprasIpc'
 import { registerEstoqueIpc } from './estoqueIpc'
 import { registerContasPagarIpc } from './contasPagarIpc'
@@ -39,6 +40,7 @@ export function registerAllIpc(): void {
   registerVendasIpc()
   registerContasReceberIpc()
   registerFornecedoresIpc()
+  registerLaboratoriosIpc()
   registerComprasIpc()
   registerEstoqueIpc()
   registerContasPagarIpc()

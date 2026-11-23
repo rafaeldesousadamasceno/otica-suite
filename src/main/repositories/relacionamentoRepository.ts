@@ -4,6 +4,7 @@ import { dataLocalDeTimestampUtc } from '@shared/data'
 import { normalizarCelularBR, primeiroNome } from '@shared/whatsapp'
 import type {
   ClienteSemContato,
+  ContatoFeito,
   ContatoPendente,
   MotivoContato,
   PeriodoResultados,
@@ -26,6 +27,37 @@ const LIMITE_POR_MOTIVO = 100
 /** O que o main precisa para montar a mensagem; a tela nunca recebe `variaveis`. */
 export interface PendenteInterno extends ContatoPendente {
   variaveis: Record<string, string>
+}
+
+/** Contato feito + o id de quem marcou (o service decide `podeDesfazer`; a tela nao recebe `usuarioId`). */
+export interface ContatoFeitoInterno extends Omit<ContatoFeito, 'podeDesfazer'> {
+  usuarioId: number | null
+}
+
+interface LinhaContato {
+  id: number
+  cliente_id: number
+  cliente_nome: string
+  motivo: MotivoContato
+  referencia: string
+  observacao: string | null
+  usuario_id: number | null
+  usuario_nome: string | null
+  criado_em: string
+}
+
+function paraContatoFeito(r: LinhaContato): ContatoFeitoInterno {
+  return {
+    id: r.id,
+    clienteId: r.cliente_id,
+    clienteNome: r.cliente_nome,
+    motivo: r.motivo,
+    referencia: r.referencia,
+    observacao: r.observacao,
+    usuarioId: r.usuario_id,
+    usuarioNome: r.usuario_nome,
+    criadoEm: r.criado_em
+  }
 }
 
 // --- datas (ISO 'YYYY-MM-DD', em UTC - o mesmo criterio de venda.data e dos outros paineis) ---
@@ -223,7 +255,7 @@ export const relacionamentoRepository = {
          FROM cliente c
          INNER JOIN receita_optica r ON r.id = (
            SELECT r2.id FROM receita_optica r2
-           WHERE r2.cliente_id = c.id ORDER BY r2.data_exame DESC, r2.id DESC LIMIT 1
+           WHERE r2.cliente_id = c.id AND r2.excluido_em IS NULL ORDER BY r2.data_exame DESC, r2.id DESC LIMIT 1
          )
          WHERE ${CLIENTE_ATIVO_E_ACEITA}
            AND r.data_exame <= :limiteMax AND r.data_exame > :limiteMin
@@ -270,6 +302,42 @@ export const relacionamentoRepository = {
          VALUES (:clienteId, :motivo, :referencia, :observacao, :usuarioId)`
       )
       .run(dados)
+    return Number(info.changes) > 0
+  },
+
+  /** Contatos marcados desde `desdeUtc` ('AAAA-MM-DD HH:MM:SS' em UTC, como `criado_em`), do mais recente para o mais antigo. */
+  listarContatados(desdeUtc: string): ContatoFeitoInterno[] {
+    const rows = getDb()
+      .prepare(
+        `SELECT ct.id, ct.cliente_id, c.nome AS cliente_nome, ct.motivo, ct.referencia, ct.observacao,
+                ct.usuario_id, u.nome AS usuario_nome, ct.criado_em
+         FROM contato ct
+         INNER JOIN cliente c ON c.id = ct.cliente_id
+         LEFT JOIN usuario u ON u.id = ct.usuario_id
+         WHERE ct.criado_em >= :desde
+         ORDER BY ct.criado_em DESC, ct.id DESC`
+      )
+      .all({ desde: desdeUtc }) as unknown as LinhaContato[]
+    return rows.map(paraContatoFeito)
+  },
+
+  buscarContato(id: number): ContatoFeitoInterno | null {
+    const row = getDb()
+      .prepare(
+        `SELECT ct.id, ct.cliente_id, c.nome AS cliente_nome, ct.motivo, ct.referencia, ct.observacao,
+                ct.usuario_id, u.nome AS usuario_nome, ct.criado_em
+         FROM contato ct
+         INNER JOIN cliente c ON c.id = ct.cliente_id
+         LEFT JOIN usuario u ON u.id = ct.usuario_id
+         WHERE ct.id = :id`
+      )
+      .get({ id }) as unknown as LinhaContato | undefined
+    return row ? paraContatoFeito(row) : null
+  },
+
+  /** true se removeu. A ocorrencia volta a aparecer entre os pendentes (se ainda valer). */
+  removerContato(id: number): boolean {
+    const info = getDb().prepare('DELETE FROM contato WHERE id = :id').run({ id })
     return Number(info.changes) > 0
   },
 

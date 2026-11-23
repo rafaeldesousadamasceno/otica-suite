@@ -134,7 +134,7 @@ export function AjudaPage(): ReactNode {
         <Input
           type="search"
           className="pl-9"
-          placeholder="Buscar na ajuda (ex.: desconto, backup, receita)…"
+          placeholder="Buscar na ajuda (ex.: desconto, backup, prescrição)…"
           value={termo}
           onChange={(e) => setTermo(e.target.value)}
           aria-label="Buscar na ajuda"

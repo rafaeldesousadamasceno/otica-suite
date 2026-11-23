@@ -1,9 +1,12 @@
 import { ordemServicoRepository } from '@main/repositories/ordemServicoRepository'
 import { clienteRepository } from '@main/repositories/clienteRepository'
+import { laboratorioRepository } from '@main/repositories/laboratorioRepository'
+import { receitaOpticaRepository } from '@main/repositories/receitaOpticaRepository'
 import { configuracaoRepository } from '@main/repositories/configuracaoRepository'
 import { auditoriaRepository } from '@main/repositories/auditoriaRepository'
 import { requirePermissao } from '@main/auth/session'
 import { Errors } from '@main/errors'
+import { maiusculoOuNulo } from '@shared/texto'
 import { proximaSituacao, campoDataDaSituacao, transicaoValida } from '@shared/situacaoOS'
 import type { OrdemServico } from '@shared/types'
 import type {
@@ -18,6 +21,29 @@ const CAMPO_DATA_PARA_COLUNA = {
   dataChegada: 'data_chegada',
   dataEntrega: 'data_entrega'
 } as const
+
+/**
+ * Laboratorio escolhido na OS: so um cadastrado e ATIVO (inativo some das opcoes de OS novas).
+ * Na edicao, o laboratorio que a OS ja tem continua valendo mesmo se foi inativado depois.
+ */
+function resolverLaboratorio(id: number | null, atualId: number | null): { id: number; nome: string } | null {
+  if (id === null) return null
+  const lab = laboratorioRepository.buscarPorId(id)
+  if (!lab) throw Errors.naoEncontrado('Laboratório')
+  if (!lab.ativo && id !== atualId) {
+    throw Errors.validacao(`O laboratório ${lab.nome} está inativo. Escolha outro ou reative-o em Laboratórios.`)
+  }
+  return { id: lab.id, nome: lab.nome }
+}
+
+/** A prescricao vinculada tem de existir (nao excluida) e ser deste cliente: o FK sozinho nao garante nem uma coisa nem outra. */
+function exigirPrescricaoDoCliente(receitaId: number | null | undefined, clienteId: number): void {
+  if (!receitaId) return
+  const receita = receitaOpticaRepository.buscarPorId(receitaId)
+  if (!receita || receita.clienteId !== clienteId) {
+    throw Errors.validacao('A prescrição selecionada não existe mais ou não pertence a este cliente.')
+  }
+}
 
 export const ordemServicoService = {
   listar(query: OrdensServicoQuery): OrdemServico[] {
@@ -44,8 +70,10 @@ export const ordemServicoService = {
       throw Errors.naoEncontrado('Cliente')
     }
 
+    exigirPrescricaoDoCliente(input.receitaOpticaId, input.clienteId)
+    const lab = resolverLaboratorio(input.laboratorioId ?? null, null)
     const prefixo = configuracaoRepository.obter('prefixo_os') ?? ''
-    const id = ordemServicoRepository.criar(input, prefixo, sessao.usuario.id)
+    const id = ordemServicoRepository.criar(input, lab, prefixo, sessao.usuario.id)
 
     auditoriaRepository.registrar({
       usuarioId: sessao.usuario.id,
@@ -113,12 +141,14 @@ export const ordemServicoService = {
     const os = ordemServicoRepository.buscarPorId(input.id)
     if (!os) throw Errors.naoEncontrado('Ordem de Serviço')
 
-    ordemServicoRepository.atualizarDados(
-      input.id,
-      input.laboratorio?.trim() || null,
-      input.dataPrevisao?.trim() || null,
-      input.observacao?.trim() || null
-    )
+    ordemServicoRepository.atualizarDados(input.id, {
+      // Ausente = mantem o laboratorio da OS; null = tira.
+      lab: input.laboratorioId === undefined ? undefined : resolverLaboratorio(input.laboratorioId, os.laboratorioId),
+      entregadorNome: input.entregadorNome === undefined ? os.entregadorNome : maiusculoOuNulo(input.entregadorNome),
+      entregadorContato: input.entregadorContato === undefined ? os.entregadorContato : input.entregadorContato,
+      dataPrevisao: input.dataPrevisao?.trim() || null,
+      observacao: input.observacao?.trim() || null
+    })
 
     auditoriaRepository.registrar({
       usuarioId: sessao.usuario.id,

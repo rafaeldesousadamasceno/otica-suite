@@ -1,5 +1,6 @@
-import { type ReactNode, useEffect, useState } from 'react'
+import { type ReactNode, useEffect, useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { TriangleAlert } from 'lucide-react'
 import { Dialog } from '@renderer/components/ui/Dialog'
 import { Field } from '@renderer/components/ui/Field'
 import { Input } from '@renderer/components/ui/Input'
@@ -8,137 +9,40 @@ import { Button } from '@renderer/components/ui/Button'
 import { unwrap, ApiCallError } from '@renderer/lib/ipc'
 import { receitaOpticaInputSchema } from '@shared/ipc'
 import { toast } from '@renderer/state/toastStore'
+import { usePreferenciasStore } from '@renderer/state/preferenciasStore'
 import { enterAvancaCampo } from '@renderer/lib/enterAvancaCampo'
 import { cn } from '@renderer/lib/cn'
 import { TratamentosCampo } from '@renderer/components/TratamentosCampo'
+import { OlhoCard } from '@renderer/components/prescricao/OlhoCard'
+import { EscolhaUnica } from '@renderer/components/prescricao/EscolhaUnica'
+import { MedidasArmacao } from '@renderer/components/prescricao/MedidasArmacao'
 import {
-  calcularPertoEsf,
-  formatarGrau,
-  juntarTratamentos,
-  paraNumeroGrau,
-  separarTratamentos
-} from '@shared/receitaCalculo'
+  campoDoOlho,
+  estadoDaReceita,
+  estadoVazio,
+  normalizarOlho,
+  paraEntrada,
+  type EstadoOlho,
+  type EstadoPrescricao
+} from '@renderer/components/prescricao/estado'
+import { formatarDioptria } from '@shared/dioptria'
+import { calcularDp, normalizarPrescricao, validarPrescricao, ROTULO_PRESCRICAO, type Olho } from '@shared/prescricao'
+import { juntarTratamentos } from '@shared/receitaCalculo'
 import type { ReceitaOptica } from '@shared/types'
-
-interface GrauForm {
-  esf: string
-  cil: string
-  eixo: string
-  dnp: string
-  dp: string
-}
-
-const GRAU_VAZIO: GrauForm = { esf: '', cil: '', eixo: '', dnp: '', dp: '' }
-
-type Olho = 'OD' | 'OE'
-
-/** Colunas de cada linha OD/OE, na ordem da receita: o DP vem logo depois do DNP. */
-const COLUNAS_GRAU: { campo: keyof GrauForm; titulo: string; placeholder: string }[] = [
-  { campo: 'esf', titulo: 'Esférico', placeholder: '0,00' },
-  { campo: 'cil', titulo: 'Cilíndrico', placeholder: '0,00' },
-  { campo: 'eixo', titulo: 'Eixo', placeholder: '0°' },
-  { campo: 'dnp', titulo: 'DNP', placeholder: 'mm' },
-  { campo: 'dp', titulo: 'DP', placeholder: 'mm' }
-]
-
-const ROTULO_MEDIDA: Record<string, string> = {
-  Esf: 'esférico',
-  Cil: 'cilíndrico',
-  Eixo: 'eixo',
-  Dnp: 'DNP',
-  Dp: 'DP'
-}
-
-/** "longeOdDnp" -> "Longe OD (DNP)", para a mensagem de erro dizer qual campo corrigir. */
-function rotuloCampo(campo: string): string | null {
-  const m = /^(longe|perto)(Od|Oe)(Esf|Cil|Eixo|Dnp|Dp)$/.exec(campo)
-  if (m) return `${m[1] === 'longe' ? 'Longe' : 'Perto'} ${m[2].toUpperCase()} (${ROTULO_MEDIDA[m[3]]})`
-  if (campo === 'adicao') return 'Adição'
-  if (campo === 'dataExame') return 'Data do exame'
-  return null
-}
-
-/** Uma linha OD/OE de um bloco (Longe ou Perto) - o padrao real da receita optica. */
-function LinhaGrau({
-  titulo,
-  od,
-  oe,
-  setOd,
-  setOe,
-  esfCalculado
-}: {
-  titulo: string
-  od: GrauForm
-  oe: GrauForm
-  setOd: (g: GrauForm) => void
-  setOe: (g: GrauForm) => void
-  /** Olhos cujo esferico esta preenchido pelo calculo (Longe + Adicao), e nao digitado. */
-  esfCalculado?: { OD: boolean; OE: boolean }
-}): ReactNode {
-  return (
-    <div className="overflow-hidden rounded-md border border-[var(--rule-strong)]">
-      <div className="bg-[var(--accent)]/8 px-3 py-1.5 text-xs font-semibold uppercase tracking-wide text-[var(--accent)]">
-        {titulo}
-      </div>
-      <table className="w-full text-sm">
-        <thead>
-          <tr className="border-b border-[var(--rule)] text-xs text-[var(--ink-3)]">
-            <th className="w-12 px-2 py-1.5 text-left"></th>
-            {COLUNAS_GRAU.map((c) => (
-              <th key={c.campo} className="px-2 py-1.5">
-                {c.titulo}
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {(
-            [
-              ['OD', od, setOd],
-              ['OE', oe, setOe]
-            ] as const
-          ).map(([label, valor, setValor]) => (
-            <tr key={label} className="border-b border-[var(--rule)] last:border-0">
-              <td className="px-2 py-1 font-medium text-[var(--ink-2)]">{label}</td>
-              {COLUNAS_GRAU.map((c) => {
-                const calculado = c.campo === 'esf' && esfCalculado?.[label] === true && valor.esf !== ''
-                return (
-                  <td key={c.campo} className="px-1 py-1">
-                    <Input
-                      className={cn('font-mono-tab px-1.5 text-center', calculado && 'bg-[var(--accent)]/8')}
-                      inputMode="decimal"
-                      aria-label={`${titulo} ${label} ${c.titulo}`}
-                      title={calculado ? 'Calculado: Longe + Adição. Digite outro valor para trocar.' : undefined}
-                      value={valor[c.campo]}
-                      onChange={(e) => setValor({ ...valor, [c.campo]: e.target.value })}
-                      placeholder={c.placeholder}
-                    />
-                  </td>
-                )
-              })}
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  )
-}
 
 interface Props {
   open: boolean
   onClose: () => void
   clienteId: number
-  /** Receita ja salva a corrigir. Sem ela, o formulario cria uma receita nova. */
+  /** Prescricao ja salva a corrigir. Sem ela, o formulario cria uma nova. */
   receita?: ReceitaOptica | null
 }
 
-/** 31.5 -> "31,5"; vazio quando nao ha valor. */
-function paraCampo(v: number | null): string {
-  return v === null ? '' : String(v).replace('.', ',')
-}
+const TRATAMENTOS_COM_COR = ['COLORAÇÃO', 'COLORAÇÃO DEGRADÊ']
 
-function grauDe(esf: number | null, cil: number | null, eixo: number | null, dnp: number | null, dp: number | null): GrauForm {
-  return { esf: paraCampo(esf), cil: paraCampo(cil), eixo: paraCampo(eixo), dnp: paraCampo(dnp), dp: paraCampo(dp) }
+/** 63.5 -> "63,5 mm"; sem valor, um traco. */
+function mm(v: number | null): string {
+  return v === null ? '—' : `${String(v).replace('.', ',')} mm`
 }
 
 /**
@@ -151,152 +55,90 @@ function valorForaDaLista(atual: string, opcoes: { valor: string }[] | undefined
   return <option value={atual}>{atual}</option>
 }
 
+function useLista(tipo: 'tipo_lente' | 'tratamento_lente' | 'indice_refracao' | 'tipo_armacao', ativo: boolean) {
+  return useQuery({
+    queryKey: ['listaValor', tipo],
+    queryFn: () => unwrap(window.api.listasValor.listByTipo({ tipo })),
+    enabled: ativo
+  })
+}
+
 export function ReceitaOpticaFormDialog({ open, onClose, clienteId, receita }: Props): ReactNode {
   const editando = Boolean(receita)
   const queryClient = useQueryClient()
-  const [dataExame, setDataExame] = useState('')
-  const [profissionalNome, setProfissionalNome] = useState('')
-  const [longeOd, setLongeOd] = useState<GrauForm>(GRAU_VAZIO)
-  const [longeOe, setLongeOe] = useState<GrauForm>(GRAU_VAZIO)
-  const [pertoOd, setPertoOd] = useState<GrauForm>(GRAU_VAZIO)
-  const [pertoOe, setPertoOe] = useState<GrauForm>(GRAU_VAZIO)
-  const [adicao, setAdicao] = useState('')
-  const [tipoLente, setTipoLente] = useState('')
-  const [tratamentos, setTratamentos] = useState<string[]>([])
-  // Perto: o esferico sai de Longe + Adicao enquanto o profissional nao digitar o dele.
-  // `true` = ele digitou (nao mexer); `false` = vale o calculo.
-  const [pertoEsfManual, setPertoEsfManual] = useState<Record<Olho, boolean>>({ OD: false, OE: false })
-  const [armacao, setArmacao] = useState('')
-  const [observacao, setObservacao] = useState('')
+  const exibirDp = usePreferenciasStore((s) => s.exibirDp)
+  const formatoNumero = usePreferenciasStore((s) => s.formatoNumero)
+  const [estado, setEstado] = useState<EstadoPrescricao>(estadoVazio)
+  const [tentouSalvar, setTentouSalvar] = useState(false)
   const [erro, setErro] = useState<string | null>(null)
 
-  const tiposLente = useQuery({
-    queryKey: ['listaValor', 'tipo_lente'],
-    queryFn: () => unwrap(window.api.listasValor.listByTipo({ tipo: 'tipo_lente' })),
-    enabled: open
-  })
-  const tratamentosDisponiveis = useQuery({
-    queryKey: ['listaValor', 'tratamento_lente'],
-    queryFn: () => unwrap(window.api.listasValor.listByTipo({ tipo: 'tratamento_lente' })),
-    enabled: open
-  })
+  const tiposLente = useLista('tipo_lente', open)
+  const tratamentosDisponiveis = useLista('tratamento_lente', open)
+  const indices = useLista('indice_refracao', open)
+  const tiposArmacao = useLista('tipo_armacao', open)
 
-  function limpar(): void {
-    setDataExame('')
-    setProfissionalNome('')
-    setLongeOd(GRAU_VAZIO)
-    setLongeOe(GRAU_VAZIO)
-    setPertoOd(GRAU_VAZIO)
-    setPertoOe(GRAU_VAZIO)
-    setAdicao('')
-    setTipoLente('')
-    setTratamentos([])
-    setPertoEsfManual({ OD: false, OE: false })
-    setArmacao('')
-    setObservacao('')
-    setErro(null)
-  }
-
-  /** Esferico de Perto de um olho a partir do que esta na tela (Longe + Adicao); '' se faltar algum dos dois. */
-  function pertoCalculado(longeEsf: string, adicaoTexto: string): string {
-    return formatarGrau(calcularPertoEsf(paraNumeroGrau(longeEsf), paraNumeroGrau(adicaoTexto)))
-  }
-
-  /** Refaz o esferico de Perto dos olhos que ainda nao foram digitados a mao. */
-  function recalcularPerto(adicaoTexto: string, longeOdEsf: string, longeOeEsf: string): void {
-    if (!pertoEsfManual.OD) setPertoOd((g) => ({ ...g, esf: pertoCalculado(longeOdEsf, adicaoTexto) }))
-    if (!pertoEsfManual.OE) setPertoOe((g) => ({ ...g, esf: pertoCalculado(longeOeEsf, adicaoTexto) }))
-  }
-
-  function alterarAdicao(texto: string): void {
-    setAdicao(texto)
-    recalcularPerto(texto, longeOd.esf, longeOe.esf)
-  }
-
-  function alterarLonge(olho: Olho, novo: GrauForm): void {
-    const atual = olho === 'OD' ? longeOd : longeOe
-    ;(olho === 'OD' ? setLongeOd : setLongeOe)(novo)
-    if (novo.esf !== atual.esf) {
-      recalcularPerto(adicao, olho === 'OD' ? novo.esf : longeOd.esf, olho === 'OE' ? novo.esf : longeOe.esf)
-    }
-  }
-
-  /**
-   * Digitar no esferico de Perto assume o valor: o calculo para de mexer nele. Apagar o
-   * campo devolve o controle ao calculo (que volta a preencher quando a Adicao ou o Longe
-   * mudarem; ao salvar, o sistema tambem completa um Perto em branco).
-   */
-  function alterarPerto(olho: Olho, novo: GrauForm): void {
-    const atual = olho === 'OD' ? pertoOd : pertoOe
-    ;(olho === 'OD' ? setPertoOd : setPertoOe)(novo)
-    if (novo.esf !== atual.esf) setPertoEsfManual((m) => ({ ...m, [olho]: novo.esf.trim() !== '' }))
-  }
-
-  // Ao abrir: preenche com a receita a corrigir, ou comeca em branco para uma nova.
+  // Ao abrir: preenche com a prescricao a corrigir, ou comeca em branco (esf, cil, adicao e prisma em 0,00).
   useEffect(() => {
     if (!open) return
-    if (!receita) {
-      limpar()
-      return
-    }
-    setDataExame(receita.dataExame)
-    setProfissionalNome(receita.profissionalNome ?? '')
-    setLongeOd(grauDe(receita.longeOdEsf, receita.longeOdCil, receita.longeOdEixo, receita.longeOdDnp, receita.longeOdDp))
-    setLongeOe(grauDe(receita.longeOeEsf, receita.longeOeCil, receita.longeOeEixo, receita.longeOeDnp, receita.longeOeDp))
-    setPertoOd(grauDe(receita.pertoOdEsf, receita.pertoOdCil, receita.pertoOdEixo, receita.pertoOdDnp, receita.pertoOdDp))
-    setPertoOe(grauDe(receita.pertoOeEsf, receita.pertoOeCil, receita.pertoOeEixo, receita.pertoOeDnp, receita.pertoOeDp))
-    setAdicao(paraCampo(receita.adicao))
-    setTipoLente(receita.tipoLente ?? '')
-    setTratamentos(separarTratamentos(receita.tratamentos))
-    // Um Perto gravado diferente de Longe + Adicao foi digitado pelo profissional: nao sobrescrever.
-    setPertoEsfManual({
-      OD: receita.pertoOdEsf !== null && receita.pertoOdEsf !== calcularPertoEsf(receita.longeOdEsf, receita.adicao),
-      OE: receita.pertoOeEsf !== null && receita.pertoOeEsf !== calcularPertoEsf(receita.longeOeEsf, receita.adicao)
-    })
-    setArmacao(receita.armacao ?? '')
-    setObservacao(receita.observacao ?? '')
+    setEstado(receita ? estadoDaReceita(receita) : estadoVazio())
+    setTentouSalvar(false)
     setErro(null)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, receita?.id])
 
+  function set<K extends keyof EstadoPrescricao>(chave: K, valor: EstadoPrescricao[K]): void {
+    setEstado((e) => ({ ...e, [chave]: valor }))
+  }
+  const setOlho = (olho: Olho, novo: EstadoOlho): void => set(olho === 'Od' ? 'od' : 'oe', normalizarOlho(novo))
+
+  // Mesmas regras do servidor, com a mesma funcao: o que aparece em vermelho aqui e o que ele recusaria.
+  const problemas = useMemo(() => validarPrescricao(normalizarPrescricao(paraEntrada(estado))), [estado])
+  const invalidos = useMemo(() => {
+    const porOlho: Record<Olho, Set<string>> = { Od: new Set(), Oe: new Set() }
+    if (tentouSalvar) {
+      for (const p of problemas) {
+        const c = campoDoOlho(p.campo)
+        if (c) porOlho[c.olho].add(c.campo)
+      }
+    }
+    return porOlho
+  }, [problemas, tentouSalvar])
+
+  const dpLonge = calcularDp(estado.od.dnp, estado.oe.dnp)
+  const dpPerto = calcularDp(estado.od.dnpPerto, estado.oe.dnpPerto)
+  const pedeCor = estado.tratamentos.some((t) => TRATAMENTOS_COM_COR.includes(t))
+
   const mutation = useMutation({
     mutationFn: async () => {
-      const validacao = receitaOpticaInputSchema.safeParse({
+      const dados = {
         clienteId,
-        profissionalNome: profissionalNome || null,
-        dataExame,
-        longeOdEsf: longeOd.esf,
-        longeOdCil: longeOd.cil,
-        longeOdEixo: longeOd.eixo,
-        longeOdDnp: longeOd.dnp,
-        longeOdDp: longeOd.dp,
-        longeOeEsf: longeOe.esf,
-        longeOeCil: longeOe.cil,
-        longeOeEixo: longeOe.eixo,
-        longeOeDnp: longeOe.dnp,
-        longeOeDp: longeOe.dp,
-        pertoOdEsf: pertoOd.esf,
-        pertoOdCil: pertoOd.cil,
-        pertoOdEixo: pertoOd.eixo,
-        pertoOdDnp: pertoOd.dnp,
-        pertoOdDp: pertoOd.dp,
-        pertoOeEsf: pertoOe.esf,
-        pertoOeCil: pertoOe.cil,
-        pertoOeEixo: pertoOe.eixo,
-        pertoOeDnp: pertoOe.dnp,
-        pertoOeDp: pertoOe.dp,
-        adicao,
-        tipoLente: tipoLente || null,
-        tratamentos: juntarTratamentos(tratamentos),
-        armacao: armacao || null,
-        observacao: observacao || null
-      })
-      if (!validacao.success) {
-        // Mostra so o primeiro problema, em portugues e com o campo - nunca o JSON cru do Zod.
-        const problema = validacao.error.issues[0]
-        const rotulo = rotuloCampo(String(problema?.path[0] ?? ''))
-        throw new Error(rotulo ? `${rotulo}: ${problema.message}` : (problema?.message ?? 'Dados inválidos.'))
+        profissionalNome: estado.profissionalNome || null,
+        dataExame: estado.dataExame,
+        ...Object.fromEntries(
+          (['Od', 'Oe'] as const).flatMap((o) => {
+            const v = o === 'Od' ? estado.od : estado.oe
+            return [
+              [`longe${o}Esf`, v.esf], [`longe${o}Cil`, v.cil], [`longe${o}Eixo`, v.eixo], [`longe${o}Dnp`, v.dnp],
+              [`longe${o}Alt`, v.alt], [`longe${o}Prisma`, v.prisma], [`longe${o}BasePrisma`, v.basePrisma],
+              [`adicao${o}`, v.adicao], [`perto${o}Dnp`, v.dnpPerto]
+            ]
+          })
+        ),
+        tipoLente: estado.tipoLente || null,
+        indiceRefracao: estado.indiceRefracao || null,
+        tratamentos: juntarTratamentos(estado.tratamentos),
+        armacaoTipo: estado.armacaoTipo || null,
+        armacaoModelo: estado.armacaoModelo || null,
+        armacaoMarca: estado.armacaoMarca || null,
+        armacaoCor: estado.armacaoCor || null,
+        ponte: estado.medidas.ponte,
+        horizontal: estado.medidas.horizontal,
+        vertical: estado.medidas.vertical,
+        diagonalMaior: estado.medidas.diagonalMaior,
+        observacao: estado.observacao || null
       }
+      const validacao = receitaOpticaInputSchema.safeParse(dados)
+      if (!validacao.success) throw new Error(validacao.error.issues[0]?.message ?? 'Dados inválidos.')
       return receita
         ? unwrap(window.api.receitas.update({ ...validacao.data, id: receita.id }))
         : unwrap(window.api.receitas.create(validacao.data))
@@ -304,8 +146,7 @@ export function ReceitaOpticaFormDialog({ open, onClose, clienteId, receita }: P
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['receitas', clienteId] })
       queryClient.invalidateQueries({ queryKey: ['ordensServico'] })
-      toast.ok(editando ? 'Receita corrigida.' : 'Receita óptica registrada.')
-      limpar()
+      toast.ok(editando ? `${ROTULO_PRESCRICAO} corrigida.` : `${ROTULO_PRESCRICAO} registrada.`)
       onClose()
     },
     onError: (err) => {
@@ -313,93 +154,166 @@ export function ReceitaOpticaFormDialog({ open, onClose, clienteId, receita }: P
     }
   })
 
+  function salvar(): void {
+    setErro(null)
+    setTentouSalvar(true)
+    if (problemas.length > 0) return
+    mutation.mutate()
+  }
+
   return (
-    <Dialog open={open} onClose={onClose} title={editando ? 'Editar receita óptica' : 'Nova receita óptica'} className="max-w-4xl">
+    <Dialog
+      open={open}
+      onClose={onClose}
+      title={editando ? `Editar ${ROTULO_PRESCRICAO.toLowerCase()}` : `Nova ${ROTULO_PRESCRICAO.toLowerCase()}`}
+      className="max-w-6xl"
+    >
       <form
-        className="flex flex-col gap-4"
-        // Enter so passa para o proximo campo: a receita so salva pelo botao.
+        className="flex flex-col gap-5"
+        // Enter so passa para o proximo campo: a prescricao so salva pelo botao.
         onKeyDown={enterAvancaCampo}
         onSubmit={(e) => {
           e.preventDefault()
-          mutation.mutate()
+          salvar()
         }}
+        noValidate
       >
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <Field label="Data do exame" required>
-            <Input type="date" value={dataExame} onChange={(e) => setDataExame(e.target.value)} required autoFocus />
+            <Input type="date" value={estado.dataExame} onChange={(e) => set('dataExame', e.target.value)} required autoFocus />
           </Field>
           <Field label="Profissional (optometrista)">
-            <Input value={profissionalNome} onChange={(e) => setProfissionalNome(e.target.value)} />
+            <Input value={estado.profissionalNome} onChange={(e) => set('profissionalNome', e.target.value)} />
           </Field>
         </div>
 
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <LinhaGrau
-            titulo="Longe"
-            od={longeOd}
-            oe={longeOe}
-            setOd={(g) => alterarLonge('OD', g)}
-            setOe={(g) => alterarLonge('OE', g)}
+        {receita?.formatoAnterior && (
+          <div role="status" className="flex gap-3 rounded-md border border-[var(--warn)]/40 bg-[var(--warn-wash)] p-3 text-sm text-[var(--warn)]">
+            <TriangleAlert className="mt-0.5 size-4 shrink-0" />
+            <div className="flex flex-col gap-0.5">
+              <p className="font-semibold">{ROTULO_PRESCRICAO} registrada no formato anterior</p>
+              <p className="text-xs">
+                O Perto desta {ROTULO_PRESCRICAO.toLowerCase()} foi gravado à parte e não é Longe + Adição. Ele aparece em amarelo abaixo, só para consulta.
+                Ao salvar, o Perto passa a ser calculado pela Adição de cada olho; os valores antigos continuam guardados.
+              </p>
+            </div>
+          </div>
+        )}
+
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+          <OlhoCard
+            olho="Od"
+            valor={estado.od}
+            onChange={(v) => setOlho('Od', v)}
+            invalidos={invalidos.Od}
+            pertoOriginal={receita?.formatoAnterior ? { esf: receita.pertoOdEsf, cil: receita.pertoOdCil, eixo: receita.pertoOdEixo } : null}
           />
-          <LinhaGrau
-            titulo="Perto"
-            od={pertoOd}
-            oe={pertoOe}
-            setOd={(g) => alterarPerto('OD', g)}
-            setOe={(g) => alterarPerto('OE', g)}
-            esfCalculado={{ OD: !pertoEsfManual.OD, OE: !pertoEsfManual.OE }}
+          <OlhoCard
+            olho="Oe"
+            valor={estado.oe}
+            onChange={(v) => setOlho('Oe', v)}
+            invalidos={invalidos.Oe}
+            pertoOriginal={receita?.formatoAnterior ? { esf: receita.pertoOeEsf, cil: receita.pertoOeCil, eixo: receita.pertoOeEixo } : null}
           />
         </div>
 
-        <div className="grid grid-cols-2 gap-3">
-          <Field label="Adição" hint="Ao digitar, o esférico do Perto de cada olho é calculado (Longe + Adição).">
-            <Input
-              className="font-mono-tab"
-              value={adicao}
-              onChange={(e) => alterarAdicao(e.target.value)}
-              placeholder="0,00"
-            />
-          </Field>
-          <Field label="Tipo de lente">
-            <Select value={tipoLente} onChange={(e) => setTipoLente(e.target.value)}>
-              <option value="">—</option>
-              {valorForaDaLista(tipoLente, tiposLente.data)}
-              {tiposLente.data?.map((t) => (
-                <option key={t.id} value={t.valor}>
-                  {t.valor}
-                </option>
-              ))}
-            </Select>
-          </Field>
-        </div>
+        {exibirDp && (
+          <p className="-mt-2 text-center text-sm text-[var(--ink-2)]">
+            DP Longe: <b className="font-mono-tab text-[var(--ink)]">{mm(dpLonge)}</b> · DP Perto: <b className="font-mono-tab text-[var(--ink)]">{mm(dpPerto)}</b>
+          </p>
+        )}
 
-        <TratamentosCampo
-          opcoes={tratamentosDisponiveis.data?.map((t) => t.valor) ?? []}
-          selecionados={tratamentos}
-          onChange={setTratamentos}
-          carregando={tratamentosDisponiveis.isPending}
-        />
+        <fieldset className="flex flex-col gap-4 rounded-lg border border-[var(--rule)] p-4">
+          <legend className="px-1 text-xs font-semibold uppercase tracking-wide text-[var(--ink-3)]">Lente</legend>
+          <EscolhaUnica
+            legenda="Tipo de lente"
+            opcoes={tiposLente.data?.map((t) => t.valor) ?? []}
+            valor={estado.tipoLente}
+            onChange={(v) => set('tipoLente', v)}
+            carregando={tiposLente.isPending}
+          />
+          <EscolhaUnica
+            legenda="Índice de refração"
+            opcoes={indices.data?.map((t) => t.valor) ?? []}
+            valor={estado.indiceRefracao}
+            onChange={(v) => set('indiceRefracao', v)}
+            carregando={indices.isPending}
+          />
+          <TratamentosCampo
+            opcoes={tratamentosDisponiveis.data?.map((t) => t.valor) ?? []}
+            selecionados={estado.tratamentos}
+            onChange={(v) => set('tratamentos', v)}
+            carregando={tratamentosDisponiveis.isPending}
+          />
+          {pedeCor && (
+            <p role="status" className="rounded-md bg-[var(--warn-wash)] px-3 py-2 text-sm text-[var(--warn)]">
+              Informe a cor em Observações.
+            </p>
+          )}
+        </fieldset>
 
-        <Field label="Armação">
-          <Input value={armacao} onChange={(e) => setArmacao(e.target.value)} />
-        </Field>
-        <Field label="Observações">
+        <fieldset className="flex flex-col gap-3 rounded-lg border border-[var(--rule)] p-4">
+          <legend className="px-1 text-xs font-semibold uppercase tracking-wide text-[var(--ink-3)]">Armação</legend>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <Field label="Tipo">
+              <Select value={estado.armacaoTipo} onChange={(e) => set('armacaoTipo', e.target.value)}>
+                <option value="">-Selecione uma armação-</option>
+                {valorForaDaLista(estado.armacaoTipo, tiposArmacao.data)}
+                {tiposArmacao.data?.map((t) => (
+                  <option key={t.id} value={t.valor}>
+                    {t.valor}
+                  </option>
+                ))}
+              </Select>
+            </Field>
+            <Field label="Modelo">
+              <Input value={estado.armacaoModelo} onChange={(e) => set('armacaoModelo', e.target.value)} />
+            </Field>
+            <Field label="Marca">
+              <Input value={estado.armacaoMarca} onChange={(e) => set('armacaoMarca', e.target.value)} />
+            </Field>
+            <Field label="Cor">
+              <Input value={estado.armacaoCor} onChange={(e) => set('armacaoCor', e.target.value)} />
+            </Field>
+          </div>
+          <MedidasArmacao medidas={estado.medidas} onChange={(m) => set('medidas', m)} />
+        </fieldset>
+
+        <Field label="Observações" hint={pedeCor ? 'Escreva aqui a cor da coloração.' : undefined}>
           <textarea
-            className="min-h-16 w-full rounded-md border border-[var(--rule-strong)] bg-[var(--surface)] px-3 py-2 text-sm text-[var(--ink)] focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-[var(--accent)]"
-            value={observacao}
-            onChange={(e) => setObservacao(e.target.value)}
+            className={cn(
+              'min-h-16 w-full rounded-md border bg-[var(--surface)] px-3 py-2 text-sm text-[var(--ink)] focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-[var(--accent)]',
+              pedeCor ? 'border-[var(--warn)]! ring-2 ring-[var(--warn)]/30' : 'border-[var(--rule-strong)]'
+            )}
+            value={estado.observacao}
+            onChange={(e) => set('observacao', e.target.value)}
           />
         </Field>
 
+        {tentouSalvar && problemas.length > 0 && (
+          <div role="alert" className="rounded-md border border-[var(--danger)]/40 bg-[var(--danger-wash)] p-3 text-sm text-[var(--danger)]">
+            <p className="mb-1 font-semibold">Corrija antes de salvar:</p>
+            <ul className="list-disc pl-5">
+              {problemas.map((p, i) => (
+                <li key={i}>{p.mensagem}</li>
+              ))}
+            </ul>
+          </div>
+        )}
         {erro && <p className="text-sm text-[var(--danger)]">{erro}</p>}
 
-        <div className="flex justify-end gap-2 border-t border-[var(--rule)] pt-4">
-          <Button type="button" variant="ghost" onClick={onClose}>
-            Cancelar
-          </Button>
-          <Button type="submit" loading={mutation.isPending}>
-            {editando ? 'Salvar alterações' : 'Salvar receita'}
-          </Button>
+        <div className="flex items-center justify-between gap-2 border-t border-[var(--rule)] pt-4">
+          <p className="text-xs text-[var(--ink-3)]">
+            <span className="text-[var(--danger)]">*</span> obrigatório · formato dos graus: {formatarDioptria(1.25, { formato: formatoNumero })}
+          </p>
+          <div className="flex gap-2">
+            <Button type="button" variant="ghost" onClick={onClose}>
+              Cancelar
+            </Button>
+            <Button type="submit" loading={mutation.isPending}>
+              {editando ? 'Salvar alterações' : `Salvar ${ROTULO_PRESCRICAO.toLowerCase()}`}
+            </Button>
+          </div>
         </div>
       </form>
     </Dialog>

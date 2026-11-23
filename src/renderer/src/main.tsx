@@ -3,7 +3,12 @@ import { createRoot } from 'react-dom/client'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { HashRouter } from 'react-router-dom'
 import App from './App'
+import { ConfirmProvider } from './lib/confirmar'
+import { instalarCalendarioAoFocar } from './lib/calendarioAoFocar'
 import './index.css'
+
+// Campo de data que ganha o foco ja abre o calendario, em todas as telas.
+instalarCalendarioAoFocar()
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -16,7 +21,9 @@ createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
       <HashRouter>
-        <App />
+        <ConfirmProvider>
+          <App />
+        </ConfirmProvider>
       </HashRouter>
     </QueryClientProvider>
   </StrictMode>

@@ -22,8 +22,10 @@ const anteriores = readdirSync(pasta)
 for (const arquivo of anteriores) db.exec(readFileSync(join(pasta, arquivo), 'utf8'))
 
 const colunasDe = (tabela) => db.prepare(`PRAGMA table_info(${tabela})`).all().map((c) => c.name)
-const sql = gerarSyncSql(TABELAS_SINCRONIZAVEIS, colunasDe)
+// So as tabelas que ja existiam na 010; as criadas depois trazem o proprio SQL (sqlSyncTabelaNova).
+const tabelas = TABELAS_SINCRONIZAVEIS.filter((t) => !t.desdeMigracao)
+const sql = gerarSyncSql(tabelas, colunasDe)
 
 const destino = join(pasta, '010_sync_base.sql')
 writeFileSync(destino, sql, 'utf8')
-console.log(`${destino}: ${TABELAS_SINCRONIZAVEIS.length} tabelas, ${sql.split('\n').length} linhas`)
+console.log(`${destino}: ${tabelas.length} tabelas, ${sql.split('\n').length} linhas`)

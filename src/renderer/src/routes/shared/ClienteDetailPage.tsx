@@ -16,6 +16,7 @@ import { VendaFormDialog } from '@renderer/components/VendaFormDialog'
 import { VendaDetailDialog } from '@renderer/components/VendaDetailDialog'
 import { TOM_SITUACAO_OS } from '@renderer/lib/situacaoOSTone'
 import { toast } from '@renderer/state/toastStore'
+import { useConfirm } from '@renderer/lib/confirmar'
 import { useAuthStore } from '@renderer/state/authStore'
 import { possuiPermissao } from '@shared/permissions'
 import type { ReceitaOptica } from '@shared/types'
@@ -28,12 +29,14 @@ function formatarDataBr(iso: string | null): string {
 }
 
 export function ClienteDetailPage(): ReactNode {
+  const confirmar = useConfirm()
   const { id } = useParams<{ id: string }>()
   const clienteId = Number(id)
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const perfil = useAuthStore((s) => s.sessao?.usuario.perfil)
   const podeEditarReceita = perfil ? possuiPermissao(perfil, 'receitas_opticas', 'editar') : false
+  const podeExcluirReceita = perfil ? possuiPermissao(perfil, 'receitas_opticas', 'excluir') : false
   const [editarOpen, setEditarOpen] = useState(false)
   const [novaReceitaOpen, setNovaReceitaOpen] = useState(false)
   const [receitaEmEdicao, setReceitaEmEdicao] = useState<ReceitaOptica | null>(null)
@@ -101,8 +104,15 @@ export function ClienteDetailPage(): ReactNode {
           <Button
             variant="danger"
             loading={remover.isPending}
-            onClick={() => {
-              if (confirm(`Remover o cliente ${c.nome}?`)) remover.mutate()
+            onClick={async () => {
+              const ok = await confirmar({
+                variante: 'excluir',
+                entidade: 'cliente',
+                item: c.nome,
+                detalhe: 'Se o cliente já tiver vendas, prescrições ou ordens de serviço, ele é apenas inativado e o histórico fica preservado.',
+                rotuloConfirmar: 'Remover'
+              })
+              if (ok) remover.mutate()
             }}
           >
             <Trash2 className="size-4" /> Remover
@@ -150,23 +160,29 @@ export function ClienteDetailPage(): ReactNode {
 
       <div className="flex flex-col gap-3">
         <div className="flex items-center justify-between">
-          <h2 className="text-base font-semibold text-[var(--ink)]">Receitas ópticas</h2>
+          <h2 className="text-base font-semibold text-[var(--ink)]">Prescrições</h2>
           <Button onClick={() => setNovaReceitaOpen(true)}>
-            <FilePlus2 className="size-4" /> Nova receita
+            <FilePlus2 className="size-4" /> Nova prescrição
           </Button>
         </div>
 
         {receitas.data?.length === 0 && (
           <Card>
             <CardBody className="text-center text-sm text-[var(--ink-3)]">
-              Nenhuma receita registrada ainda.
+              Nenhuma prescrição registrada ainda.
             </CardBody>
           </Card>
         )}
 
         <div className="flex flex-col gap-3">
           {receitas.data?.map((r) => (
-            <ReceitaOpticaCard key={r.id} receita={r} onEditar={podeEditarReceita ? () => setReceitaEmEdicao(r) : undefined} />
+            <ReceitaOpticaCard
+              key={r.id}
+              receita={r}
+              clienteNome={c.nome}
+              onEditar={podeEditarReceita ? () => setReceitaEmEdicao(r) : undefined}
+              podeExcluir={podeExcluirReceita}
+            />
           ))}
         </div>
       </div>

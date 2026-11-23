@@ -20,6 +20,7 @@ import type {
   UnidadeMedida,
   AuditoriaEntrada,
   Fornecedor,
+  Laboratorio,
   CompraResumo,
   CompraDetalhada,
   EstoqueItem,
@@ -35,6 +36,7 @@ import type {
   CaixaResumo,
   SistemaInfo,
   ContatoPendente,
+  ContatoFeito,
   ClienteSemContato,
   ModelosMensagem,
   ResultadosRelacionamento
@@ -59,6 +61,9 @@ import type {
   ReceitaListByClienteInput,
   ReceitaOpticaInput,
   ReceitaOpticaAtualizarInput,
+  ReceitaExcluirInput,
+  PrescricaoImprimirInput,
+  OrdemServicoImprimirInput,
   ListaValorTipoInput,
   UnidadeMedidaInput,
   UnidadeMedidaUpdateInput,
@@ -78,6 +83,11 @@ import type {
   ContasReceberListQuery,
   ContaReceberBaixarInput,
   FornecedorInput,
+  LaboratorioInput,
+  LaboratorioUpdateInput,
+  LaboratorioSetAtivoInput,
+  LaboratorioExcluirInput,
+  LaboratoriosListQuery,
   FornecedorUpdateInput,
   FornecedorSetAtivoInput,
   FornecedoresListQuery,
@@ -94,6 +104,7 @@ import type {
   BackupRestaurarInput,
   ContatoRefInput,
   ContatoMarcarInput,
+  ContatoDesfazerInput,
   AceitaContatoInput,
   ResultadosRelacionamentoInput,
   ModelosMensagemInput,
@@ -160,6 +171,7 @@ interface Api {
     listByCliente: (input: ReceitaListByClienteInput) => Promise<ApiResult<ReceitaOptica[]>>
     create: (input: ReceitaOpticaInput) => Promise<ApiResult<ReceitaOptica>>
     update: (input: ReceitaOpticaAtualizarInput) => Promise<ApiResult<ReceitaOptica>>
+    excluir: (input: ReceitaExcluirInput) => Promise<ApiResult<void>>
   }
   ordensServico: {
     list: (input: OrdensServicoQuery) => Promise<ApiResult<OrdemServico[]>>
@@ -201,6 +213,13 @@ interface Api {
   }
   auditoria: {
     list: () => Promise<ApiResult<AuditoriaEntrada[]>>
+  }
+  laboratorios: {
+    list: (input: LaboratoriosListQuery) => Promise<ApiResult<Laboratorio[]>>
+    create: (input: LaboratorioInput) => Promise<ApiResult<Laboratorio>>
+    update: (input: LaboratorioUpdateInput) => Promise<ApiResult<Laboratorio>>
+    setAtivo: (input: LaboratorioSetAtivoInput) => Promise<ApiResult<void>>
+    excluir: (input: LaboratorioExcluirInput) => Promise<ApiResult<void>>
   }
   fornecedores: {
     list: (input: FornecedoresListQuery) => Promise<ApiResult<Fornecedor[]>>
@@ -272,7 +291,8 @@ interface Api {
     suprimento: (input: CaixaMovimentoInput) => Promise<ApiResult<CaixaAberto>>
   }
   relatorios: {
-    ordemServico: (input: IdInput) => Promise<ApiResult<PdfVisualizacao>>
+    ordemServico: (input: OrdemServicoImprimirInput) => Promise<ApiResult<PdfVisualizacao>>
+    prescricao: (input: PrescricaoImprimirInput) => Promise<ApiResult<PdfVisualizacao>>
     protocoloSaida: (input: OrdensServicoQuery) => Promise<ApiResult<PdfVisualizacao>>
     comprovanteVenda: (input: IdInput) => Promise<ApiResult<PdfVisualizacao>>
     carneParcelas: (input: IdInput) => Promise<ApiResult<PdfVisualizacao>>
@@ -303,6 +323,8 @@ interface Api {
     resultados: (input: ResultadosRelacionamentoInput) => Promise<ApiResult<ResultadosRelacionamento>>
     abrirWhatsapp: (input: ContatoRefInput) => Promise<ApiResult<null>>
     marcarContatado: (input: ContatoMarcarInput) => Promise<ApiResult<null>>
+    contatados: () => Promise<ApiResult<ContatoFeito[]>>
+    desfazerContato: (input: ContatoDesfazerInput) => Promise<ApiResult<null>>
     definirAceitaContato: (input: AceitaContatoInput) => Promise<ApiResult<null>>
     modelosObter: () => Promise<ApiResult<ModelosMensagem>>
     modelosSalvar: (input: ModelosMensagemInput) => Promise<ApiResult<null>>

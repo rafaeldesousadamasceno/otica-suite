@@ -50,7 +50,8 @@ const api = {
   receitas: {
     listByCliente: (input: unknown) => ipcRenderer.invoke(IPC.receitas.listByCliente, input),
     create: (input: unknown) => ipcRenderer.invoke(IPC.receitas.create, input),
-    update: (input: unknown) => ipcRenderer.invoke(IPC.receitas.update, input)
+    update: (input: unknown) => ipcRenderer.invoke(IPC.receitas.update, input),
+    excluir: (input: unknown) => ipcRenderer.invoke(IPC.receitas.excluir, input)
   },
   ordensServico: {
     list: (input: unknown) => ipcRenderer.invoke(IPC.ordensServico.list, input),
@@ -92,6 +93,13 @@ const api = {
   },
   auditoria: {
     list: () => ipcRenderer.invoke(IPC.auditoria.list)
+  },
+  laboratorios: {
+    list: (input: unknown) => ipcRenderer.invoke(IPC.laboratorios.list, input),
+    create: (input: unknown) => ipcRenderer.invoke(IPC.laboratorios.create, input),
+    update: (input: unknown) => ipcRenderer.invoke(IPC.laboratorios.update, input),
+    setAtivo: (input: unknown) => ipcRenderer.invoke(IPC.laboratorios.setAtivo, input),
+    excluir: (input: unknown) => ipcRenderer.invoke(IPC.laboratorios.excluir, input)
   },
   fornecedores: {
     list: (input: unknown) => ipcRenderer.invoke(IPC.fornecedores.list, input),
@@ -164,6 +172,7 @@ const api = {
   },
   relatorios: {
     ordemServico: (input: unknown) => ipcRenderer.invoke(IPC.relatorios.ordemServico, input),
+    prescricao: (input: unknown) => ipcRenderer.invoke(IPC.relatorios.prescricao, input),
     protocoloSaida: (input: unknown) => ipcRenderer.invoke(IPC.relatorios.protocoloSaida, input),
     comprovanteVenda: (input: unknown) => ipcRenderer.invoke(IPC.relatorios.comprovanteVenda, input),
     carneParcelas: (input: unknown) => ipcRenderer.invoke(IPC.relatorios.carneParcelas, input),
@@ -194,6 +203,8 @@ const api = {
     resultados: (input: unknown) => ipcRenderer.invoke(IPC.relacionamento.resultados, input),
     abrirWhatsapp: (input: unknown) => ipcRenderer.invoke(IPC.relacionamento.abrirWhatsapp, input),
     marcarContatado: (input: unknown) => ipcRenderer.invoke(IPC.relacionamento.marcarContatado, input),
+    contatados: () => ipcRenderer.invoke(IPC.relacionamento.contatados),
+    desfazerContato: (input: unknown) => ipcRenderer.invoke(IPC.relacionamento.desfazerContato, input),
     definirAceitaContato: (input: unknown) => ipcRenderer.invoke(IPC.relacionamento.definirAceitaContato, input),
     modelosObter: () => ipcRenderer.invoke(IPC.relacionamento.modelosObter),
     modelosSalvar: (input: unknown) => ipcRenderer.invoke(IPC.relacionamento.modelosSalvar, input)

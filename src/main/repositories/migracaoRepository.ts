@@ -3,6 +3,8 @@ import type { SituacaoOS } from '@shared/types'
 import { temMojibake } from '@main/migracao/transformar'
 import { DESCRICAO_PRODUTO_IMPORTADO } from '@shared/importacao'
 import { maiusculo, maiusculoOuNulo } from '@shared/texto'
+import { converterLegado } from '@shared/prescricao'
+import { laboratorioRepository } from '@main/repositories/laboratorioRepository'
 import type { CampoDataExame, DetalhesExamePendencia, OsAntigasAbertas } from '@shared/importacao'
 import type { ClienteExistente } from '@main/migracao/analisar'
 
@@ -200,6 +202,27 @@ export function importarExame(dados: ExameTransformado, produtoGenericoId: numbe
       })
     const receitaId = Number(infoReceita.lastInsertRowid)
 
+    // A prescricao importada nasce no formato antigo (perto gravado, uma adicao so): converte
+    // com a mesma regra da migracao 014, para entrar no formato atual quando o perto e Longe + Adicao.
+    const conversao = converterLegado({
+      longeOdEsf: dados.longeOdEsf, longeOdCil: dados.longeOdCil, longeOdEixo: dados.longeOdEixo, longeOdDnp: dados.longeOdDnp,
+      longeOeEsf: dados.longeOeEsf, longeOeCil: dados.longeOeCil, longeOeEixo: dados.longeOeEixo, longeOeDnp: dados.longeOeDnp,
+      pertoOdEsf: dados.pertoOdEsf, pertoOdCil: dados.pertoOdCil, pertoOdEixo: dados.pertoOdEixo, pertoOdDnp: dados.pertoOdDnp,
+      pertoOeEsf: dados.pertoOeEsf, pertoOeCil: dados.pertoOeCil, pertoOeEixo: dados.pertoOeEixo, pertoOeDnp: dados.pertoOeDnp,
+      adicao: dados.adicao
+    })
+    db.prepare(
+      `UPDATE receita_optica SET adicao_od = :adicaoOd, adicao_oe = :adicaoOe, dp_longe = :dpLonge, dp_perto = :dpPerto,
+         formato_anterior = :formatoAnterior WHERE id = :id`
+    ).run({
+      id: receitaId,
+      adicaoOd: conversao.adicaoOd,
+      adicaoOe: conversao.adicaoOe,
+      dpLonge: conversao.dpLonge,
+      dpPerto: conversao.dpPerto,
+      formatoAnterior: conversao.formatoAnterior ? 1 : 0
+    })
+
     const infoVenda = db
       .prepare(
         `INSERT INTO venda (
@@ -244,10 +267,10 @@ export function importarExame(dados: ExameTransformado, produtoGenericoId: numbe
 
     db.prepare(
       `INSERT INTO ordem_servico (
-         numero, venda_id, cliente_id, receita_optica_id, laboratorio, situacao,
+         numero, venda_id, cliente_id, receita_optica_id, laboratorio, laboratorio_id, situacao,
          data_abertura, data_envio, data_chegada, data_entrega
        ) VALUES (
-         :numero, :vendaId, :clienteId, :receitaId, :laboratorio, :situacao,
+         :numero, :vendaId, :clienteId, :receitaId, :laboratorio, :laboratorioId, :situacao,
          :dataAbertura, :dataEnvio, :dataChegada, :dataEntrega
        )`
     ).run({
@@ -256,6 +279,8 @@ export function importarExame(dados: ExameTransformado, produtoGenericoId: numbe
       clienteId: dados.clienteId,
       receitaId,
       laboratorio: dados.laboratorio,
+      // O laboratorio do sistema antigo vira (ou acha) um cadastro, para a OS importada ja nascer vinculada.
+      laboratorioId: laboratorioRepository.garantirPorNome(dados.laboratorio)?.id ?? null,
       situacao: dados.situacaoOS,
       dataAbertura: dados.dataExame,
       dataEnvio: dados.dataEnvio,
@@ -537,7 +562,13 @@ export function corrigirTextosExame(vendaId: number, descricaoItem: string, labo
     | { id: number; receita_optica_id: number | null }
     | undefined
   if (os) {
-    mudou = corrigirCampos('ordem_servico', os.id, { laboratorio }) || mudou
+    const textoLabMudou = corrigirCampos('ordem_servico', os.id, { laboratorio })
+    mudou = textoLabMudou || mudou
+    if (textoLabMudou) {
+      // O vinculo acompanha o texto corrigido (senao a tela, que mostra o nome do cadastro, continuaria com o nome quebrado).
+      const lab = laboratorioRepository.garantirPorNome(laboratorio)
+      if (lab) db.prepare('UPDATE ordem_servico SET laboratorio_id = :labId WHERE id = :id').run({ labId: lab.id, id: os.id })
+    }
 
     // O profissional e criado "por nome": se o nome antigo veio quebrado, a receita passa a apontar para o certo.
     if (os.receita_optica_id && medico?.trim()) {

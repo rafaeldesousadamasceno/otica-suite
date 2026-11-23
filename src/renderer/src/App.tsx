@@ -16,6 +16,7 @@ import { VendasPage } from '@renderer/routes/shared/VendasPage'
 import { ContasReceberPage } from '@renderer/routes/shared/ContasReceberPage'
 import { EstoquePage } from '@renderer/routes/shared/EstoquePage'
 import { FornecedoresPage } from '@renderer/routes/admin/FornecedoresPage'
+import { LaboratoriosPage } from '@renderer/routes/admin/LaboratoriosPage'
 import { ComprasPage } from '@renderer/routes/admin/ComprasPage'
 import { ContasPagarPage } from '@renderer/routes/admin/ContasPagarPage'
 import { CaixaPage } from '@renderer/routes/admin/CaixaPage'
@@ -142,6 +143,7 @@ export default function App(): ReactNode {
               <Route path="/lucro-prejuizo" element={<LucroPrejuizoPage />} />
               <Route path="/relatorios" element={<RelatoriosPage />} />
               <Route path="/fornecedores" element={<FornecedoresPage />} />
+              <Route path="/laboratorios" element={<LaboratoriosPage />} />
               <Route path="/compras" element={<ComprasPage />} />
               <Route path="/usuarios" element={<UsuariosPage />} />
               <Route path="/configuracoes" element={<ConfiguracoesPage />} />

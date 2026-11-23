@@ -2,6 +2,10 @@ import { z } from 'zod'
 import { MOTIVOS_CONTATO, UNIDADE_PADRAO } from './types'
 import { PRESETS_PERIODO, validarPeriodo } from './periodos'
 import { CAMPOS_DATA_EXAME, TIPOS_PENDENCIA } from './importacao'
+import { BASES_PRISMA } from './prescricao'
+import { cnpjValido, digitosCnpj } from './cnpj'
+import { digitosTelefoneCompleto, telefoneValido } from './telefone'
+import { validarFaixaDeGrau } from './dioptria'
 
 /**
  * Contrato de IPC: os nomes de canal moram em `ipcChannels.ts` (sem
@@ -186,76 +190,83 @@ export type AniversariantesQuery = z.infer<typeof aniversariantesQuerySchema>
 // Receita optica (RF-05)
 // ---------------------------------------------------------------------
 
-// Grau em passos de 0,25 (RN-03); eixo entre 0 e 180. Aceita vazio (campo
-// nao preenchido) mas nunca um valor fora da faixa clinica.
-const grauEsfCil = z
-  .union([z.string(), z.number()])
-  .transform((v) => (v === '' || v === null || v === undefined ? null : Number(String(v).replace(',', '.'))))
-  .refine((v) => v === null || Number.isFinite(v), 'Valor de grau inválido')
-  .refine((v) => v === null || Math.abs(v * 4 - Math.round(v * 4)) < 1e-6, 'Use passos de 0,25')
-  .nullable()
+// Prescricao ("receita optica" no codigo): aqui so a FORMA dos dados; as faixas
+// clinicas (esferico, DNP, grade da armacao...) e as regras entre campos moram em
+// shared/prescricao.ts e o service as confere. Numero aceita virgula decimal e vazio (null).
+const numeroOpcional = (rotulo: string) =>
+  z
+    .union([z.string(), z.number(), z.null()])
+    .transform((v) => (v === '' || v === null ? null : Number(String(v).trim().replace(',', '.'))))
+    .refine((v) => v === null || Number.isFinite(v), `${rotulo} inválido`)
 
-const eixo = z
-  .union([z.string(), z.number()])
-  .transform((v) => (v === '' || v === null || v === undefined ? null : Number(v)))
-  .refine((v) => v === null || (Number.isInteger(v) && v >= 0 && v <= 180), 'O eixo vai de 0° a 180°')
-  .nullable()
-
-const dnp = z
-  .union([z.string(), z.number()])
-  .transform((v) => (v === '' || v === null || v === undefined ? null : Number(String(v).replace(',', '.'))))
-  .refine((v) => v === null || Number.isFinite(v), 'DNP inválido')
-  .nullable()
-
-// DP por olho (migracao 008): mesma regra do DNP. Opcional para continuar
-// aceitando payloads de antes do campo existir.
-const dp = z
-  .union([z.string(), z.number()])
-  .transform((v) => (v === '' || v === null || v === undefined ? null : Number(String(v).replace(',', '.'))))
-  .refine((v) => v === null || Number.isFinite(v), 'DP inválido')
-  .nullable()
-  .optional()
+const textoOpcional = z.string().trim().optional().nullable().or(z.literal(''))
 
 export const receitaOpticaInputSchema = z.object({
   clienteId: z.number().int().positive(),
-  profissionalNome: z.string().trim().optional().nullable().or(z.literal('')),
+  profissionalNome: textoOpcional,
   dataExame: z.string().trim().length(10, 'Informe a data do exame'), // YYYY-MM-DD
 
-  longeOdEsf: grauEsfCil,
-  longeOdCil: grauEsfCil,
-  longeOdEixo: eixo,
-  longeOdDnp: dnp,
-  longeOdDp: dp,
-  longeOeEsf: grauEsfCil,
-  longeOeCil: grauEsfCil,
-  longeOeEixo: eixo,
-  longeOeDnp: dnp,
-  longeOeDp: dp,
+  longeOdEsf: numeroOpcional('Esférico'),
+  longeOdCil: numeroOpcional('Cilíndrico'),
+  longeOdEixo: numeroOpcional('Eixo'),
+  longeOdDnp: numeroOpcional('DNP'),
+  longeOdAlt: numeroOpcional('Altura'),
+  longeOdPrisma: numeroOpcional('Prisma'),
+  longeOdBasePrisma: z.enum(BASES_PRISMA).default('NENHUM'),
+  adicaoOd: numeroOpcional('Adição'),
+  pertoOdDnp: numeroOpcional('DNP de perto'),
 
-  pertoOdEsf: grauEsfCil,
-  pertoOdCil: grauEsfCil,
-  pertoOdEixo: eixo,
-  pertoOdDnp: dnp,
-  pertoOdDp: dp,
-  pertoOeEsf: grauEsfCil,
-  pertoOeCil: grauEsfCil,
-  pertoOeEixo: eixo,
-  pertoOeDnp: dnp,
-  pertoOeDp: dp,
+  longeOeEsf: numeroOpcional('Esférico'),
+  longeOeCil: numeroOpcional('Cilíndrico'),
+  longeOeEixo: numeroOpcional('Eixo'),
+  longeOeDnp: numeroOpcional('DNP'),
+  longeOeAlt: numeroOpcional('Altura'),
+  longeOePrisma: numeroOpcional('Prisma'),
+  longeOeBasePrisma: z.enum(BASES_PRISMA).default('NENHUM'),
+  adicaoOe: numeroOpcional('Adição'),
+  pertoOeDnp: numeroOpcional('DNP de perto'),
 
-  adicao: grauEsfCil,
-  // Legado (migracao 008): o formulario nao envia mais.
-  altura: dnp.optional(),
-  tipoLente: z.string().trim().optional().nullable().or(z.literal('')),
-  tratamentos: z.string().trim().optional().nullable().or(z.literal('')),
-  armacao: z.string().trim().optional().nullable().or(z.literal('')),
-  observacao: z.string().trim().optional().nullable().or(z.literal(''))
+  tipoLente: textoOpcional,
+  indiceRefracao: textoOpcional,
+  tratamentos: textoOpcional,
+  armacaoTipo: textoOpcional,
+  armacaoModelo: textoOpcional,
+  armacaoMarca: textoOpcional,
+  armacaoCor: textoOpcional,
+
+  ponte: numeroOpcional('Ponte'),
+  horizontal: numeroOpcional('Horizontal'),
+  vertical: numeroOpcional('Vertical'),
+  diagonalMaior: numeroOpcional('Diagonal Maior'),
+
+  observacao: textoOpcional
 })
 export type ReceitaOpticaInput = z.infer<typeof receitaOpticaInputSchema>
 
-/** Edicao de uma receita ja salva: os mesmos campos da criacao, mais o id. O cliente nao muda. */
+/** Edicao de uma prescricao ja salva: os mesmos campos da criacao, mais o id. O cliente nao muda. */
 export const receitaOpticaAtualizarSchema = receitaOpticaInputSchema.extend({ id: z.number().int().positive() })
 export type ReceitaOpticaAtualizarInput = z.infer<typeof receitaOpticaAtualizarSchema>
+
+/** Exclusao logica: o registro fica guardado, so some das telas. O motivo e opcional. */
+export const receitaExcluirSchema = z.object({
+  id: z.number().int().positive(),
+  motivo: z.string().trim().max(200).optional().nullable()
+})
+export type ReceitaExcluirInput = z.infer<typeof receitaExcluirSchema>
+
+/** Impressao da prescricao. `exibirDp` e a preferencia deste computador (a tela manda; o main nao a conhece). */
+export const prescricaoImprimirSchema = z.object({
+  id: z.number().int().positive(),
+  exibirDp: z.boolean().optional()
+})
+export type PrescricaoImprimirInput = z.infer<typeof prescricaoImprimirSchema>
+
+/** Impressao da OS (leva a prescricao junto, entao tambem depende de `exibirDp`). */
+export const ordemServicoImprimirSchema = z.object({
+  id: z.number().int().positive(),
+  exibirDp: z.boolean().optional()
+})
+export type OrdemServicoImprimirInput = z.infer<typeof ordemServicoImprimirSchema>
 
 export const receitaListByClienteSchema = z.object({ clienteId: z.number().int().positive() })
 export type ReceitaListByClienteInput = z.infer<typeof receitaListByClienteSchema>
@@ -266,10 +277,22 @@ export type ReceitaListByClienteInput = z.infer<typeof receitaListByClienteSchem
 
 const dataOpcional = z.string().trim().length(10).optional().nullable().or(z.literal(''))
 
+/** Contato do entregador: so os digitos, 10 ou 11 (RG-05); vazio e permitido. */
+const telefoneDigitos = z
+  .string()
+  .trim()
+  .optional()
+  .nullable()
+  .transform((v) => digitosTelefoneCompleto(v) || null)
+  .refine((v) => telefoneValido(v), 'Informe o telefone com DDD: 10 ou 11 dígitos')
+
 export const ordemServicoCreateSchema = z.object({
   clienteId: z.number().int().positive(),
   receitaOpticaId: z.number().int().positive().optional().nullable(),
-  laboratorio: z.string().trim().optional().nullable().or(z.literal('')),
+  /** Laboratorio do cadastro (so ativos). */
+  laboratorioId: z.number().int().positive().optional().nullable(),
+  entregadorNome: z.string().trim().max(80).optional().nullable().or(z.literal('')),
+  entregadorContato: telefoneDigitos,
   dataPrevisao: dataOpcional,
   observacao: z.string().trim().optional().nullable().or(z.literal(''))
 })
@@ -290,7 +313,10 @@ export type OrdemServicoCancelarInput = z.infer<typeof ordemServicoCancelarSchem
 
 export const ordemServicoAtualizarDatasSchema = z.object({
   id: z.number().int().positive(),
-  laboratorio: z.string().trim().optional().nullable().or(z.literal('')),
+  /** Ausente = nao mexe no laboratorio; null = tira o laboratorio. */
+  laboratorioId: z.number().int().positive().optional().nullable(),
+  entregadorNome: z.string().trim().max(80).optional().nullable().or(z.literal('')),
+  entregadorContato: telefoneDigitos,
   dataPrevisao: dataOpcional,
   observacao: z.string().trim().optional().nullable().or(z.literal(''))
 })
@@ -358,6 +384,11 @@ export const produtoInputSchema = z.object({
     .transform((v) => (v === '' || v === null || v === undefined ? null : Number(String(v).replace(',', '.'))))
     .nullable()
     .optional()
+}).superRefine((d, ctx) => {
+  // Grau minimo e maximo so valem para lente (nas demais categorias sao ignorados); o minimo nunca passa do maximo.
+  if (d.categoria !== 'lente') return
+  const problema = validarFaixaDeGrau(d.lenteGrauMin ?? null, d.lenteGrauMax ?? null)
+  if (problema) ctx.addIssue({ code: 'custom', message: problema.mensagem, path: [problema.campo === 'min' ? 'lenteGrauMin' : 'lenteGrauMax'] })
 })
 export type ProdutoInput = z.infer<typeof produtoInputSchema>
 
@@ -488,6 +519,70 @@ export const fornecedoresListQuerySchema = z.object({
   apenasAtivos: z.boolean().optional()
 })
 export type FornecedoresListQuery = z.infer<typeof fornecedoresListQuerySchema>
+
+// ---------------------------------------------------------------------
+// Laboratorios (cadastro; a OS escolhe um)
+// ---------------------------------------------------------------------
+
+const textoOpc = z.string().trim().optional().nullable().or(z.literal(''))
+
+const telefoneLab = (rotulo: string) =>
+  z
+    .string()
+    .trim()
+    .optional()
+    .nullable()
+    .transform((v) => digitosTelefoneCompleto(v) || null)
+    .refine((v) => telefoneValido(v), `${rotulo}: informe DDD e número (10 ou 11 dígitos)`)
+
+export const laboratorioInputSchema = z.object({
+  nome: z.string().trim().min(1, 'Informe o nome do laboratório').max(80, 'O nome tem no máximo 80 caracteres'),
+  razaoSocial: textoOpc,
+  cnpj: z
+    .string()
+    .trim()
+    .optional()
+    .nullable()
+    .transform((v) => digitosCnpj(v) || null)
+    .refine((v) => v === null || cnpjValido(v), 'CNPJ inválido'),
+  telefone: telefoneLab('Telefone'),
+  whatsapp: telefoneLab('WhatsApp'),
+  email: z
+    .string()
+    .trim()
+    .optional()
+    .nullable()
+    .transform((v) => v || null)
+    .refine((v) => v === null || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v), 'E-mail inválido'),
+  endereco: textoOpc,
+  contatoResponsavel: textoOpc,
+  prazoMedioDias: z
+    .union([z.string(), z.number(), z.null()])
+    .optional()
+    .transform((v) => (v === undefined || v === null || v === '' ? null : Number(v)))
+    .refine((v) => v === null || (Number.isInteger(v) && v >= 0 && v <= 365), 'O prazo vai de 0 a 365 dias'),
+  observacoes: textoOpc
+})
+export type LaboratorioInput = z.infer<typeof laboratorioInputSchema>
+
+export const laboratorioUpdateSchema = z.object({ id: z.number().int().positive(), dados: laboratorioInputSchema })
+export type LaboratorioUpdateInput = z.infer<typeof laboratorioUpdateSchema>
+
+export const laboratorioSetAtivoSchema = z.object({ id: z.number().int().positive(), ativo: z.boolean() })
+export type LaboratorioSetAtivoInput = z.infer<typeof laboratorioSetAtivoSchema>
+
+export const laboratorioExcluirSchema = z.object({
+  id: z.number().int().positive(),
+  motivo: z.string().trim().max(200).optional().nullable()
+})
+export type LaboratorioExcluirInput = z.infer<typeof laboratorioExcluirSchema>
+
+export const laboratoriosListQuerySchema = z.object({
+  busca: z.string().trim().optional(),
+  /** Padrao: so os ativos (o que a OS oferece). A tela de cadastro pede todos. */
+  apenasAtivos: z.boolean().optional()
+})
+export type LaboratoriosListQuery = z.infer<typeof laboratoriosListQuerySchema>
 
 // ---------------------------------------------------------------------
 // Compras (RF-09)
@@ -694,7 +789,9 @@ export const listaValorTipoSchema = z.object({
     'tratamento_lente',
     'laboratorio',
     'categoria_despesa',
-    'unidade_medida'
+    'unidade_medida',
+    'indice_refracao',
+    'tipo_armacao'
   ])
 })
 export type ListaValorTipoInput = z.infer<typeof listaValorTipoSchema>
@@ -749,6 +846,9 @@ export const contatoMarcarSchema = contatoRefSchema.extend({
   observacao: z.string().trim().max(300).optional()
 })
 export type ContatoMarcarInput = z.infer<typeof contatoMarcarSchema>
+
+export const contatoDesfazerSchema = z.object({ id: z.number().int().positive() })
+export type ContatoDesfazerInput = z.infer<typeof contatoDesfazerSchema>
 
 export const aceitaContatoSchema = z.object({
   clienteId: z.number().int().positive(),
