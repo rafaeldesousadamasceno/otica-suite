@@ -29,6 +29,7 @@ export function montarHtmlEstoque(titulo: string, itens: EstoqueItem[], empresa:
       { label: 'Produto' },
       { label: 'Categoria' },
       { label: 'Marca' },
+      { label: 'Unidade' },
       { label: 'Saldo', alinhar: 'direita' },
       { label: 'Estoque Mínimo', alinhar: 'direita' },
       { label: 'Situação' }
@@ -37,6 +38,7 @@ export function montarHtmlEstoque(titulo: string, itens: EstoqueItem[], empresa:
       texto(i.descricao),
       texto(ROTULO_CATEGORIA[i.categoria] ?? i.categoria),
       texto(i.marca),
+      texto(i.unidade),
       String(i.saldo),
       String(i.estoqueMinimo),
       badge(situacao(i), TOM_SITUACAO[situacao(i)])

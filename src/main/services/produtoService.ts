@@ -1,5 +1,6 @@
 import { produtoRepository } from '@main/repositories/produtoRepository'
 import { auditoriaRepository } from '@main/repositories/auditoriaRepository'
+import { unidadeMedidaService } from '@main/services/unidadeMedidaService'
 import { requirePermissao, requireSessao } from '@main/auth/session'
 import { possuiPermissao } from '@shared/permissions'
 import { Errors } from '@main/errors'
@@ -29,8 +30,9 @@ export const produtoService = {
     return redigirSeNecessario(produto, sessao.usuario.perfil)
   },
 
-  criar(input: ProdutoInput): Produto {
+  criar(entrada: ProdutoInput): Produto {
     const sessao = requirePermissao('produtos', 'criar')
+    const input = { ...entrada, unidade: unidadeMedidaService.validarParaProduto(entrada.unidade) }
 
     if (input.codigoBarras && produtoRepository.codigoBarrasEmUsoPorOutro(input.codigoBarras)) {
       throw Errors.conflito('Já existe um produto com este código de barras.')
@@ -49,10 +51,11 @@ export const produtoService = {
     return produtoRepository.buscarPorId(id)!
   },
 
-  atualizar(id: number, input: ProdutoInput): Produto {
+  atualizar(id: number, entrada: ProdutoInput): Produto {
     const sessao = requirePermissao('produtos', 'editar')
     const antes = produtoRepository.buscarPorId(id)
     if (!antes) throw Errors.naoEncontrado('Produto')
+    const input = { ...entrada, unidade: unidadeMedidaService.validarParaProduto(entrada.unidade, antes.unidade) }
 
     if (
       input.codigoBarras &&

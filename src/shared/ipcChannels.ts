@@ -81,6 +81,12 @@ export const IPC = {
   listasValor: {
     listByTipo: 'listasValor:listByTipo'
   },
+  unidadesMedida: {
+    list: 'unidadesMedida:list',
+    create: 'unidadesMedida:create',
+    update: 'unidadesMedida:update',
+    setAtivo: 'unidadesMedida:setAtivo'
+  },
   auditoria: {
     list: 'auditoria:list'
   },

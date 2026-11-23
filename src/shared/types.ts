@@ -654,6 +654,8 @@ export interface ListaValorItem {
   id: number
   tipo: string
   valor: string
+  /** So a lista de unidades de medida usa (o que a sigla significa); nas outras e null. */
+  descricao: string | null
   ordem: number
   ativo: boolean
 }
@@ -665,6 +667,23 @@ export type TipoListaValor =
   | 'tratamento_lente'
   | 'laboratorio'
   | 'categoria_despesa'
+  | 'unidade_medida'
+
+/**
+ * Como o produto e contado no estoque (lista `unidade_medida`). A sigla e o que
+ * fica gravado no produto, por isso nao muda depois de cadastrada.
+ */
+export interface UnidadeMedida {
+  id: number
+  sigla: string
+  descricao: string | null
+  ativo: boolean
+  /** Quantos produtos (ativos ou nao) usam esta sigla. */
+  produtos: number
+}
+
+/** Unidade de todo produto que nao escolhe outra; nao pode ser desativada. */
+export const UNIDADE_PADRAO = 'UN'
 
 export interface AuditoriaEntrada {
   id: number

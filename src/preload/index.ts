@@ -84,6 +84,12 @@ const api = {
   listasValor: {
     listByTipo: (input: unknown) => ipcRenderer.invoke(IPC.listasValor.listByTipo, input)
   },
+  unidadesMedida: {
+    list: () => ipcRenderer.invoke(IPC.unidadesMedida.list),
+    create: (input: unknown) => ipcRenderer.invoke(IPC.unidadesMedida.create, input),
+    update: (input: unknown) => ipcRenderer.invoke(IPC.unidadesMedida.update, input),
+    setAtivo: (input: unknown) => ipcRenderer.invoke(IPC.unidadesMedida.setAtivo, input)
+  },
   auditoria: {
     list: () => ipcRenderer.invoke(IPC.auditoria.list)
   },

@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { MOTIVOS_CONTATO } from './types'
+import { MOTIVOS_CONTATO, UNIDADE_PADRAO } from './types'
 import { PRESETS_PERIODO, validarPeriodo } from './periodos'
 import { CAMPOS_DATA_EXAME, TIPOS_PENDENCIA } from './importacao'
 
@@ -329,7 +329,13 @@ export const produtoInputSchema = z.object({
   modelo: z.string().trim().optional().nullable().or(z.literal('')),
   cor: z.string().trim().optional().nullable().or(z.literal('')),
   tamanho: z.string().trim().optional().nullable().or(z.literal('')),
-  unidade: z.string().trim().min(1).default('UN'),
+  // Sigla da lista de unidades de medida; o service confere se ela esta cadastrada.
+  unidade: z
+    .string()
+    .trim()
+    .min(1, 'Escolha a unidade')
+    .transform((v) => v.toLocaleUpperCase('pt-BR'))
+    .default(UNIDADE_PADRAO),
   custoCentavos: dinheiroCentavos,
   margem: percentual,
   precoVendaCentavos: dinheiroCentavos,
@@ -687,10 +693,45 @@ export const listaValorTipoSchema = z.object({
     'tipo_lente',
     'tratamento_lente',
     'laboratorio',
-    'categoria_despesa'
+    'categoria_despesa',
+    'unidade_medida'
   ])
 })
 export type ListaValorTipoInput = z.infer<typeof listaValorTipoSchema>
+
+// Unidades de medida do produto (cadastro proprio: sigla + descricao)
+
+const descricaoUnidade = z
+  .string()
+  .trim()
+  .min(1, 'Informe a descrição da unidade')
+  .max(30, 'A descrição tem no máximo 30 caracteres')
+  .transform((v) => v.toLocaleUpperCase('pt-BR'))
+
+export const unidadeMedidaInputSchema = z.object({
+  sigla: z
+    .string()
+    .trim()
+    .min(1, 'Informe a sigla da unidade')
+    .max(6, 'A sigla tem no máximo 6 caracteres')
+    .regex(/^[\p{L}\p{N}]+$/u, 'A sigla só pode ter letras e números, sem espaço nem ponto')
+    .transform((v) => v.toLocaleUpperCase('pt-BR')),
+  descricao: descricaoUnidade
+})
+export type UnidadeMedidaInput = z.infer<typeof unidadeMedidaInputSchema>
+
+/** So a descricao muda: a sigla fica gravada nos produtos. */
+export const unidadeMedidaUpdateSchema = z.object({
+  id: z.number().int().positive(),
+  descricao: descricaoUnidade
+})
+export type UnidadeMedidaUpdateInput = z.infer<typeof unidadeMedidaUpdateSchema>
+
+export const unidadeMedidaSetAtivoSchema = z.object({
+  id: z.number().int().positive(),
+  ativo: z.boolean()
+})
+export type UnidadeMedidaSetAtivoInput = z.infer<typeof unidadeMedidaSetAtivoSchema>
 
 // ---------------------------------------------------------------------
 // Relacionamento (lista "quem chamar hoje" + atalho para o WhatsApp)

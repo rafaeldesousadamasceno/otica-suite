@@ -22,6 +22,7 @@ import { registerCaixaIpc } from './caixaIpc'
 import { registerRelatoriosIpc } from './relatoriosIpc'
 import { registerPdfIpc } from './pdfIpc'
 import { registerListasValorIpc } from './listasValorIpc'
+import { registerUnidadesMedidaIpc } from './unidadesMedidaIpc'
 import { registerAuditoriaIpc } from './auditoriaIpc'
 import { registerSistemaIpc } from './sistemaIpc'
 import { registerRelacionamentoIpc } from './relacionamentoIpc'
@@ -51,6 +52,7 @@ export function registerAllIpc(): void {
   registerRelatoriosIpc()
   registerPdfIpc()
   registerListasValorIpc()
+  registerUnidadesMedidaIpc()
   registerAuditoriaIpc()
   registerSistemaIpc()
   registerRelacionamentoIpc()

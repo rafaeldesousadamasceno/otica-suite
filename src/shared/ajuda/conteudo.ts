@@ -352,8 +352,14 @@ export const SECOES_AJUDA: SecaoAjuda[] = [
         itens: [
           'Clique em "Novo produto" (Administrador).',
           'Preencha a descrição e a categoria (Armação, Lente, Acessório ou Serviço). Para Lente aparecem campos extras: material, índice, tipo e faixa de grau.',
+          'Escolha a unidade de medida, que é como o produto é contado no estoque: UN (unidade), PAR, CX (caixa), KIT. Se faltar alguma, clique no "+" ao lado do campo para cadastrar.',
           'Preencha o custo, a margem (%) e o preço de venda.'
         ]
+      },
+      {
+        tipo: 'dica',
+        titulo: 'Unidades de medida',
+        texto: 'O botão "Unidades de medida" (Administrador) lista as unidades com quantos produtos usam cada uma. Ali você cadastra novas, corrige a descrição e desativa as que não usa mais. A sigla não muda depois de cadastrada. Desativar só tira a unidade das opções: os produtos que já a usam continuam com ela. A UN é a padrão e não pode ser desativada.'
       },
       {
         tipo: 'dica',
