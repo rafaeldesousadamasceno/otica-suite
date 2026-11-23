@@ -352,7 +352,7 @@ export const dashboardRepository = {
            SELECT cr.vencimento,
                   cr.valor_centavos - COALESCE((SELECT SUM(r.valor_centavos) FROM recebimento r WHERE r.conta_receber_id = cr.id), 0) AS saldo
            FROM conta_receber cr INNER JOIN venda v ON v.id = cr.venda_id
-           WHERE cr.situacao = 'ABERTA' AND (:vid = 0 OR v.vendedor_id = :vid)
+           WHERE cr.situacao = 'ABERTA' AND cr.tipo = 'CLIENTE' AND (:vid = 0 OR v.vendedor_id = :vid)
          )`
       )
       .get({ hoje, vid }) as { qtd: number; soma: number; vencidasQtd: number; vencidasSoma: number }

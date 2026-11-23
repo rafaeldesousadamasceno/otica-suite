@@ -1,24 +1,40 @@
-import { vendaRepository } from '@main/repositories/vendaRepository'
+import { vendaRepository, type PagamentoResolvido } from '@main/repositories/vendaRepository'
 import { clienteRepository } from '@main/repositories/clienteRepository'
 import { ordemServicoRepository } from '@main/repositories/ordemServicoRepository'
 import { receitaOpticaRepository } from '@main/repositories/receitaOpticaRepository'
 import { configuracaoRepository } from '@main/repositories/configuracaoRepository'
+import { formaPagamentoRepository } from '@main/repositories/formaPagamentoRepository'
+import { bandeiraRepository } from '@main/repositories/bandeiraRepository'
 import { saldoAtualProduto } from '@main/repositories/estoqueRepository'
 import { auditoriaRepository } from '@main/repositories/auditoriaRepository'
 import { requirePermissao } from '@main/auth/session'
-import { resolverAutorizador } from '@main/auth/autorizacaoPontual'
+import { resolverAutorizador, exigirSenhaDoProprioAdmin } from '@main/auth/autorizacaoPontual'
 import { possuiPermissao } from '@shared/permissions'
+import { calcularPagamento, calcularTotaisVenda, comportamentoDoTipo, type BandeiraConfig } from '@shared/vendaCalculo'
+import { hojeLocal } from '@shared/data'
 import { Errors } from '@main/errors'
-import type { VendaDetalhada, VendaResumo } from '@shared/types'
-import type { VendaCancelarInput, VendaCreateInput, VendasListQuery } from '@shared/ipc'
+import type { PreviaExclusaoVenda, VendaDetalhada, VendaResumo } from '@shared/types'
+import type { VendaCancelarInput, VendaCreateInput, VendaExcluirInput, VendasListQuery } from '@shared/ipc'
 
-function calcularTotais(input: VendaCreateInput) {
-  const subtotalCentavos = input.itens.reduce((soma, item) => soma + item.quantidade * item.precoUnitarioCentavos, 0)
-  const descontoItens = input.itens.reduce((soma, item) => soma + item.descontoCentavos, 0)
-  const descontoCentavos = descontoItens + input.descontoAdicionalCentavos
-  const totalCentavos = subtotalCentavos - descontoCentavos
-  const descontoPct = subtotalCentavos > 0 ? (descontoCentavos / subtotalCentavos) * 100 : 0
-  return { subtotalCentavos, descontoCentavos, totalCentavos, descontoPct }
+/**
+ * Resolve cada linha de pagamento: busca a forma (e a bandeira, no cartao) no CADASTRO e calcula tudo de novo.
+ * O que veio da tela (alem da escolha da forma, da bandeira, das parcelas e do valor) nunca e usado.
+ */
+function resolverPagamentos(input: VendaCreateInput, dataVenda: string): PagamentoResolvido[] {
+  return input.pagamentos.map((p) => {
+    const forma = formaPagamentoRepository.configParaVenda(p.formaPagamentoId)
+    if (!forma) throw Errors.validacao('A forma de pagamento escolhida não existe mais ou está inativa. Escolha outra.')
+
+    let bandeira: BandeiraConfig | null = null
+    if (comportamentoDoTipo(forma.tipo) === 'OPERADORA' && p.bandeiraId) {
+      bandeira = bandeiraRepository.configParaVenda(p.bandeiraId)
+      if (!bandeira) throw Errors.validacao('A bandeira escolhida não existe mais ou está inativa. Escolha outra.')
+    }
+
+    const r = calcularPagamento({ forma, valorCentavos: p.valorCentavos, parcelas: p.parcelas, bandeira }, dataVenda)
+    if (!r.ok) throw Errors.validacao(r.erro)
+    return { forma: { id: forma.id, nome: forma.nome, tipo: forma.tipo }, calculado: r.pagamento }
+  })
 }
 
 export const vendaService = {
@@ -70,13 +86,15 @@ export const vendaService = {
       }
     }
 
-    const { subtotalCentavos, descontoCentavos, totalCentavos, descontoPct } = calcularTotais(input)
+    // Os totais saem da funcao pura de shared/vendaCalculo (a mesma da tela): o servidor nunca usa o total que a tela mostrou.
+    const totais = calcularTotaisVenda(input.itens, input.descontoAdicional)
+    if (!totais.ok) throw Errors.validacao(totais.erro)
+    const { subtotalCentavos, descontoCentavos, descontoAdicionalCentavos, totalCentavos, descontoPct } = totais
 
-    if (totalCentavos < 0) {
-      throw Errors.validacao('O desconto não pode ser maior que o total da venda.')
-    }
+    const dataVenda = hojeLocal()
+    const pagamentos = resolverPagamentos(input, dataVenda)
 
-    const somaPagamentos = input.pagamentos.reduce((s, p) => s + p.valorCentavos, 0)
+    const somaPagamentos = pagamentos.reduce((s, p) => s + p.calculado.valorCentavos, 0)
     if (somaPagamentos !== totalCentavos) {
       throw Errors.validacao(
         `A soma dos pagamentos (${somaPagamentos}) precisa ser igual ao total da venda (${totalCentavos}).`
@@ -125,10 +143,14 @@ export const vendaService = {
     const vendaId = vendaRepository.criar(input, {
       vendedorId: sessao.usuario.id,
       autorizadoPorId,
+      dataVenda,
       subtotalCentavos,
       descontoCentavos,
+      descontoAdicional: input.descontoAdicional,
+      descontoAdicionalCentavos,
       totalCentavos,
-      comissaoPercentual
+      comissaoPercentual,
+      pagamentos
     })
 
     // Nunca loga a credencial de autorizacao no rastro de auditoria.
@@ -139,7 +161,7 @@ export const vendaService = {
       acao: 'CRIAR',
       entidade: 'venda',
       entidadeId: vendaId,
-      valorNovo: inputSemCredencial
+      valorNovo: { ...inputSemCredencial, pagamentosCalculados: pagamentos.map((p) => ({ forma: p.forma.nome, ...p.calculado })) }
     })
 
     return vendaRepository.buscarPorId(vendaId)!
@@ -186,5 +208,58 @@ export const vendaService = {
     })
 
     return vendaRepository.buscarPorId(input.id)!
+  },
+
+  /**
+   * 9.6: o que a tela precisa para perguntar antes de excluir: a venda e a lista de bloqueios (vazia = confirmacao
+   * normal; com itens = so passa com a senha do Administrador).
+   */
+  exclusaoPrevia(id: number): PreviaExclusaoVenda {
+    requirePermissao('vendas', 'excluir')
+    const venda = vendaRepository.buscarPorId(id)
+    if (!venda) throw Errors.naoEncontrado('Venda')
+    return {
+      vendaId: venda.id,
+      numero: venda.numero,
+      clienteNome: venda.clienteNome,
+      totalCentavos: venda.totalCentavos,
+      situacao: venda.situacao,
+      bloqueios: vendaRepository.bloqueiosExclusao(id)
+    }
+  },
+
+  /**
+   * 9.6: exclusao logica da venda (so o Administrador), tudo numa transacao. Se houver parcela ja paga, recebivel
+   * ja baixado, pagamento a vista ou OS ligada, o servidor RECUSA a menos que o Administrador digite a PROPRIA
+   * senha (mesmo logado: a confirmacao e digitada, nao so um clique). O que ja entrou no caixa e estornado
+   * com um lancamento compensatorio, como no cancelamento.
+   */
+  async excluir(input: VendaExcluirInput): Promise<void> {
+    const sessao = requirePermissao('vendas', 'excluir')
+    const venda = vendaRepository.buscarPorId(input.id)
+    if (!venda) throw Errors.naoEncontrado('Venda')
+
+    const bloqueios = vendaRepository.bloqueiosExclusao(input.id)
+    let autorizadoPorId: number | null = null
+    if (bloqueios.length > 0) {
+      autorizadoPorId = await exigirSenhaDoProprioAdmin(
+        sessao,
+        input.autorizacaoAdmin,
+        `A venda ${venda.numero} não pode ser excluída sem a sua senha de Administrador: ${bloqueios.map((b) => b.descricao).join(' ')}`
+      )
+    }
+
+    const motivo = input.motivo?.trim() || null
+    vendaRepository.excluir(input.id, { usuarioId: sessao.usuario.id, motivo })
+
+    auditoriaRepository.registrar({
+      usuarioId: sessao.usuario.id,
+      autorizadoPorId,
+      acao: 'EXCLUIR',
+      entidade: 'venda',
+      entidadeId: input.id,
+      valorAnterior: { numero: venda.numero, cliente: venda.clienteNome, totalCentavos: venda.totalCentavos, situacao: venda.situacao },
+      valorNovo: { motivo, bloqueiosLiberados: bloqueios.map((b) => b.descricao) }
+    })
   }
 }

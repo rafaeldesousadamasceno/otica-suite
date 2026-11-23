@@ -32,6 +32,8 @@ export type Recurso =
   | 'estoque.ajustar'
   | 'fornecedores_compras'
   | 'laboratorios'
+  | 'formas_pagamento'
+  | 'bandeiras'
   | 'contas_receber'
   | 'contas_pagar'
   | 'financeiro_caixa'
@@ -72,6 +74,8 @@ export const PERMISSOES: MatrizPermissoes = {
     'estoque.ajustar': SO_VER,
     fornecedores_compras: TUDO,
     laboratorios: TUDO,
+    formas_pagamento: TUDO,
+    bandeiras: TUDO,
     contas_receber: TUDO,
     contas_pagar: TUDO,
     financeiro_caixa: TUDO,
@@ -92,6 +96,9 @@ export const PERMISSOES: MatrizPermissoes = {
     aniversariantes: SO_VER,
     relacionamento: VER_CRIAR_EDITAR,
     vendas: ['ver', 'criar'],
+    // so o que a venda precisa: as formas e bandeiras ATIVAS, para escolher no pagamento
+    formas_pagamento: SO_VER,
+    bandeiras: SO_VER,
     produtos: SO_VER,
     estoque: SO_VER,
     contas_receber: ['ver', 'editar'] // baixa das proprias vendas
@@ -116,6 +123,8 @@ export const RECURSOS_POR_MODULO: Record<Perfil, Recurso[]> = {
     'estoque',
     'fornecedores_compras',
     'laboratorios',
+    'formas_pagamento',
+    'bandeiras',
     'contas_pagar',
     'financeiro_caixa',
     'relatorios_gerenciais',

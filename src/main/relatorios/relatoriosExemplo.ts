@@ -83,7 +83,12 @@ function parcela(id: number, cliente: string, venda: string, vencimento: string,
     valorRecebidoCentavos: recebido,
     vencimento,
     situacao: 'ABERTA',
-    vencida: true
+    vencida: true,
+    tipo: 'CLIENTE',
+    bandeiraNome: null,
+    operadoraParcelas: null,
+    taxaBp: null,
+    brutoCentavos: null
   }
 }
 
@@ -211,6 +216,12 @@ export const VENDA_EXEMPLO: VendaDetalhada = {
   situacao: 'CONCLUIDA',
   subtotalCentavos: 130000,
   descontoCentavos: 10000,
+  descontoAdicionalTipo: 'VALOR',
+  descontoAdicionalValor: 10000,
+  descontoAdicionalCentavos: 10000,
+  acrescimoCentavos: 0,
+  descontoClienteCentavos: 0,
+  totalClienteCentavos: 120000,
   receitaOpticaId: 2,
   autorizadoPorNome: null,
   itens: [
@@ -218,8 +229,16 @@ export const VENDA_EXEMPLO: VendaDetalhada = {
     { id: 2, produtoId: 2, descricao: 'Lente multifocal Varilux', quantidade: 1, precoUnitarioCentavos: 70000, descontoCentavos: 0, totalCentavos: 70000 }
   ],
   pagamentos: [
-    { id: 1, formaPagamento: 'ENTRADA', valorCentavos: 20000, parcelas: 1 },
-    { id: 2, formaPagamento: 'PROMISSÓRIA', valorCentavos: 100000, parcelas: 4 }
+    {
+      id: 1, formaPagamento: 'DINHEIRO', valorCentavos: 20000, parcelas: 1, formaPagamentoId: 1, formaTipo: 'DINHEIRO', comportamento: 'IMEDIATO',
+      bandeiraNome: null, taxaBp: null, descontoClienteBp: 0, descontoClienteCentavos: 0, brutoCentavos: null, liquidoCentavos: null,
+      dataPrevista: null, acrescimoTipo: null, acrescimoValor: 0, acrescimoCentavos: 0, intervaloDias: null
+    },
+    {
+      id: 2, formaPagamento: 'PROMISSÓRIA', valorCentavos: 100000, parcelas: 4, formaPagamentoId: 6, formaTipo: 'PROMISSORIA', comportamento: 'PARCELADO_CLIENTE',
+      bandeiraNome: null, taxaBp: null, descontoClienteBp: 0, descontoClienteCentavos: 0, brutoCentavos: null, liquidoCentavos: null,
+      dataPrevista: null, acrescimoTipo: null, acrescimoValor: 0, acrescimoCentavos: 0, intervaloDias: 30
+    }
   ],
   parcelas: ['2026-12-05', '2027-01-05', '2027-02-05', '2027-03-05'].map((vencimento, i) => ({
     id: i + 1,
@@ -235,7 +254,13 @@ export const VENDA_EXEMPLO: VendaDetalhada = {
     valorRecebidoCentavos: i === 0 ? 25000 : 0,
     vencimento,
     situacao: i === 0 ? ('PAGA' as const) : ('ABERTA' as const),
-    vencida: false
+    vencida: false,
+    tipo: 'CLIENTE' as const,
+    bandeiraNome: null,
+    operadoraParcelas: null,
+    taxaBp: null,
+    brutoCentavos: null
   })),
+  recebiveisOperadora: [],
   comissao: { percentual: 5, valorCentavos: 6000, situacao: 'PROVISIONADA' }
 }

@@ -6,6 +6,7 @@ import { BASES_PRISMA } from './prescricao'
 import { cnpjValido, digitosCnpj } from './cnpj'
 import { digitosTelefoneCompleto, telefoneValido } from './telefone'
 import { validarFaixaDeGrau } from './dioptria'
+import { MAX_PARCELAS_CARTAO, MAX_PARCELAS_CLIENTE, TIPOS_FORMA_PAGAMENTO, comportamentoDoTipo } from './vendaCalculo'
 
 /**
  * Contrato de IPC: os nomes de canal moram em `ipcChannels.ts` (sem
@@ -424,10 +425,16 @@ export const vendaItemInputSchema = z.object({
 })
 export type VendaItemInput = z.infer<typeof vendaItemInputSchema>
 
+/**
+ * Uma linha de pagamento. O servidor busca a forma e a bandeira no cadastro e RECALCULA tudo (acrescimo,
+ * taxa, liquido, parcelas): o que a tela mostrou nao e confiavel, so a escolha da pessoa.
+ */
 export const vendaPagamentoInputSchema = z.object({
-  formaPagamento: z.string().trim().min(1, 'Escolha a forma de pagamento'),
+  formaPagamentoId: z.number().int().positive('Escolha a forma de pagamento'),
   valorCentavos: dinheiroCentavos,
-  parcelas: z.number().int().min(1).max(24)
+  parcelas: z.number().int().min(1).max(MAX_PARCELAS_CLIENTE).default(1),
+  /** So cartao: a bandeira escolhida. */
+  bandeiraId: z.number().int().positive().optional().nullable()
 })
 export type VendaPagamentoInput = z.infer<typeof vendaPagamentoInputSchema>
 
@@ -436,7 +443,13 @@ export const vendaCreateSchema = z.object({
   receitaOpticaId: z.number().int().positive().optional().nullable(),
   ordemServicoId: z.number().int().positive().optional().nullable(),
   itens: z.array(vendaItemInputSchema).min(1, 'Adicione ao menos um item'),
-  descontoAdicionalCentavos: dinheiroCentavos,
+  /** Desconto da venda alem do de cada item: em R$ (valor em centavos) ou em % (valor em pontos-base, 10% = 1000). */
+  descontoAdicional: z
+    .object({
+      tipo: z.enum(['VALOR', 'PERCENTUAL']),
+      valor: z.number().int().min(0, 'Desconto inválido')
+    })
+    .default({ tipo: 'VALOR', valor: 0 }),
   pagamentos: z.array(vendaPagamentoInputSchema).min(1, 'Informe ao menos uma forma de pagamento'),
   /** So preenchido quando um Vendedor precisa de aprovacao (RN-07). */
   autorizacaoAdmin: credencialAdminSchema.optional().nullable()
@@ -458,6 +471,17 @@ export const vendaCancelarSchema = z.object({
 })
 export type VendaCancelarInput = z.infer<typeof vendaCancelarSchema>
 
+/**
+ * Excluir venda (9.6): com bloqueios (parcela paga, recebivel baixado, pagamento a vista, OS vinculada) so passa
+ * com a SENHA do proprio Administrador (`autorizacaoAdmin`); sem bloqueio basta a confirmacao da tela.
+ */
+export const vendaExcluirSchema = z.object({
+  id: z.number().int().positive(),
+  motivo: z.string().trim().max(200, 'O motivo tem no máximo 200 caracteres').optional().nullable(),
+  autorizacaoAdmin: credencialAdminSchema.optional().nullable()
+})
+export type VendaExcluirInput = z.infer<typeof vendaExcluirSchema>
+
 // ---------------------------------------------------------------------
 // Contas a receber (RF-11.1)
 // ---------------------------------------------------------------------
@@ -465,6 +489,8 @@ export type VendaCancelarInput = z.infer<typeof vendaCancelarSchema>
 export const contasReceberListQuerySchema = z.object({
   busca: z.string().trim().optional(),
   situacao: z.enum(['ABERTA', 'PAGA', 'CANCELADA', '']).optional(),
+  /** Vazio = tudo. 'CLIENTE' = o que o cliente deve; 'OPERADORA' = o que a maquininha vai depositar. */
+  tipo: z.enum(['CLIENTE', 'OPERADORA', '']).optional(),
   /** true = so as em aberto que ja passaram do vencimento. */
   apenasVencidas: z.boolean().optional()
 })
@@ -583,6 +609,139 @@ export const laboratoriosListQuerySchema = z.object({
   apenasAtivos: z.boolean().optional()
 })
 export type LaboratoriosListQuery = z.infer<typeof laboratoriosListQuerySchema>
+
+// ---------------------------------------------------------------------
+// Formas de pagamento e bandeiras (Fase 5)
+// ---------------------------------------------------------------------
+
+const inteiroEntre = (min: number, max: number, mensagem: string) =>
+  z
+    .union([z.string(), z.number(), z.null()])
+    .optional()
+    .transform((v) => (v === undefined || v === null || v === '' ? null : Number(v)))
+    .refine((v) => v === null || (Number.isInteger(v) && v >= min && v <= max), mensagem)
+
+export const formaPagamentoInputSchema = z
+  .object({
+    nome: z.string().trim().min(1, 'Informe o nome da forma de pagamento').max(60, 'O nome tem no máximo 60 caracteres'),
+    tipo: z.enum(TIPOS_FORMA_PAGAMENTO, { message: 'Escolha o tipo da forma de pagamento' }),
+    ordem: z.number().int().min(0, 'A ordem vai de 0 a 999').max(999, 'A ordem vai de 0 a 999').default(0),
+    /** So Promissoria, Boleto e Cheque. */
+    maxParcelas: inteiroEntre(1, MAX_PARCELAS_CLIENTE, `O máximo de parcelas vai de 1 a ${MAX_PARCELAS_CLIENTE}`),
+    intervaloDias: inteiroEntre(1, 365, 'O intervalo entre parcelas vai de 1 a 365 dias'),
+    acrescimoTipo: z.enum(['PERCENTUAL', 'VALOR']).optional().nullable(),
+    /** Pontos-base (8,99% = 899) quando PERCENTUAL; centavos quando VALOR. */
+    acrescimoValor: z.number().int().min(0, 'O acréscimo não pode ser negativo').max(100_000_000).optional().nullable()
+  })
+  .superRefine((d, ctx) => {
+    if (comportamentoDoTipo(d.tipo) !== 'PARCELADO_CLIENTE') return
+    if (d.maxParcelas === null) ctx.addIssue({ code: 'custom', path: ['maxParcelas'], message: 'Informe o máximo de parcelas' })
+    if (d.acrescimoTipo === 'PERCENTUAL' && (d.acrescimoValor ?? 0) > 10000) {
+      ctx.addIssue({ code: 'custom', path: ['acrescimoValor'], message: 'O acréscimo em % vai de 0 a 100' })
+    }
+  })
+  .transform((d) => {
+    const parcelado = comportamentoDoTipo(d.tipo) === 'PARCELADO_CLIENTE'
+    const comAcrescimo = parcelado && d.acrescimoTipo && (d.acrescimoValor ?? 0) > 0
+    return {
+      nome: d.nome,
+      tipo: d.tipo,
+      ordem: d.ordem,
+      // So as formas parceladas pelo cliente guardam parcelas, intervalo e acrescimo; as outras ficam limpas.
+      maxParcelas: parcelado ? d.maxParcelas : null,
+      intervaloDias: parcelado ? (d.intervaloDias ?? 30) : 30,
+      acrescimoTipo: comAcrescimo ? d.acrescimoTipo! : null,
+      acrescimoValor: comAcrescimo ? (d.acrescimoValor ?? 0) : 0
+    }
+  })
+export type FormaPagamentoInput = z.infer<typeof formaPagamentoInputSchema>
+
+export const formaPagamentoUpdateSchema = z.object({ id: z.number().int().positive(), dados: formaPagamentoInputSchema })
+export type FormaPagamentoUpdateInput = z.infer<typeof formaPagamentoUpdateSchema>
+
+export const formaPagamentoSetAtivoSchema = z.object({ id: z.number().int().positive(), ativo: z.boolean() })
+export type FormaPagamentoSetAtivoInput = z.infer<typeof formaPagamentoSetAtivoSchema>
+
+export const formaPagamentoExcluirSchema = z.object({
+  id: z.number().int().positive(),
+  motivo: z.string().trim().max(200).optional().nullable()
+})
+export type FormaPagamentoExcluirInput = z.infer<typeof formaPagamentoExcluirSchema>
+
+export const formasPagamentoListQuerySchema = z.object({
+  busca: z.string().trim().optional(),
+  /** Padrao: so as ativas (o que a venda oferece). A tela de cadastro pede todas. */
+  apenasAtivos: z.boolean().optional()
+})
+export type FormasPagamentoListQuery = z.infer<typeof formasPagamentoListQuerySchema>
+
+const pontosBase = (mensagem: string) => z.number().int().min(0, mensagem).max(10000, mensagem)
+const MSG_PARCELAS_FAIXA = `As parcelas vão de 1 a ${MAX_PARCELAS_CARTAO}`
+
+export const bandeiraFaixaInputSchema = z.object({
+  parcelas: z.number().int().min(1, MSG_PARCELAS_FAIXA).max(MAX_PARCELAS_CARTAO, MSG_PARCELAS_FAIXA),
+  taxaBp: pontosBase('A taxa vai de 0% a 100%'),
+  prazoDias: z.number().int().min(0, 'O prazo vai de 0 a 730 dias').max(730, 'O prazo vai de 0 a 730 dias'),
+  descontoClienteBp: pontosBase('O desconto ao cliente vai de 0% a 100%').default(0)
+})
+
+export const bandeiraInputSchema = z
+  .object({
+    nome: z.string().trim().min(1, 'Informe o nome da bandeira').max(60, 'O nome tem no máximo 60 caracteres'),
+    adquirente: z.string().trim().max(60, 'A maquininha tem no máximo 60 caracteres').optional().nullable(),
+    aceitaDebito: z.boolean(),
+    aceitaCredito: z.boolean(),
+    debitoTaxaBp: pontosBase('A taxa do débito vai de 0% a 100%').optional().nullable(),
+    debitoPrazoDias: z.number().int().min(0).max(730, 'O prazo vai de 0 a 730 dias').optional().nullable(),
+    faixas: z.array(bandeiraFaixaInputSchema).max(MAX_PARCELAS_CARTAO).default([])
+  })
+  .superRefine((d, ctx) => {
+    if (!d.aceitaDebito && !d.aceitaCredito) {
+      ctx.addIssue({ code: 'custom', path: ['aceitaDebito'], message: 'Marque se a bandeira aceita débito, crédito ou os dois' })
+    }
+    if (d.aceitaDebito && (d.debitoTaxaBp == null || d.debitoPrazoDias == null)) {
+      ctx.addIssue({ code: 'custom', path: ['debitoTaxaBp'], message: 'Informe a taxa e o prazo de recebimento do débito' })
+    }
+    if (d.aceitaCredito && d.faixas.length === 0) {
+      ctx.addIssue({ code: 'custom', path: ['faixas'], message: 'Cadastre ao menos uma faixa de parcelas do crédito (por exemplo, 1x)' })
+    }
+    const vistas = new Set<number>()
+    for (const f of d.faixas) {
+      if (vistas.has(f.parcelas)) {
+        ctx.addIssue({ code: 'custom', path: ['faixas'], message: `A faixa de ${f.parcelas}x aparece duas vezes` })
+        break
+      }
+      vistas.add(f.parcelas)
+    }
+  })
+  .transform((d) => ({
+    nome: d.nome,
+    adquirente: d.adquirente?.trim() || null,
+    aceitaDebito: d.aceitaDebito,
+    aceitaCredito: d.aceitaCredito,
+    debitoTaxaBp: d.aceitaDebito ? (d.debitoTaxaBp ?? 0) : null,
+    debitoPrazoDias: d.aceitaDebito ? (d.debitoPrazoDias ?? 0) : null,
+    faixas: d.aceitaCredito ? [...d.faixas].sort((a, b) => a.parcelas - b.parcelas) : []
+  }))
+export type BandeiraInput = z.infer<typeof bandeiraInputSchema>
+
+export const bandeiraUpdateSchema = z.object({ id: z.number().int().positive(), dados: bandeiraInputSchema })
+export type BandeiraUpdateInput = z.infer<typeof bandeiraUpdateSchema>
+
+export const bandeiraSetAtivoSchema = z.object({ id: z.number().int().positive(), ativo: z.boolean() })
+export type BandeiraSetAtivoInput = z.infer<typeof bandeiraSetAtivoSchema>
+
+export const bandeiraExcluirSchema = z.object({
+  id: z.number().int().positive(),
+  motivo: z.string().trim().max(200).optional().nullable()
+})
+export type BandeiraExcluirInput = z.infer<typeof bandeiraExcluirSchema>
+
+export const bandeirasListQuerySchema = z.object({
+  busca: z.string().trim().optional(),
+  apenasAtivos: z.boolean().optional()
+})
+export type BandeirasListQuery = z.infer<typeof bandeirasListQuerySchema>
 
 // ---------------------------------------------------------------------
 // Compras (RF-09)
