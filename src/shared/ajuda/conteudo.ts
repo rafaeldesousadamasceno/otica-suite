@@ -434,6 +434,76 @@ export const SECOES_AJUDA: SecaoAjuda[] = [
     ]
   },
   {
+    id: 'formas-pagamento',
+    titulo: 'Formas de pagamento',
+    rotas: ['/formas-pagamento'],
+    soAdmin: true,
+    resumo: 'Cadastro das formas de pagamento da venda e de como cada uma gera o financeiro.',
+    blocos: [
+      {
+        tipo: 'paragrafo',
+        texto:
+          'Cada forma tem nome, tipo, ordem de exibição e se está ativa. O tipo decide o que a venda faz com o dinheiro: Dinheiro, PIX, Transferência e Outro entram como recebidos na data da venda; Cartão de Débito e de Crédito geram um único recebível da operadora (pelo valor líquido, já sem a taxa) e pedem a bandeira; Promissória, Boleto e Cheque geram parcelas do cliente em Contas a Receber.'
+      },
+      {
+        tipo: 'tabela',
+        colunas: ['Tipo', 'O que a venda faz'],
+        linhas: [
+          ['Dinheiro, PIX, Transferência, Outro', 'Recebido na data da venda.'],
+          ['Cartão de Débito, Cartão de Crédito', 'Um recebível da operadora pelo valor líquido. Não vira parcela do cliente e não conta como inadimplência.'],
+          ['Promissória, Boleto, Cheque', 'N parcelas do cliente, até o máximo de parcelas configurado, a cada N dias (padrão 30), com o acréscimo da forma.']
+        ]
+      },
+      {
+        tipo: 'paragrafo',
+        texto:
+          'Nas formas parceladas pelo cliente você define o máximo de parcelas, o intervalo entre elas e o acréscimo (em % ou em R$). O acréscimo é aplicado uma única vez sobre o valor da linha de pagamento (nunca em cada parcela) e aparece explícito no resumo da venda antes de concluir. Exemplo: R$ 900,00 com 5% em 3x vira 3 parcelas de R$ 315,00; R$ 1.000,00 em 3x sem acréscimo vira R$ 333,34 + R$ 333,33 + R$ 333,33 (a diferença de centavos fica na primeira parcela).'
+      },
+      {
+        tipo: 'atencao',
+        titulo: 'Inativar ou excluir',
+        texto:
+          'Forma que já foi usada numa venda não pode ser excluída: use o botão de energia para inativar. Inativa, ela sai da lista das vendas novas e continua aparecendo nas vendas antigas. Mudar o cadastro (nome, tipo, acréscimo) nunca refaz as contas de vendas antigas: cada venda guarda o que foi calculado na hora.'
+      },
+      {
+        tipo: 'dica',
+        titulo: 'O que aconteceu com as formas de antes',
+        texto:
+          'Na atualização, as formas da lista antiga viraram cadastros: À VISTA virou Dinheiro e ENTRADA deixou de ser uma forma especial (a entrada agora é uma linha comum de Dinheiro ou PIX); as duas ficam inativas e a forma DINHEIRO foi criada. CARTÃO ficou inativo porque o sistema não sabe se era débito ou crédito: use Cartão de Débito e Cartão de Crédito, depois de cadastrar as bandeiras. As vendas antigas continuam do jeito que estavam. Confira os tipos das formas que a sua ótica criou.'
+      }
+    ]
+  },
+  {
+    id: 'bandeiras',
+    titulo: 'Bandeiras de cartão',
+    rotas: ['/bandeiras'],
+    soAdmin: true,
+    resumo: 'Bandeiras, taxas e prazos da maquininha, usados nas vendas no cartão.',
+    blocos: [
+      {
+        tipo: 'paragrafo',
+        texto:
+          'Cadastre cada bandeira (Visa, Mastercard, Elo...) com o nome e, se quiser, a maquininha (adquirente), porque a taxa costuma mudar de uma para outra. Marque se aceita débito e/ou crédito. No débito informe a taxa e o prazo de recebimento em dias. No crédito monte a tabela de faixas, de 1x até Nx: cada linha tem a taxa da operadora, o prazo de recebimento e, se a ótica quiser, um desconto ao cliente (com 0% ele não muda nada).'
+      },
+      {
+        tipo: 'paragrafo',
+        texto:
+          'Na venda, a bandeira escolhida mostra só as faixas cadastradas, cada uma com a taxa e o líquido estimado. O sistema gera um único recebível da operadora: líquido = valor menos a taxa da faixa, com vencimento na data da venda mais o prazo da faixa. Exemplo: R$ 900,00 no crédito em 6x com taxa de 8,99% resulta em um recebível de R$ 819,09. As porcentagens aparecem sempre com o valor exato e o símbolo %.'
+      },
+      {
+        tipo: 'atencao',
+        titulo: 'Mudar a taxa não mexe em venda antiga',
+        texto:
+          'Cada venda guarda a bandeira, as parcelas, a taxa aplicada, o valor bruto, o líquido e a data prevista. Alterar a taxa vale só para as vendas novas. Bandeira que já foi usada não pode ser excluída, só inativada.'
+      },
+      {
+        tipo: 'dica',
+        titulo: 'Antes de vender no cartão',
+        texto: 'Sem ao menos uma bandeira ativa com taxa cadastrada, a venda no cartão não consegue ser concluída. A ótica precisa cadastrar as taxas reais da sua maquininha: o sistema não traz taxa pronta.'
+      }
+    ]
+  },
+  {
     id: 'laboratorios',
     titulo: 'Laboratórios',
     rotas: ['/laboratorios'],
