@@ -17,6 +17,7 @@ import type {
   VendaDetalhada,
   ContaReceber,
   ListaValorItem,
+  UnidadeMedida,
   AuditoriaEntrada,
   Fornecedor,
   CompraResumo,
@@ -59,6 +60,9 @@ import type {
   ReceitaOpticaInput,
   ReceitaOpticaAtualizarInput,
   ListaValorTipoInput,
+  UnidadeMedidaInput,
+  UnidadeMedidaUpdateInput,
+  UnidadeMedidaSetAtivoInput,
   OrdemServicoCreateInput,
   OrdemServicoAvancarInput,
   OrdemServicoCancelarInput,
@@ -188,6 +192,12 @@ interface Api {
   }
   listasValor: {
     listByTipo: (input: ListaValorTipoInput) => Promise<ApiResult<ListaValorItem[]>>
+  }
+  unidadesMedida: {
+    list: () => Promise<ApiResult<UnidadeMedida[]>>
+    create: (input: UnidadeMedidaInput) => Promise<ApiResult<UnidadeMedida>>
+    update: (input: UnidadeMedidaUpdateInput) => Promise<ApiResult<UnidadeMedida>>
+    setAtivo: (input: UnidadeMedidaSetAtivoInput) => Promise<ApiResult<void>>
   }
   auditoria: {
     list: () => Promise<ApiResult<AuditoriaEntrada[]>>

@@ -1,6 +1,6 @@
 import { type ReactNode, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { Search, PackagePlus } from 'lucide-react'
+import { Search, PackagePlus, Ruler } from 'lucide-react'
 import { Card } from '@renderer/components/ui/Card'
 import { Input } from '@renderer/components/ui/Input'
 import { Select } from '@renderer/components/ui/Select'
@@ -10,6 +10,7 @@ import { unwrap } from '@renderer/lib/ipc'
 import { useDebouncedValue } from '@renderer/lib/useDebouncedValue'
 import { centavosParaBRL } from '@renderer/lib/dinheiro'
 import { ProdutoFormDialog } from '@renderer/components/ProdutoFormDialog'
+import { UnidadesMedidaDialog } from '@renderer/components/UnidadesMedidaDialog'
 import { useAuthStore } from '@renderer/state/authStore'
 import { possuiPermissao } from '@shared/permissions'
 import type { Produto, CategoriaProduto } from '@shared/types'
@@ -26,6 +27,7 @@ export function ProdutosPage(): ReactNode {
   const [categoria, setCategoria] = useState<CategoriaProduto | ''>('')
   const [novoOpen, setNovoOpen] = useState(false)
   const [produtoEditando, setProdutoEditando] = useState<Produto | null>(null)
+  const [unidadesOpen, setUnidadesOpen] = useState(false)
   const buscaDebounced = useDebouncedValue(busca)
   const sessao = useAuthStore((s) => s.sessao)
   const podeEditar = sessao ? possuiPermissao(sessao.usuario.perfil, 'produtos', 'editar') : false
@@ -42,9 +44,14 @@ export function ProdutosPage(): ReactNode {
       <div className="flex items-center justify-between gap-3">
         <h1 className="text-xl font-semibold text-[var(--ink)]">Produtos</h1>
         {podeEditar && (
-          <Button onClick={() => setNovoOpen(true)}>
-            <PackagePlus className="size-4" /> Novo produto
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="secondary" onClick={() => setUnidadesOpen(true)}>
+              <Ruler className="size-4" /> Unidades de medida
+            </Button>
+            <Button onClick={() => setNovoOpen(true)}>
+              <PackagePlus className="size-4" /> Novo produto
+            </Button>
+          </div>
         )}
       </div>
 
@@ -127,6 +134,7 @@ export function ProdutosPage(): ReactNode {
         onClose={() => setProdutoEditando(null)}
         produtoExistente={produtoEditando ?? undefined}
       />
+      <UnidadesMedidaDialog open={unidadesOpen} onClose={() => setUnidadesOpen(false)} />
     </div>
   )
 }

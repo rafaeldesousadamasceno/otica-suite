@@ -1,5 +1,6 @@
 import { type ReactNode, useEffect, useMemo, useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { Plus } from 'lucide-react'
 import { Dialog } from '@renderer/components/ui/Dialog'
 import { Field } from '@renderer/components/ui/Field'
 import { Input } from '@renderer/components/ui/Input'
@@ -9,8 +10,12 @@ import { unwrap, ApiCallError } from '@renderer/lib/ipc'
 import { produtoInputSchema, type ProdutoInput } from '@shared/ipc'
 import { centavosParaTexto } from '@renderer/lib/dinheiro'
 import { toast } from '@renderer/state/toastStore'
-import type { CategoriaProduto, Produto } from '@shared/types'
+import { UNIDADE_PADRAO, type CategoriaProduto, type Produto } from '@shared/types'
 import { enterAvancaCampo } from '@renderer/lib/enterAvancaCampo'
+import { CHAVE_UNIDADES_MEDIDA, rotuloUnidade, useUnidadesMedida } from '@renderer/lib/unidadesMedida'
+import { NovaUnidadeMedidaForm } from '@renderer/components/NovaUnidadeMedidaForm'
+import { useAuthStore } from '@renderer/state/authStore'
+import { possuiPermissao } from '@shared/permissions'
 
 interface FormState {
   codigo: string
@@ -42,7 +47,7 @@ const VAZIO: FormState = {
   modelo: '',
   cor: '',
   tamanho: '',
-  unidade: 'UN',
+  unidade: UNIDADE_PADRAO,
   custoTexto: '',
   margemTexto: '',
   precoVendaTexto: '',
@@ -86,15 +91,32 @@ interface Props {
 export function ProdutoFormDialog({ open, onClose, produtoExistente }: Props): ReactNode {
   const [form, setForm] = useState<FormState>(VAZIO)
   const [erro, setErro] = useState<string | null>(null)
+  const [novaUnidadeAberta, setNovaUnidadeAberta] = useState(false)
   const queryClient = useQueryClient()
   const editando = Boolean(produtoExistente)
+  const unidades = useUnidadesMedida()
+  const sessao = useAuthStore((s) => s.sessao)
+  const podeCadastrarUnidade = sessao ? possuiPermissao(sessao.usuario.perfil, 'produtos', 'criar') : false
 
   useEffect(() => {
     if (open) {
       setForm(produtoExistente ? produtoParaForm(produtoExistente) : VAZIO)
       setErro(null)
+      setNovaUnidadeAberta(false)
     }
   }, [open, produtoExistente])
+
+  // So as unidades ativas, mais a que o produto ja tem se ela saiu da lista
+  // (desativada depois): sem isso o campo mostraria outra unidade e salvar trocaria a do produto.
+  const opcoesUnidade = useMemo(() => {
+    const todas = unidades.data ?? []
+    const opcoes = todas.filter((u) => u.ativo).map((u) => ({ sigla: u.sigla, rotulo: rotuloUnidade(u) }))
+    if (!opcoes.some((o) => o.sigla === form.unidade)) {
+      const atual = todas.find((u) => u.sigla === form.unidade)
+      opcoes.push({ sigla: form.unidade, rotulo: atual ? `${rotuloUnidade(atual)} (desativada)` : form.unidade })
+    }
+    return opcoes
+  }, [unidades.data, form.unidade])
 
   // Sugestao de preco pelo custo x margem - RN-09 (o usuario ainda pode
   // sobrescrever o preco de venda a mao antes de salvar).
@@ -116,7 +138,7 @@ export function ProdutoFormDialog({ open, onClose, produtoExistente }: Props): R
         modelo: form.modelo,
         cor: form.cor,
         tamanho: form.tamanho,
-        unidade: form.unidade || 'UN',
+        unidade: form.unidade || UNIDADE_PADRAO,
         custoCentavos: form.custoTexto || '0',
         margem: form.margemTexto || '0',
         precoVendaCentavos: form.precoVendaTexto || '0',
@@ -134,6 +156,8 @@ export function ProdutoFormDialog({ open, onClose, produtoExistente }: Props): R
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['produtos'] })
+      // A lista de unidades mostra quantos produtos usam cada uma.
+      queryClient.invalidateQueries({ queryKey: CHAVE_UNIDADES_MEDIDA })
       toast.ok(editando ? 'Produto atualizado.' : 'Produto cadastrado.')
       onClose()
     },
@@ -172,9 +196,44 @@ export function ProdutoFormDialog({ open, onClose, produtoExistente }: Props): R
               <option value="servico">Serviço</option>
             </Select>
           </Field>
-          <Field label="Unidade">
-            <Input value={form.unidade} onChange={(e) => set('unidade', e.target.value)} placeholder="UN" />
+          <Field label="Unidade de medida" hint="Como o produto é contado no estoque">
+            <div className="flex gap-2">
+              <div className="min-w-0 flex-1">
+                <Select value={form.unidade} onChange={(e) => set('unidade', e.target.value)}>
+                  {opcoesUnidade.map((o) => (
+                    <option key={o.sigla} value={o.sigla}>
+                      {o.rotulo}
+                    </option>
+                  ))}
+                </Select>
+              </div>
+              {podeCadastrarUnidade && (
+                <Button
+                  type="button"
+                  variant="secondary"
+                  className="h-9 w-9 shrink-0 px-0"
+                  title="Cadastrar nova unidade de medida"
+                  aria-label="Cadastrar nova unidade de medida"
+                  onClick={() => setNovaUnidadeAberta(true)}
+                >
+                  <Plus className="size-4" />
+                </Button>
+              )}
+            </div>
           </Field>
+          {novaUnidadeAberta && (
+            <div className="rounded-md border border-[var(--rule)] bg-[var(--surface-2)] p-3 sm:col-span-2">
+              <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[var(--ink-3)]">Nova unidade de medida</p>
+              <NovaUnidadeMedidaForm
+                autoFocus
+                onCriada={(u) => {
+                  set('unidade', u.sigla)
+                  setNovaUnidadeAberta(false)
+                }}
+                onCancelar={() => setNovaUnidadeAberta(false)}
+              />
+            </div>
+          )}
           <Field label="Código interno">
             <Input value={form.codigo} onChange={(e) => set('codigo', e.target.value)} />
           </Field>

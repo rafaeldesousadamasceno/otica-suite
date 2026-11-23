@@ -210,6 +210,15 @@ export const produtoRepository = {
     getDb().prepare('UPDATE produto SET ativo = :ativo WHERE id = :id').run({ id, ativo: ativo ? 1 : 0 })
   },
 
+  /** Quantos produtos (ativos ou nao) usam cada sigla de unidade. */
+  contarPorUnidade(): Map<string, number> {
+    const rows = getDb().prepare('SELECT unidade, COUNT(*) AS n FROM produto GROUP BY unidade').all() as {
+      unidade: string
+      n: number
+    }[]
+    return new Map(rows.map((r) => [r.unidade, r.n]))
+  },
+
   /** Reservado para quando a fase F4 (estoque/compras) precisar decidir
    * se um produto pode ser excluido de fato ou so inativado. */
   possuiMovimentacao(id: number): boolean {

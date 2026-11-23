@@ -78,6 +78,7 @@ export function EstoquePage(): ReactNode {
                 <th className="px-4 py-2.5">Descrição</th>
                 <th className="px-4 py-2.5">Categoria</th>
                 <th className="px-4 py-2.5">Marca</th>
+                <th className="px-4 py-2.5">Unidade</th>
                 <th className="px-4 py-2.5 text-right">Saldo</th>
                 <th className="px-4 py-2.5 text-right">Mínimo</th>
                 <th className="w-10"></th>
@@ -94,6 +95,7 @@ export function EstoquePage(): ReactNode {
                       <Badge tone="neutral">{ROTULO_CATEGORIA[item.categoria]}</Badge>
                     </td>
                     <td className="px-4 py-2.5 text-[var(--ink-2)]">{item.marca ?? '—'}</td>
+                    <td className="px-4 py-2.5 font-mono-tab text-[var(--ink-2)]">{item.unidade}</td>
                     <td className="px-4 py-2.5 text-right font-mono-tab">
                       <span className={zerado ? 'font-semibold text-[var(--danger)]' : abaixoMinimo ? 'font-semibold text-[var(--warn)]' : 'text-[var(--ink)]'}>
                         {item.saldo}
@@ -118,7 +120,7 @@ export function EstoquePage(): ReactNode {
 
               {estoque.data?.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="px-4 py-8 text-center text-[var(--ink-3)]">
+                  <td colSpan={7} className="px-4 py-8 text-center text-[var(--ink-3)]">
                     Nenhum produto encontrado.
                   </td>
                 </tr>

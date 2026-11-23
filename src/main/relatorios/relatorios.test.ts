@@ -118,9 +118,10 @@ describe('relatorios financeiros', () => {
 })
 
 describe('relatorios de estoque', () => {
-  it('Posicao de estoque: saldo, minimo e situacao de cada produto', () => {
+  it('Posicao de estoque: saldo, unidade, minimo e situacao de cada produto', () => {
     const html = montarHtmlEstoque('Posição de Estoque', ESTOQUE_EXEMPLO, EMPRESA)
-    esperaTodos(html, ['Posição de Estoque', 'Armação Ray-Ban RB5154', 'Normal', 'Abaixo do mínimo', 'Zerado', 'Ray-Ban'])
+    esperaTodos(html, ['Posição de Estoque', 'Armação Ray-Ban RB5154', 'Normal', 'Abaixo do mínimo', 'Zerado', 'Ray-Ban', 'Unidade'])
+    expect(html).toMatch(/>\s*PAR\s*</)
     esperaTodos(montarHtmlEstoque('Produtos Abaixo do Mínimo', [], EMPRESA), ['Nenhum produto encontrado.'])
   })
 
