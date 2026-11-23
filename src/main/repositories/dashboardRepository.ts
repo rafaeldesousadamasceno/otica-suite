@@ -367,7 +367,7 @@ export const dashboardRepository = {
              FROM (
                SELECT cp.vencimento,
                       cp.valor_centavos - COALESCE((SELECT SUM(pg.valor_centavos) FROM pagamento pg WHERE pg.conta_pagar_id = cp.id), 0) AS saldo
-               FROM conta_pagar cp WHERE cp.situacao = 'ABERTA'
+               FROM conta_pagar cp WHERE cp.situacao = 'ABERTA' AND cp.excluido_em IS NULL
              )`
           )
           .get({ hoje }) as { vencidasQtd: number; vencidasSoma: number; hojeQtd: number; hojeSoma: number })

@@ -393,7 +393,12 @@ export interface ContaPagar {
   valorPagoCentavos: number
   vencimento: string
   situacao: SituacaoContaPagar
+  /** true quando a conta e uma ocorrencia de uma recorrencia (`recorrenciaId` preenchido). */
   recorrente: boolean
+  /** Serie a que pertence (so contas recorrentes). */
+  recorrenciaId: number | null
+  /** Mes a que a ocorrencia se refere, AAAA-MM (so contas recorrentes). */
+  competencia: string | null
   /** true quando `situacao === 'ABERTA'` e o vencimento ja passou. */
   vencida: boolean
 }

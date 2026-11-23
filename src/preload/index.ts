@@ -122,7 +122,12 @@ const api = {
   contasPagar: {
     list: (input: unknown) => ipcRenderer.invoke(IPC.contasPagar.list, input),
     criar: (input: unknown) => ipcRenderer.invoke(IPC.contasPagar.criar, input),
-    pagar: (input: unknown) => ipcRenderer.invoke(IPC.contasPagar.pagar, input)
+    pagar: (input: unknown) => ipcRenderer.invoke(IPC.contasPagar.pagar, input),
+    editar: (input: unknown) => ipcRenderer.invoke(IPC.contasPagar.editar, input),
+    excluir: (input: unknown) => ipcRenderer.invoke(IPC.contasPagar.excluir, input),
+    recorrencias: () => ipcRenderer.invoke(IPC.contasPagar.recorrencias),
+    reajustarRecorrencia: (input: unknown) => ipcRenderer.invoke(IPC.contasPagar.reajustarRecorrencia, input),
+    encerrarRecorrencia: (input: unknown) => ipcRenderer.invoke(IPC.contasPagar.encerrarRecorrencia, input)
   },
   configuracoes: {
     getOperacional: () => ipcRenderer.invoke(IPC.configuracoes.getOperacional),
