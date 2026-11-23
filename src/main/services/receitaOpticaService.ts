@@ -4,27 +4,28 @@ import { profissionalRepository } from '@main/repositories/profissionalRepositor
 import { auditoriaRepository } from '@main/repositories/auditoriaRepository'
 import { requirePermissao } from '@main/auth/session'
 import { Errors } from '@main/errors'
-import { calcularPertoEsf } from '@shared/receitaCalculo'
+import { normalizarPrescricao, validarPrescricao } from '@shared/prescricao'
 import type { ReceitaOptica } from '@shared/types'
-import type { ReceitaOpticaAtualizarInput, ReceitaOpticaInput } from '@shared/ipc'
+import type { ReceitaExcluirInput, ReceitaOpticaAtualizarInput, ReceitaOpticaInput } from '@shared/ipc'
 
 /**
- * RN-02: esferico de perto = esferico de longe + adicao, calculado
- * automaticamente - mas so quando o campo de perto foi deixado em branco.
- * Se o profissional digitou um valor de perto diferente, isso e
- * respeitado (a regra e um atalho, nao uma imposicao).
+ * Prescricao (no codigo, "receita optica"). Antes de gravar: sem cilindro nao ha
+ * eixo e sem prisma a base e "Nenhum" (corrige sozinho); o resto das faixas e
+ * regras (DNP obrigatoria, eixo com cilindro, base com prisma, grade da
+ * armacao...) barra o salvamento com a mensagem do primeiro problema. A tela
+ * mostra todos; aqui fica a garantia para quem salva sem passar por ela.
  *
- * O formulario faz a mesma conta na tela, enquanto se digita a adicao
- * (`calcularPertoEsf`, compartilhada); aqui fica a garantia para quem salva sem
- * passar pela tela (importacao, outro cliente da API).
+ * O Perto nao e gravado: sai de Longe + Adicao quando a prescricao e lida.
  */
-function aplicarCalculoDeAdicao(input: ReceitaOpticaInput): ReceitaOpticaInput {
-  if (input.adicao === null) return input
+function prepararParaGravar<T extends ReceitaOpticaInput>(input: T): T {
+  const dados = normalizarPrescricao(input)
+  const problema = validarPrescricao(dados)[0]
+  if (problema) throw Errors.validacao(problema.mensagem)
+  return dados
+}
 
-  const calculado = { ...input }
-  if (calculado.pertoOdEsf === null) calculado.pertoOdEsf = calcularPertoEsf(calculado.longeOdEsf, input.adicao)
-  if (calculado.pertoOeEsf === null) calculado.pertoOeEsf = calcularPertoEsf(calculado.longeOeEsf, input.adicao)
-  return calculado
+function descreverVinculos(vinculos: { tipo: string; numero: string; situacao: string }[]): string {
+  return vinculos.map((v) => `${v.tipo === 'OS' ? 'OS' : 'Venda'} ${v.numero} (${v.situacao.toLowerCase()})`).join(', ')
 }
 
 export const receitaOpticaService = {
@@ -33,19 +34,19 @@ export const receitaOpticaService = {
     return receitaOpticaRepository.listarPorCliente(clienteId)
   },
 
-  criar(input: ReceitaOpticaInput): ReceitaOptica {
+  criar(entrada: ReceitaOpticaInput): ReceitaOptica {
     const sessao = requirePermissao('receitas_opticas', 'criar')
 
-    if (!clienteRepository.buscarPorId(input.clienteId)) {
+    if (!clienteRepository.buscarPorId(entrada.clienteId)) {
       throw Errors.naoEncontrado('Cliente')
     }
 
-    const profissionalId = input.profissionalNome?.trim()
-      ? profissionalRepository.buscarOuCriarPorNome(input.profissionalNome)
+    const dados = prepararParaGravar(entrada)
+    const profissionalId = dados.profissionalNome?.trim()
+      ? profissionalRepository.buscarOuCriarPorNome(dados.profissionalNome)
       : null
 
-    const dados = aplicarCalculoDeAdicao(input)
-    const versao = receitaOpticaRepository.proximaVersao(input.clienteId)
+    const versao = receitaOpticaRepository.proximaVersao(dados.clienteId)
     const id = receitaOpticaRepository.criar(dados, profissionalId, versao, sessao.usuario.id)
 
     auditoriaRepository.registrar({
@@ -56,41 +57,67 @@ export const receitaOpticaService = {
       valorNovo: dados
     })
 
-    const [criada] = receitaOpticaRepository
-      .listarPorCliente(input.clienteId)
-      .filter((r) => r.id === id)
-    return criada
+    return receitaOpticaRepository.buscarPorId(id)!
   },
 
   /**
-   * Corrige uma receita ja salva (ex.: digitada errado ou salva sem querer).
+   * Corrige uma prescricao ja salva (ex.: digitada errado ou salva sem querer).
    * Mexe no mesmo registro, entao OS e vendas ligadas a ela passam a mostrar o
    * valor corrigido; o valor de antes fica na auditoria.
    */
-  atualizar(input: ReceitaOpticaAtualizarInput): ReceitaOptica {
+  atualizar(entrada: ReceitaOpticaAtualizarInput): ReceitaOptica {
     const sessao = requirePermissao('receitas_opticas', 'editar')
 
-    const atual = receitaOpticaRepository.buscarPorId(input.id)
-    if (!atual) throw Errors.naoEncontrado('Receita')
-    // A receita pertence a um cliente: editar nao a muda de ficha.
-    if (atual.clienteId !== input.clienteId) throw Errors.validacao('Esta receita pertence a outro cliente.')
+    const atual = receitaOpticaRepository.buscarPorId(entrada.id)
+    if (!atual) throw Errors.naoEncontrado('Prescrição')
+    // A prescricao pertence a um cliente: editar nao a muda de ficha.
+    if (atual.clienteId !== entrada.clienteId) throw Errors.validacao('Esta prescrição pertence a outro cliente.')
 
-    const profissionalId = input.profissionalNome?.trim()
-      ? profissionalRepository.buscarOuCriarPorNome(input.profissionalNome)
+    const dados = prepararParaGravar(entrada)
+    const profissionalId = dados.profissionalNome?.trim()
+      ? profissionalRepository.buscarOuCriarPorNome(dados.profissionalNome)
       : null
 
-    const dados = aplicarCalculoDeAdicao(input) as ReceitaOpticaAtualizarInput
     receitaOpticaRepository.atualizar(dados, profissionalId)
 
     auditoriaRepository.registrar({
       usuarioId: sessao.usuario.id,
       acao: 'ATUALIZAR',
       entidade: 'receita_optica',
-      entidadeId: input.id,
+      entidadeId: entrada.id,
       valorAnterior: atual,
       valorNovo: dados
     })
 
-    return receitaOpticaRepository.buscarPorId(input.id)!
+    return receitaOpticaRepository.buscarPorId(entrada.id)!
+  },
+
+  /**
+   * Exclusao logica (RG-02): a prescricao some das telas e continua guardada.
+   * Se uma OS ou venda ainda valida a usa, bloqueia e diz quais sao.
+   */
+  excluir(input: ReceitaExcluirInput): void {
+    const sessao = requirePermissao('receitas_opticas', 'excluir')
+    const atual = receitaOpticaRepository.buscarPorId(input.id)
+    if (!atual) throw Errors.naoEncontrado('Prescrição')
+
+    const vinculos = receitaOpticaRepository.vinculosAtivos(input.id)
+    if (vinculos.length > 0) {
+      throw Errors.conflito(
+        `Esta prescrição não pode ser excluída porque está vinculada a: ${descreverVinculos(vinculos)}. Cancele ou desvincule antes.`
+      )
+    }
+
+    const motivo = input.motivo?.trim() || null
+    receitaOpticaRepository.excluir(input.id, motivo)
+
+    auditoriaRepository.registrar({
+      usuarioId: sessao.usuario.id,
+      acao: 'EXCLUIR',
+      entidade: 'receita_optica',
+      entidadeId: input.id,
+      valorAnterior: atual,
+      valorNovo: motivo ? { motivo } : null
+    })
   }
 }

@@ -223,7 +223,7 @@ export const relacionamentoRepository = {
          FROM cliente c
          INNER JOIN receita_optica r ON r.id = (
            SELECT r2.id FROM receita_optica r2
-           WHERE r2.cliente_id = c.id ORDER BY r2.data_exame DESC, r2.id DESC LIMIT 1
+           WHERE r2.cliente_id = c.id AND r2.excluido_em IS NULL ORDER BY r2.data_exame DESC, r2.id DESC LIMIT 1
          )
          WHERE ${CLIENTE_ATIVO_E_ACEITA}
            AND r.data_exame <= :limiteMax AND r.data_exame > :limiteMin

@@ -1,6 +1,8 @@
 // Tipos de dominio compartilhados entre main e renderer. O renderer nunca
 // importa nada do processo main - so estes tipos e o contrato de IPC.
 
+import type { BasePrisma } from './prescricao'
+
 export type Perfil = 'admin' | 'vendedor'
 
 export interface Usuario {
@@ -121,15 +123,45 @@ export interface ReceitaOptica {
   pertoOeEixo: number | null
   pertoOeDnp: number | null
   pertoOeDp: number | null
+  /** Adicao unica de antes da migracao 014: so leitura. A atual e por olho (`adicaoOd` / `adicaoOe`). */
   adicao: number | null
   /** Legado: nao aparece mais na tela nem no PDF (migracao 008). Mantido para nao perder o dado antigo. */
   altura: number | null
   tipoLente: string | null
   tratamentos: string | null
+  /** Texto livre de antes da migracao 014 (hoje vira `armacaoModelo`); so leitura. */
   armacao: string | null
   observacao: string | null
   versao: number
   criadoEm: string
+
+  // Prescricao no formato atual (migracao 014)
+  longeOdAlt: number | null
+  longeOeAlt: number | null
+  longeOdPrisma: number
+  longeOePrisma: number
+  longeOdBasePrisma: BasePrisma
+  longeOeBasePrisma: BasePrisma
+  adicaoOd: number | null
+  adicaoOe: number | null
+  indiceRefracao: string | null
+  armacaoTipo: string | null
+  armacaoModelo: string | null
+  armacaoMarca: string | null
+  armacaoCor: string | null
+  ponte: number | null
+  horizontal: number | null
+  vertical: number | null
+  diagonalMaior: number | null
+  /** DNP direito + DNP esquerdo; sempre gravada (mostrar ou nao e preferencia do computador). */
+  dpLonge: number | null
+  dpPerto: number | null
+  /**
+   * true = prescricao gravada antes do formato novo cujo perto nao e Longe + Adicao:
+   * `pertoOd*`/`pertoOe*` sao os valores ORIGINAIS, so para leitura. Nas demais,
+   * o perto (esferico, cilindro e eixo) e calculado na leitura e nunca gravado.
+   */
+  formatoAnterior: boolean
 }
 
 /**
@@ -668,6 +700,8 @@ export type TipoListaValor =
   | 'laboratorio'
   | 'categoria_despesa'
   | 'unidade_medida'
+  | 'indice_refracao'
+  | 'tipo_armacao'
 
 /**
  * Como o produto e contado no estoque (lista `unidade_medida`). A sigla e o que

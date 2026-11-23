@@ -11,6 +11,7 @@ import syncBaseSql from './010_sync_base.sql?raw'
 import migracaoPendenciaSql from './011_migracao_pendencia.sql?raw'
 import antirriscoSql from './012_antirrisco.sql?raw'
 import unidadeMedidaSql from './013_unidade_medida.sql?raw'
+import prescricaoSql from './014_prescricao.sql?raw'
 
 export interface Migration {
   version: number
@@ -35,5 +36,6 @@ export const MIGRATIONS: Migration[] = [
   { version: 10, name: 'sync_base', sql: syncBaseSql },
   { version: 11, name: 'migracao_pendencia', sql: migracaoPendenciaSql },
   { version: 12, name: 'antirrisco', sql: antirriscoSql },
-  { version: 13, name: 'unidade_medida', sql: unidadeMedidaSql }
+  { version: 13, name: 'unidade_medida', sql: unidadeMedidaSql },
+  { version: 14, name: 'prescricao', sql: prescricaoSql }
 ]

@@ -59,6 +59,9 @@ import type {
   ReceitaListByClienteInput,
   ReceitaOpticaInput,
   ReceitaOpticaAtualizarInput,
+  ReceitaExcluirInput,
+  PrescricaoImprimirInput,
+  OrdemServicoImprimirInput,
   ListaValorTipoInput,
   UnidadeMedidaInput,
   UnidadeMedidaUpdateInput,
@@ -160,6 +163,7 @@ interface Api {
     listByCliente: (input: ReceitaListByClienteInput) => Promise<ApiResult<ReceitaOptica[]>>
     create: (input: ReceitaOpticaInput) => Promise<ApiResult<ReceitaOptica>>
     update: (input: ReceitaOpticaAtualizarInput) => Promise<ApiResult<ReceitaOptica>>
+    excluir: (input: ReceitaExcluirInput) => Promise<ApiResult<void>>
   }
   ordensServico: {
     list: (input: OrdensServicoQuery) => Promise<ApiResult<OrdemServico[]>>
@@ -272,7 +276,8 @@ interface Api {
     suprimento: (input: CaixaMovimentoInput) => Promise<ApiResult<CaixaAberto>>
   }
   relatorios: {
-    ordemServico: (input: IdInput) => Promise<ApiResult<PdfVisualizacao>>
+    ordemServico: (input: OrdemServicoImprimirInput) => Promise<ApiResult<PdfVisualizacao>>
+    prescricao: (input: PrescricaoImprimirInput) => Promise<ApiResult<PdfVisualizacao>>
     protocoloSaida: (input: OrdensServicoQuery) => Promise<ApiResult<PdfVisualizacao>>
     comprovanteVenda: (input: IdInput) => Promise<ApiResult<PdfVisualizacao>>
     carneParcelas: (input: IdInput) => Promise<ApiResult<PdfVisualizacao>>

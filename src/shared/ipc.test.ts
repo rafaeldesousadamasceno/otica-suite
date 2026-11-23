@@ -41,45 +41,39 @@ describe('produtoInputSchema - dinheiro em formato brasileiro (PRD 10.4: centavo
   })
 })
 
-// Payload como o formulario enviava antes da migracao 008: sem DP e com altura.
-const RECEITA_ANTIGA: Record<string, unknown> = {
+// Payload como o formulario da prescricao envia.
+const PRESCRICAO: Record<string, unknown> = {
   clienteId: 1,
   dataExame: '2026-11-07',
-  adicao: '',
-  altura: '18'
-}
-for (const lado of ['longeOd', 'longeOe', 'pertoOd', 'pertoOe']) {
-  for (const campo of ['Esf', 'Cil', 'Eixo', 'Dnp']) RECEITA_ANTIGA[`${lado}${campo}`] = ''
+  longeOdEsf: -1.25, longeOdCil: -0.5, longeOdEixo: 90, longeOdDnp: 31.5, longeOdAlt: '', longeOdPrisma: 0, longeOdBasePrisma: 'NENHUM', adicaoOd: 2, pertoOdDnp: '',
+  longeOeEsf: 0, longeOeCil: 0, longeOeEixo: '', longeOeDnp: '32', longeOeAlt: '', longeOePrisma: 0, longeOeBasePrisma: 'NENHUM', adicaoOe: 2, pertoOeDnp: '',
+  ponte: '', horizontal: '', vertical: '', diagonalMaior: ''
 }
 
-describe('receitaOpticaInputSchema - DP por olho (migracao 008)', () => {
-  it('aceita DP com virgula e converte para numero', () => {
-    const r = receitaOpticaInputSchema.parse({ ...RECEITA_ANTIGA, longeOdDp: '31,5', pertoOeDp: 30 })
-    expect(r.longeOdDp).toBe(31.5)
-    expect(r.pertoOeDp).toBe(30)
+describe('receitaOpticaInputSchema (prescricao)', () => {
+  it('aceita virgula decimal e converte para numero; vazio vira null', () => {
+    const r = receitaOpticaInputSchema.parse({ ...PRESCRICAO, longeOdDnp: '31,5', ponte: '18,5', pertoOeDnp: '' })
+    expect(r.longeOdDnp).toBe(31.5)
+    expect(r.ponte).toBe(18.5)
+    expect(r.pertoOeDnp).toBeNull()
+    expect(r.longeOdAlt).toBeNull()
   })
 
-  it('DP vazio vira null', () => {
-    const r = receitaOpticaInputSchema.parse({ ...RECEITA_ANTIGA, longeOeDp: '' })
-    expect(r.longeOeDp).toBeNull()
-  })
-
-  it('rejeita DP que nao e numero', () => {
-    const r = receitaOpticaInputSchema.safeParse({ ...RECEITA_ANTIGA, pertoOdDp: 'abc' })
+  it('rejeita medida que nao e numero, dizendo qual', () => {
+    const r = receitaOpticaInputSchema.safeParse({ ...PRESCRICAO, ponte: 'abc' })
     expect(r.success).toBe(false)
-    expect(r.error?.issues[0].message).toBe('DP inválido')
+    expect(r.error?.issues[0].message).toBe('Ponte inválido')
   })
 
-  it('payload antigo, sem DP, continua valido', () => {
-    const r = receitaOpticaInputSchema.parse(RECEITA_ANTIGA)
-    expect(r.longeOdDp).toBeUndefined()
-    expect(r.altura).toBe(18)
+  it('base do prisma fora da lista e rejeitada; sem base vale "Nenhum"', () => {
+    expect(receitaOpticaInputSchema.safeParse({ ...PRESCRICAO, longeOdBasePrisma: 'LATERAL' }).success).toBe(false)
+    const semBase = { ...PRESCRICAO }
+    delete semBase.longeOdBasePrisma
+    expect(receitaOpticaInputSchema.parse(semBase).longeOdBasePrisma).toBe('NENHUM')
   })
 
-  it('formulario novo nao envia altura e continua valido', () => {
-    const semAltura = { ...RECEITA_ANTIGA }
-    delete semAltura.altura
-    const r = receitaOpticaInputSchema.parse(semAltura)
-    expect(r.altura).toBeUndefined()
+  it('campos antigos (perto digitado, DP por olho, adicao unica, armacao em texto) nao fazem parte do formato atual', () => {
+    const r = receitaOpticaInputSchema.parse({ ...PRESCRICAO, pertoOdEsf: 1, longeOdDp: 31, adicao: 2, armacao: 'X' })
+    for (const campo of ['pertoOdEsf', 'longeOdDp', 'adicao', 'armacao']) expect(r).not.toHaveProperty(campo)
   })
 })

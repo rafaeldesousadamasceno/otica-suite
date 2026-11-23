@@ -320,7 +320,7 @@ function ResultadoCard({ resultado }: { resultado: MigracaoResultado }): ReactNo
       </CardHeader>
       <CardBody className="flex flex-col gap-4">
         <p className="text-xs text-[var(--ink-3)]">
-          Cada exame antigo vira uma receita óptica, uma venda e uma ordem de serviço no novo sistema. Backup feito antes:{' '}
+          Cada exame antigo vira uma prescrição, uma venda e uma ordem de serviço no novo sistema. Backup feito antes:{' '}
           <span className="font-mono-tab">{resultado.backupArquivo}</span>
         </p>
 
@@ -329,11 +329,11 @@ function ResultadoCard({ resultado }: { resultado: MigracaoResultado }): ReactNo
           <ResumoItem label="Clientes unidos a outro cadastro" valor={resultado.clientesMesclados} />
           <ResumoItem label="Clientes que já estavam importados" valor={resultado.clientesJaImportados} />
           <ResumoItem label="Clientes com falha" valor={resultado.clientesComFalha} destaque={resultado.clientesComFalha > 0} />
-          <ResumoItem label="Clientes sem nome e sem receita (não importados)" valor={resultado.clientesSemNomeIgnorados} />
-          <ResumoItem label="Clientes sem nome e sem receita removidos" valor={resultado.clientesSemNomeRemovidos} />
+          <ResumoItem label="Clientes sem nome e sem prescrição (não importados)" valor={resultado.clientesSemNomeIgnorados} />
+          <ResumoItem label="Clientes sem nome e sem prescrição removidos" valor={resultado.clientesSemNomeRemovidos} />
           <ResumoItem label="Registros em branco não importados" valor={resultado.registrosVaziosIgnorados} />
           <ResumoItem label="Registros em branco removidos" valor={resultado.registrosVaziosRemovidos} />
-          <ResumoItem label="Receitas ópticas e vendas importadas" valor={resultado.examesImportados} />
+          <ResumoItem label="Prescrições e vendas importadas" valor={resultado.examesImportados} />
           <ResumoItem label="Exames que já estavam importados" valor={resultado.examesJaImportados} />
           <ResumoItem label="Exames com falha" valor={resultado.examesComFalha} destaque={resultado.examesComFalha > 0} />
           <ResumoItem label="Despesas importadas" valor={resultado.despesasImportadas} />

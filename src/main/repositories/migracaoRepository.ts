@@ -3,6 +3,7 @@ import type { SituacaoOS } from '@shared/types'
 import { temMojibake } from '@main/migracao/transformar'
 import { DESCRICAO_PRODUTO_IMPORTADO } from '@shared/importacao'
 import { maiusculo, maiusculoOuNulo } from '@shared/texto'
+import { converterLegado } from '@shared/prescricao'
 import type { CampoDataExame, DetalhesExamePendencia, OsAntigasAbertas } from '@shared/importacao'
 import type { ClienteExistente } from '@main/migracao/analisar'
 
@@ -199,6 +200,27 @@ export function importarExame(dados: ExameTransformado, produtoGenericoId: numbe
         adicao: dados.adicao
       })
     const receitaId = Number(infoReceita.lastInsertRowid)
+
+    // A prescricao importada nasce no formato antigo (perto gravado, uma adicao so): converte
+    // com a mesma regra da migracao 014, para entrar no formato atual quando o perto e Longe + Adicao.
+    const conversao = converterLegado({
+      longeOdEsf: dados.longeOdEsf, longeOdCil: dados.longeOdCil, longeOdEixo: dados.longeOdEixo, longeOdDnp: dados.longeOdDnp,
+      longeOeEsf: dados.longeOeEsf, longeOeCil: dados.longeOeCil, longeOeEixo: dados.longeOeEixo, longeOeDnp: dados.longeOeDnp,
+      pertoOdEsf: dados.pertoOdEsf, pertoOdCil: dados.pertoOdCil, pertoOdEixo: dados.pertoOdEixo, pertoOdDnp: dados.pertoOdDnp,
+      pertoOeEsf: dados.pertoOeEsf, pertoOeCil: dados.pertoOeCil, pertoOeEixo: dados.pertoOeEixo, pertoOeDnp: dados.pertoOeDnp,
+      adicao: dados.adicao
+    })
+    db.prepare(
+      `UPDATE receita_optica SET adicao_od = :adicaoOd, adicao_oe = :adicaoOe, dp_longe = :dpLonge, dp_perto = :dpPerto,
+         formato_anterior = :formatoAnterior WHERE id = :id`
+    ).run({
+      id: receitaId,
+      adicaoOd: conversao.adicaoOd,
+      adicaoOe: conversao.adicaoOe,
+      dpLonge: conversao.dpLonge,
+      dpPerto: conversao.dpPerto,
+      formatoAnterior: conversao.formatoAnterior ? 1 : 0
+    })
 
     const infoVenda = db
       .prepare(

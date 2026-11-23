@@ -97,7 +97,7 @@ export function OrdemServicoFormDialog({ open, onClose, clienteFixo, onCreated }
           )}
         </Field>
 
-        <Field label="Receita óptica vinculada" hint="Opcional - facilita conferir o pedido enviado ao laboratório.">
+        <Field label="Prescrição vinculada" hint="Opcional - facilita conferir o pedido enviado ao laboratório.">
           <Select
             value={receitaOpticaId}
             onChange={(e) => setReceitaOpticaId(e.target.value)}

@@ -29,7 +29,7 @@ const OPCOES_FORMATO: { valor: FormatoNumero; titulo: string; exemplo: string; a
     valor: 'decimal',
     titulo: 'Decimal',
     exemplo: formatarDioptria(1.25, { formato: 'decimal' }),
-    ajuda: 'Como na receita em papel: digite 1,25 e aparece +1,25.'
+    ajuda: 'Como na prescrição em papel: digite 1,25 e aparece +1,25.'
   },
   {
     valor: 'inteiro',
@@ -43,6 +43,8 @@ export function ConfiguracoesPage(): ReactNode {
   const confirmar = useConfirm()
   const formatoNumero = usePreferenciasStore((st) => st.formatoNumero)
   const setFormatoNumero = usePreferenciasStore((st) => st.setFormatoNumero)
+  const exibirDp = usePreferenciasStore((st) => st.exibirDp)
+  const setExibirDp = usePreferenciasStore((st) => st.setExibirDp)
   const queryClient = useQueryClient()
   const empresa = useQuery({ queryKey: ['empresa'], queryFn: () => unwrap(window.api.empresa.get()) })
   const [form, setForm] = useState<EmpresaUpdateInput | null>(null)
@@ -323,6 +325,17 @@ export function ConfiguracoesPage(): ReactNode {
               sempre aparecem com o valor exato e o símbolo %, como 8,99%.
             </p>
           </fieldset>
+
+          <label className="flex items-start gap-2 border-t border-[var(--rule)] pt-3 text-sm text-[var(--ink-2)]">
+            <input type="checkbox" className="mt-0.5" checked={exibirDp} onChange={(e) => setExibirDp(e.target.checked)} />
+            <span>
+              <b className="text-[var(--ink)]">Exibir DP (Distância Pupilar)</b>
+              <span className="block text-xs text-[var(--ink-3)]">
+                Mostra a DP (DNP direito + DNP esquerdo) na prescrição e nas impressões da prescrição e da OS. Desligado, ela some da tela e do
+                papel, mas continua sendo gravada.
+              </span>
+            </span>
+          </label>
         </CardBody>
       </Card>
 

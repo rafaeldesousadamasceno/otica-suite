@@ -187,7 +187,7 @@ describe('outros documentos', () => {
     esperaTodos(montarHtmlProtocoloSaida([], EMPRESA, {}), ['Nenhuma ordem de serviço encontrada.'])
   })
 
-  it('Ordem de servico: dados da OS e receita com DP', () => {
+  it('Ordem de servico: dados da OS e prescricao Direito/Esquerdo, sem DP por padrao', () => {
     const html = montarHtmlOrdemServico(OS_EXEMPLO, RECEITA_EXEMPLO, EMPRESA)
     esperaTodos(html, [
       'Ordem de Serviço 2026-00042',
@@ -195,17 +195,23 @@ describe('outros documentos', () => {
       'Lab Visão',
       '12/11/2026',
       'Cliente prefere retirar à tarde.',
+      'Direito (OD)',
+      'Esquerdo (OE)',
       'DNP',
-      'DP',
       '31,5',
       '-1,25',
-      '+2,00',
+      '+0,75',
+      'Adição 2,00',
       'MULTIFOCAL',
       'Joana Lima',
       'Assinatura do cliente'
     ])
-    // A altura (legado) nao sai mais no PDF.
-    expect(textoVisivel(html)).not.toMatch(/altura/i)
-    esperaTodos(montarHtmlOrdemServico(OS_EXEMPLO, null, EMPRESA), ['Sem receita óptica vinculada.'])
+    expect(textoVisivel(html)).not.toMatch(/DP Longe|DP Perto/)
+    esperaTodos(montarHtmlOrdemServico(OS_EXEMPLO, null, EMPRESA), ['Sem prescrição vinculada.'])
+  })
+
+  it('Ordem de servico: com "Exibir DP" ligado sai a DP somada', () => {
+    const html = montarHtmlOrdemServico(OS_EXEMPLO, RECEITA_EXEMPLO, EMPRESA, { exibirDp: true })
+    esperaTodos(html, ['DP Longe', '63,5 mm', 'DP Perto', '60,5 mm'])
   })
 })

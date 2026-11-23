@@ -47,7 +47,8 @@ export const IPC = {
   receitas: {
     listByCliente: 'receitas:listByCliente',
     create: 'receitas:create',
-    update: 'receitas:update'
+    update: 'receitas:update',
+    excluir: 'receitas:excluir'
   },
   ordensServico: {
     list: 'ordensServico:list',
@@ -161,6 +162,7 @@ export const IPC = {
   },
   relatorios: {
     ordemServico: 'relatorios:ordemServico',
+    prescricao: 'relatorios:prescricao',
     protocoloSaida: 'relatorios:protocoloSaida',
     comprovanteVenda: 'relatorios:comprovanteVenda',
     carneParcelas: 'relatorios:carneParcelas',

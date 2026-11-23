@@ -15,12 +15,12 @@ export const SECOES_AJUDA: SecaoAjuda[] = [
       {
         tipo: 'paragrafo',
         texto:
-          'O OptiAleph é o sistema de gestão da sua ótica: clientes, receitas ópticas, ordens de serviço, vendas, estoque, financeiro e relatórios, tudo integrado. Ele roda direto no computador da loja e não precisa de internet para o uso do dia a dia.'
+          'O OptiAleph é o sistema de gestão da sua ótica: clientes, prescrições, ordens de serviço, vendas, estoque, financeiro e relatórios, tudo integrado. Ele roda direto no computador da loja e não precisa de internet para o uso do dia a dia.'
       },
       {
         tipo: 'paragrafo',
         texto:
-          'Cada pessoa entra com o próprio usuário, e o sistema mostra telas diferentes conforme o perfil. O Administrador tem acesso completo: além do que o Vendedor faz, cuida de estoque, fornecedores e compras, contas a pagar, caixa, relatórios financeiros, usuários, configurações, backup e auditoria. O Vendedor cadastra clientes, receitas e ordens de serviço, faz vendas e recebe parcelas, sempre dentro dos limites definidos pelo Administrador. Ele não vê o custo dos produtos nem os números financeiros da loja, só o que diz respeito às próprias vendas.'
+          'Cada pessoa entra com o próprio usuário, e o sistema mostra telas diferentes conforme o perfil. O Administrador tem acesso completo: além do que o Vendedor faz, cuida de estoque, fornecedores e compras, contas a pagar, caixa, relatórios financeiros, usuários, configurações, backup e auditoria. O Vendedor cadastra clientes, prescrições e ordens de serviço, faz vendas e recebe parcelas, sempre dentro dos limites definidos pelo Administrador. Ele não vê o custo dos produtos nem os números financeiros da loja, só o que diz respeito às próprias vendas.'
       },
       {
         tipo: 'dica',
@@ -148,45 +148,62 @@ export const SECOES_AJUDA: SecaoAjuda[] = [
       {
         tipo: 'atencao',
         titulo: '"Remover" nem sempre apaga',
-        texto: 'Se o cliente nunca comprou nada, ele é excluído de verdade. Se já tem histórico (venda, ordem de serviço ou receita), o sistema só o marca como inativo: ele some das buscas do dia a dia, mas o histórico fica guardado.'
+        texto: 'Se o cliente nunca comprou nada, ele é excluído de verdade. Se já tem histórico (venda, ordem de serviço ou prescrição), o sistema só o marca como inativo: ele some das buscas do dia a dia, mas o histórico fica guardado.'
       }
     ]
   },
   {
     id: 'ficha-cliente',
-    titulo: 'Ficha do cliente e receita óptica',
+    titulo: 'Ficha do cliente e prescrição',
     rotas: ['/clientes/:id'],
-    resumo: 'Receitas, ordens de serviço e vendas de um cliente; como lançar uma receita.',
+    resumo: 'Prescrições, ordens de serviço e vendas de um cliente; como lançar uma prescrição.',
     blocos: [
       {
         tipo: 'paragrafo',
         texto:
-          'Ao clicar num cliente da lista você chega na ficha dele, com os botões "Editar" e "Remover" e três seções: Receitas ópticas, Ordens de Serviço e Vendas, cada uma com o botão para lançar uma nova e o histórico completo.'
+          'Ao clicar num cliente da lista você chega na ficha dele, com os botões "Editar" e "Remover" e três seções: Prescrições, Ordens de Serviço e Vendas, cada uma com o botão para lançar uma nova e o histórico completo.'
       },
-      { tipo: 'paragrafo', texto: 'Lançar uma receita óptica' },
+      { tipo: 'paragrafo', texto: 'Lançar uma prescrição' },
       {
         tipo: 'passos',
         itens: [
-          'Na ficha, clique em "Nova receita".',
+          'Na ficha, clique em "Nova prescrição".',
           'Informe a data do exame e, se quiser, o profissional (optometrista) que atendeu.',
-          'Preencha as duas tabelas, Longe e Perto. Cada uma tem uma linha para o olho direito (OD) e outra para o esquerdo (OE), com as colunas Esférico, Cilíndrico, Eixo, DNP e DP.',
-          'Preencha a Adição e o Tipo de lente, marque os Tratamentos (pode marcar mais de um, por exemplo Antirreflexo e Antirrisco) e depois preencha a Armação e as Observações.',
-          'Clique em "Salvar receita".'
+          'Preencha o olho Direito (à esquerda da tela) e o Esquerdo (à direita). Em cada um: Esférico, Cilíndrico e Eixo de Longe, a Adição, a DNP de longe (obrigatória) e, se precisar, a Altura, o Prisma com a base e a DNP de perto.',
+          'Escolha o Tipo de lente e o Índice de refração, marque os Tratamentos (pode marcar mais de um) e preencha a Armação.',
+          'Se quiser, abra "Medidas da armação (opcional)" e informe Ponte, Horizontal, Vertical e Diagonal Maior em milímetros.',
+          'Clique em "Salvar prescrição".'
         ]
       },
       {
         tipo: 'dica',
-        titulo: 'Cálculo automático do Perto',
-        texto: 'Ao digitar a Adição, o esférico de Perto de cada olho é preenchido na hora (Longe mais Adição, em passos de 0,25) e aparece com um fundo levemente colorido. Se você digitar outro valor no Perto, ele é respeitado e o cálculo para de mexer naquele olho. Para voltar ao cálculo, apague o campo e altere a Adição.'
+        titulo: 'O Perto é calculado',
+        texto: 'Você só digita o Longe e a Adição de cada olho. O Perto (cinza, só para leitura) é o esférico de Longe mais a Adição, em passos de 0,25; o cilíndrico e o eixo de Perto são os de Longe. A Adição vai de 0,00 a +4,00 e é independente em cada olho.'
       },
       {
         tipo: 'paragrafo',
         texto:
-          'DNP é a distância do centro do nariz até a pupila, de cada olho. DP é a distância pupilar, também registrada por olho, em Longe e em Perto, sempre em milímetros. O campo Altura saiu do formulário; as receitas antigas continuam guardadas.'
+          'Os campos de grau têm os botões ▼ e ▲ (e as setas do teclado) de 0,25 em 0,25; se você digitar outro valor, ele é arredondado ao sair do campo. Em Configurações, "Preferências deste computador", dá para escolher digitar no formato Decimal (1,25) ou Inteiro (125).'
       },
       {
         tipo: 'paragrafo',
-        texto: 'Cada receita nova vira uma versão no histórico do cliente. As antigas continuam visíveis: nada é substituído nem perdido.'
+        texto:
+          'DNP é a distância do centro do nariz até a pupila, de cada olho. A DP (distância pupilar) é a soma das duas DNPs e é sempre gravada; ela só aparece na tela e nas impressões se "Exibir DP" estiver ligado em Configurações. O Eixo só é pedido quando há cilindro, e a Base só quando há prisma.'
+      },
+      {
+        tipo: 'paragrafo',
+        texto:
+          'Medidas da armação: ao clicar num campo, o painel mostra a definição, o jeito certo de medir e os três erros mais comuns, com desenhos. Cada medida tem uma grade (Ponte de 10 a 35 mm, Horizontal de 30 a 80, Vertical de 15 a 65, Diagonal Maior de 30 a 85); fora dela o campo fica vermelho e a prescrição não é salva.'
+      },
+      {
+        tipo: 'paragrafo',
+        texto:
+          'Cada prescrição nova vira uma versão no histórico do cliente. Os botões do cartão permitem Imprimir, Editar e Excluir. Excluir pede confirmação, só o Administrador pode, e não é possível se a prescrição estiver numa OS ou venda válida (o sistema diz quais são); a prescrição excluída some das telas, mas continua guardada.'
+      },
+      {
+        tipo: 'atencao',
+        titulo: 'Prescrição registrada no formato anterior',
+        texto: 'As prescrições antigas cujo Perto não é Longe mais Adição aparecem com esse aviso e continuam mostrando o Perto que foi gravado. Se você editar e salvar, ela passa para o formato atual (o Perto passa a ser calculado) e os valores antigos continuam guardados.'
       }
     ]
   },
@@ -220,7 +237,7 @@ export const SECOES_AJUDA: SecaoAjuda[] = [
       {
         tipo: 'paragrafo',
         texto:
-          'Protocolo de saída: o botão "Imprimir protocolo" gera um PDF com as OS da lista filtrada, útil para o laboratório ou para conferir na entrega. No detalhe de cada OS há também o botão para imprimir a própria OS com a receita.'
+          'Protocolo de saída: o botão "Imprimir protocolo" gera um PDF com as OS da lista filtrada, útil para o laboratório ou para conferir na entrega. No detalhe de cada OS há também o botão para imprimir a própria OS com a prescrição.'
       }
     ]
   },
@@ -238,7 +255,7 @@ export const SECOES_AJUDA: SecaoAjuda[] = [
         tipo: 'passos',
         itens: [
           'Clique em "Nova venda" e escolha o cliente.',
-          'Se quiser, vincule uma receita óptica e uma ordem de serviço já existentes.',
+          'Se quiser, vincule uma prescrição e uma ordem de serviço já existentes.',
           'Busque e adicione os produtos. Cada item tem quantidade, preço e desconto próprios.',
           'Se precisar, aplique um desconto adicional sobre o total.',
           'Adicione uma ou mais formas de pagamento (à vista, cartão, parcelado...) até o valor bater com o total.',
@@ -486,7 +503,7 @@ export const SECOES_AJUDA: SecaoAjuda[] = [
         tipo: 'tabela',
         colunas: ['Relatório', 'Onde fica'],
         linhas: [
-          ['OS com receita óptica', 'Botão de impressão no detalhe da OS'],
+          ['OS com prescrição', 'Botão de impressão no detalhe da OS'],
           ['Protocolo de saída', 'Botão na tela Ordens de Serviço'],
           ['Comprovante de venda e carnê de parcelas', 'Botões no detalhe da venda'],
           ['Aniversariantes', 'Botão na tela Aniversariantes'],
@@ -593,7 +610,7 @@ export const SECOES_AJUDA: SecaoAjuda[] = [
     titulo: 'Importar dados do MD Óculos',
     rotas: ['/importar-dados'],
     soAdmin: true,
-    resumo: 'Traz clientes, receitas, vendas e despesas do sistema antigo.',
+    resumo: 'Traz clientes, prescrições, vendas e despesas do sistema antigo.',
     blocos: [
       {
         tipo: 'paragrafo',
@@ -620,12 +637,12 @@ export const SECOES_AJUDA: SecaoAjuda[] = [
       },
       {
         tipo: 'paragrafo',
-        texto: 'Cada exame antigo vira uma receita óptica, uma venda e uma ordem de serviço. Os acentos quebrados do sistema antigo são corrigidos.'
+        texto: 'Cada exame antigo vira uma prescrição, uma venda e uma ordem de serviço. Os acentos quebrados do sistema antigo são corrigidos.'
       },
       {
         tipo: 'atencao',
         titulo: 'Registros em branco',
-        texto: 'O sistema antigo guarda cadastros iniciados e nunca preenchidos: só o nome, sem CPF, telefone, endereço nem nascimento, e com exames sem nenhum dado (graus zerados, sem armação nem lentes, valor zero, sem laboratório). A análise mostra quantos são e, se você deixar marcado "Não importar (e remover, se já entrou)", eles não entram. Os que já tinham sido importados são removidos junto com a receita, a venda e a OS criadas para eles, mas só se ninguém usou o cadastro depois: se foi preenchido algum dado, editada a receita, lançado valor ou feito contato, ele fica. O backup é feito antes e a Auditoria guarda quem foi removido.'
+        texto: 'O sistema antigo guarda cadastros iniciados e nunca preenchidos: só o nome, sem CPF, telefone, endereço nem nascimento, e com exames sem nenhum dado (graus zerados, sem armação nem lentes, valor zero, sem laboratório). A análise mostra quantos são e, se você deixar marcado "Não importar (e remover, se já entrou)", eles não entram. Os que já tinham sido importados são removidos junto com a prescrição, a venda e a OS criadas para eles, mas só se ninguém usou o cadastro depois: se foi preenchido algum dado, editada a prescrição, lançado valor ou feito contato, ele fica. O backup é feito antes e a Auditoria guarda quem foi removido.'
       },
       {
         tipo: 'atencao',
@@ -635,7 +652,7 @@ export const SECOES_AJUDA: SecaoAjuda[] = [
       {
         tipo: 'atencao',
         titulo: 'Clientes sem nome',
-        texto: 'Clientes do sistema antigo sem nome e sem nenhuma receita não são importados. Se algum deles já tinha entrado numa importação anterior, a próxima importação o remove (depois de fazer um backup), desde que continue sem nome e sem nada vinculado: receita, venda, OS, conta a receber ou contato. Quem tem receita, mesmo sem nome, continua sendo importado.'
+        texto: 'Clientes do sistema antigo sem nome e sem nenhuma prescrição não são importados. Se algum deles já tinha entrado numa importação anterior, a próxima importação o remove (depois de fazer um backup), desde que continue sem nome e sem nada vinculado: prescrição, venda, OS, conta a receber ou contato. Quem tem prescrição, mesmo sem nome, continua sendo importado.'
       }
     ]
   },
@@ -655,7 +672,7 @@ export const SECOES_AJUDA: SecaoAjuda[] = [
         itens: [
           'Use os botões de tipo no alto (cada um mostra quantas pendências há) para ver um problema de cada vez. A busca procura pelo nome, CPF ou código do registro.',
           'CPF inválido ou repetido: clique em "Corrigir cadastro", ajuste o CPF e salve. A pendência se resolve sozinha.',
-          'Datas incoerentes, ausentes ou inválidas: clique em "Ver detalhes do exame" (cliente, item, laboratório e todas as datas gravadas) para ter um norte. "Aplicar data sugerida" corrige com um clique; "Corrigir as datas" abre uma janela com as quatro datas do exame para você alterar quantas precisar. Salvar NÃO fecha a pendência: corrija uma data, veja o que ainda parece errado e corrija as outras; ela só fecha em "Salvar e concluir". A receita e a ordem de serviço acompanham; a data da venda e o lançamento financeiro não mudam. Tudo fica na Auditoria.',
+          'Datas incoerentes, ausentes ou inválidas: clique em "Ver detalhes do exame" (cliente, item, laboratório e todas as datas gravadas) para ter um norte. "Aplicar data sugerida" corrige com um clique; "Corrigir as datas" abre uma janela com as quatro datas do exame para você alterar quantas precisar. Salvar NÃO fecha a pendência: corrija uma data, veja o que ainda parece errado e corrija as outras; ela só fecha em "Salvar e concluir". A prescrição e a ordem de serviço acompanham; a data da venda e o lançamento financeiro não mudam. Tudo fica na Auditoria.',
           'A sugestão de data vem do ano que mais se repete: primeiro nas outras datas do próprio exame e, se elas não bastarem, nos exames de código próximo. Quando a data nem existe ou está vazia, o ponto de partida é a data da venda, um palpite que você confere antes de usar (palpite não entra nas ações em lote).',
           'Com muitas pendências do mesmo tipo, use "Aplicar as datas sugeridas" ou "Ignorar todas" no alto da lista (o sistema pede confirmação).',
           'O que não importa, clique em "Ignorar". Importar de novo não reabre pendência já tratada. Mudou de ideia? Escolha "Ignoradas" (ou "Resolvidas") no filtro de situação e clique em "Reabrir": ela volta para a lista de abertas.'
@@ -707,7 +724,7 @@ export const SECOES_AJUDA: SecaoAjuda[] = [
     blocos: [
       { tipo: 'paragrafo', texto: 'Esqueci a senha, e agora? Só um Administrador pode redefinir a senha de outro usuário, na tela Usuários. Se foi o único Administrador que esqueceu, use "Esqueci minha senha" na tela de login: o sistema mostra um pedido, você o envia ao suporte, que confirma que é você e devolve um código. Cole o código, escolha o Administrador (isso também mostra o login, se você o esqueceu) e defina a nova senha. Não precisa de internet, e cada código vale uma única vez, só para este computador.' },
       { tipo: 'paragrafo', texto: 'Um Vendedor pode dar qualquer desconto? Não. Acima do limite de Configurações, o sistema exige a autorização de um Administrador na hora.' },
-      { tipo: 'paragrafo', texto: 'Apaguei um cliente por engano, meus dados sumiram? Se o cliente já tinha venda, receita ou OS, ele nunca é apagado de verdade: só fica inativo. Peça a um Administrador para reativar.' },
+      { tipo: 'paragrafo', texto: 'Apaguei um cliente por engano, meus dados sumiram? Se o cliente já tinha venda, prescrição ou OS, ele nunca é apagado de verdade: só fica inativo. Peça a um Administrador para reativar.' },
       { tipo: 'paragrafo', texto: 'O sistema funciona sem internet? Sim. O uso do dia a dia e a ativação da licença não dependem de internet.' },
       { tipo: 'paragrafo', texto: 'Como sei se meus dados estão seguros? O sistema faz backup automático a cada poucas horas. Confira de vez em quando a tela de Backup e guarde uma cópia fora do computador.' },
       { tipo: 'paragrafo', texto: 'O PDF não abre ou diz que não está mais disponível. Feche o visualizador e gere o relatório de novo.' },
