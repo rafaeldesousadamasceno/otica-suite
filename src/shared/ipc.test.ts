@@ -77,3 +77,31 @@ describe('receitaOpticaInputSchema (prescricao)', () => {
     for (const campo of ['pertoOdEsf', 'longeOdDp', 'adicao', 'armacao']) expect(r).not.toHaveProperty(campo)
   })
 })
+
+describe('produtoInputSchema: grau mínimo e máximo da lente (fase 4)', () => {
+  const LENTE = { ...BASE, categoria: 'lente' as const, custoCentavos: '0', margem: '0', precoVendaCentavos: '10' }
+
+  it('aceita mínimo menor ou igual ao máximo, com vírgula, e vazio', () => {
+    const r = produtoInputSchema.parse({ ...LENTE, lenteGrauMin: '-6,00', lenteGrauMax: '4' })
+    expect([r.lenteGrauMin, r.lenteGrauMax]).toEqual([-6, 4])
+    expect(produtoInputSchema.safeParse({ ...LENTE, lenteGrauMin: -2, lenteGrauMax: -2 }).success).toBe(true)
+    expect(produtoInputSchema.safeParse({ ...LENTE, lenteGrauMin: '', lenteGrauMax: '' }).success).toBe(true)
+    expect(produtoInputSchema.safeParse({ ...LENTE, lenteGrauMin: -6 }).success).toBe(true)
+  })
+
+  it('recusa mínimo maior que o máximo, apontando o máximo', () => {
+    const r = produtoInputSchema.safeParse({ ...LENTE, lenteGrauMin: 2, lenteGrauMax: -2 })
+    expect(r.success).toBe(false)
+    expect(r.error?.issues[0]).toMatchObject({ message: 'O grau mínimo não pode ser maior que o grau máximo', path: ['lenteGrauMax'] })
+  })
+
+  it('recusa grau fora de -30 a +30 ou fora do passo de 0,25', () => {
+    expect(produtoInputSchema.safeParse({ ...LENTE, lenteGrauMin: -31 }).success).toBe(false)
+    expect(produtoInputSchema.safeParse({ ...LENTE, lenteGrauMax: '6,1' }).success).toBe(false)
+  })
+
+  it('em produto que não é lente o grau é ignorado (não barra)', () => {
+    const r = produtoInputSchema.safeParse({ ...BASE, categoria: 'armacao', custoCentavos: '0', margem: '0', precoVendaCentavos: '10', lenteGrauMin: 9, lenteGrauMax: -9 })
+    expect(r.success).toBe(true)
+  })
+})

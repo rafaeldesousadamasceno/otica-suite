@@ -5,6 +5,7 @@ import { CAMPOS_DATA_EXAME, TIPOS_PENDENCIA } from './importacao'
 import { BASES_PRISMA } from './prescricao'
 import { cnpjValido, digitosCnpj } from './cnpj'
 import { digitosTelefone, telefoneValido } from './telefone'
+import { validarFaixaDeGrau } from './dioptria'
 
 /**
  * Contrato de IPC: os nomes de canal moram em `ipcChannels.ts` (sem
@@ -383,6 +384,11 @@ export const produtoInputSchema = z.object({
     .transform((v) => (v === '' || v === null || v === undefined ? null : Number(String(v).replace(',', '.'))))
     .nullable()
     .optional()
+}).superRefine((d, ctx) => {
+  // Grau minimo e maximo so valem para lente (nas demais categorias sao ignorados); o minimo nunca passa do maximo.
+  if (d.categoria !== 'lente') return
+  const problema = validarFaixaDeGrau(d.lenteGrauMin ?? null, d.lenteGrauMax ?? null)
+  if (problema) ctx.addIssue({ code: 'custom', message: problema.mensagem, path: [problema.campo === 'min' ? 'lenteGrauMin' : 'lenteGrauMax'] })
 })
 export type ProdutoInput = z.infer<typeof produtoInputSchema>
 

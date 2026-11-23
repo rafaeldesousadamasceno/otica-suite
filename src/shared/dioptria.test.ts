@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { formatarDioptria, interpretarDioptria, normalizarDioptria, passoDioptria } from './dioptria'
+import { formatarDioptria, interpretarDioptria, normalizarDioptria, passoDioptria, validarFaixaDeGrau } from './dioptria'
 
 describe('normalizarDioptria (stepper de 0,25)', () => {
   it('vai para o multiplo do passo mais proximo', () => {
@@ -95,5 +95,27 @@ describe('interpretarDioptria', () => {
         expect(interpretarDioptria(formatarDioptria(v, { formato }), formato)).toBe(v)
       }
     }
+  })
+})
+
+describe('validarFaixaDeGrau (produto lente)', () => {
+  it('mínimo menor ou igual ao máximo passa; vazio passa', () => {
+    expect(validarFaixaDeGrau(-6, 4)).toBeNull()
+    expect(validarFaixaDeGrau(-2, -2)).toBeNull()
+    expect(validarFaixaDeGrau(null, null)).toBeNull()
+    expect(validarFaixaDeGrau(-6, null)).toBeNull()
+    expect(validarFaixaDeGrau(null, 4)).toBeNull()
+  })
+
+  it('mínimo maior que o máximo é recusado, apontando o máximo', () => {
+    expect(validarFaixaDeGrau(2, -2)).toEqual({ campo: 'max', mensagem: 'O grau mínimo não pode ser maior que o grau máximo' })
+  })
+
+  it('fora de -30 a +30 ou fora do passo de 0,25 é recusado, apontando o campo', () => {
+    expect(validarFaixaDeGrau(-30.25, 0)?.campo).toBe('min')
+    expect(validarFaixaDeGrau(0, 30.25)?.campo).toBe('max')
+    expect(validarFaixaDeGrau(-6.1, 0)?.campo).toBe('min')
+    expect(validarFaixaDeGrau(-30, 30)).toBeNull()
+    expect(validarFaixaDeGrau(-6.1, 0)?.mensagem).toBe('Grau mínimo: o valor vai de -30,00 a +30,00, em passos de 0,25')
   })
 })

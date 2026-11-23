@@ -84,3 +84,31 @@ export function interpretarDioptria(texto: string, formato: FormatoNumero = FORM
   if (formato === 'inteiro' && !limpo.includes('.')) return deCentesimos(n)
   return n
 }
+
+// ---------------------------------------------------------------------
+// Faixa de grau de um produto lente (minimo e maximo que ela atende)
+// ---------------------------------------------------------------------
+
+/** Menor e maior grau que a lente do produto atende, de -30,00 a +30,00 em passos de 0,25. */
+export const LIMITES_GRAU_LENTE = { min: -30, max: 30, step: PASSO_DIOPTRIA } as const
+
+export interface ProblemaFaixaGrau {
+  /** Qual campo destacar. */
+  campo: 'min' | 'max'
+  mensagem: string
+}
+
+/**
+ * Confere o grau minimo e o maximo de uma lente: cada um dentro de -30 a +30 em passos
+ * de 0,25, e o minimo nunca maior que o maximo. Vazio e permitido (so um lado, ou nenhum).
+ * Devolve o primeiro problema, ou null. E a mesma regra da tela e do servidor.
+ */
+export function validarFaixaDeGrau(min: number | null, max: number | null): ProblemaFaixaGrau | null {
+  const { min: piso, max: teto, step } = LIMITES_GRAU_LENTE
+  const fora = (v: number): boolean => v < piso || v > teto || Math.abs(v / step - Math.round(v / step)) > 1e-6
+  const faixa = `${formatarDioptria(piso)} a ${formatarDioptria(teto)}, em passos de 0,25`
+  if (min !== null && fora(min)) return { campo: 'min', mensagem: `Grau mínimo: o valor vai de ${faixa}` }
+  if (max !== null && fora(max)) return { campo: 'max', mensagem: `Grau máximo: o valor vai de ${faixa}` }
+  if (min !== null && max !== null && min > max) return { campo: 'max', mensagem: 'O grau mínimo não pode ser maior que o grau máximo' }
+  return null
+}

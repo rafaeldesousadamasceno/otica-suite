@@ -368,7 +368,7 @@ export const SECOES_AJUDA: SecaoAjuda[] = [
         tipo: 'passos',
         itens: [
           'Clique em "Novo produto" (Administrador).',
-          'Preencha a descrição e a categoria (Armação, Lente, Acessório ou Serviço). Para Lente aparecem campos extras: material, índice, tipo e faixa de grau.',
+          'Preencha a descrição e a categoria (Armação, Lente, Acessório ou Serviço). Para Lente aparecem campos extras: material, índice, tipo e o grau mínimo e máximo que a lente atende (de -30,00 a +30,00, de 0,25 em 0,25, com os botões ▼ e ▲; o mínimo não pode ser maior que o máximo).',
           'Escolha a unidade de medida, que é como o produto é contado no estoque: UN (unidade), PAR, CX (caixa), KIT. Se faltar alguma, clique no "+" ao lado do campo para cadastrar.',
           'Preencha o custo, a margem (%) e o preço de venda.'
         ]
