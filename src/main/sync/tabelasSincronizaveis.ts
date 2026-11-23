@@ -67,6 +67,8 @@ export const TABELAS_SINCRONIZAVEIS: TabelaSync[] = [
   { nome: 'conta_receber' },
   { nome: 'recebimento', somenteAcrescenta: true },
   { nome: 'conta_pagar' },
+  { nome: 'recorrencia', desdeMigracao: 17 },
+  { nome: 'recorrencia_valor', desdeMigracao: 17 },
   { nome: 'pagamento', somenteAcrescenta: true },
   { nome: 'lancamento', somenteAcrescenta: true },
   { nome: 'caixa' },

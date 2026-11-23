@@ -398,6 +398,43 @@ export interface ContaPagar {
   vencida: boolean
 }
 
+// Recorrencia de contas a pagar (documento de melhorias, secao 10): a serie (aluguel, energia...)
+// e os lancamentos (contas) que ela gera, um por competencia.
+export type FrequenciaRecorrencia = 'MENSAL' | 'ANUAL'
+export type StatusRecorrencia = 'ATIVA' | 'ENCERRADA'
+
+/** Uma vigencia de valor: vale da competencia `vigenteDesde` (AAAA-MM) ate a proxima vigencia. */
+export interface RecorrenciaValor {
+  vigenteDesde: string
+  valorCentavos: number
+}
+
+export interface Recorrencia {
+  id: number
+  descricao: string
+  categoria: string | null
+  fornecedorId: number | null
+  fornecedorNome: string | null
+  frequencia: FrequenciaRecorrencia
+  /** Dia do mes do vencimento (1 a 31; em mes mais curto vale o ultimo dia). */
+  diaVencimento: number
+  dataInicio: string
+  dataFim: string | null
+  status: StatusRecorrencia
+  /** Valor vigente hoje (vigencia mais recente ate a competencia atual). */
+  valorAtualCentavos: number
+  vigencias: RecorrenciaValor[]
+  /** Contas em aberto (nao excluidas) desta serie. */
+  abertas: number
+  /** Proximo vencimento em aberto, se houver. */
+  proximoVencimento: string | null
+}
+
+/** Resultado de reajustar/encerrar/excluir em serie: quantas contas foram alteradas ou removidas. */
+export interface RecorrenciaAcaoResultado {
+  afetadas: number
+}
+
 /**
  * Opcoes operacionais (RF-01) que hoje so existem na tabela `configuracao`
  * sem nenhuma tela para edita-las - a fase F4 (RF-08, CA2: bloqueio de
