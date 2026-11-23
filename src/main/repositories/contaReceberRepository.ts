@@ -160,20 +160,17 @@ export const contaReceberRepository = {
    * (gerar o lancamento de estorno).
    */
   estornarPorVenda(db: DatabaseSync, vendaId: number): number {
-    const contas = db
-      .prepare("SELECT id FROM conta_receber WHERE venda_id = :vendaId AND situacao IN ('ABERTA', 'PAGA')")
-      .all({ vendaId }) as { id: number }[]
-    if (contas.length === 0) return 0
-
-    const params: Record<string, number> = { vendaId }
-    const placeholders = contas.map((c, i) => {
-      params[`id${i}`] = c.id
-      return `:id${i}`
-    })
-
+    // Antes montava "IN (:id0, :id1...)" e passava junto um :vendaId que a
+    // consulta nao usa - o node:sqlite recusa parametro sobrando, e toda venda
+    // com parcela falhava ao cancelar.
     const somaRecebida = db
-      .prepare(`SELECT COALESCE(SUM(valor_centavos), 0) AS soma FROM recebimento WHERE conta_receber_id IN (${placeholders.join(',')})`)
-      .get(params) as { soma: number }
+      .prepare(
+        `SELECT COALESCE(SUM(r.valor_centavos), 0) AS soma
+           FROM recebimento r
+           JOIN conta_receber cr ON cr.id = r.conta_receber_id
+          WHERE cr.venda_id = :vendaId AND cr.situacao IN ('ABERTA', 'PAGA')`
+      )
+      .get({ vendaId }) as { soma: number }
 
     db.prepare("UPDATE conta_receber SET situacao = 'CANCELADA' WHERE venda_id = :vendaId AND situacao IN ('ABERTA', 'PAGA')").run({
       vendaId
