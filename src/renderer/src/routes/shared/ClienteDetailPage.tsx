@@ -16,6 +16,7 @@ import { VendaFormDialog } from '@renderer/components/VendaFormDialog'
 import { VendaDetailDialog } from '@renderer/components/VendaDetailDialog'
 import { TOM_SITUACAO_OS } from '@renderer/lib/situacaoOSTone'
 import { toast } from '@renderer/state/toastStore'
+import { useConfirm } from '@renderer/lib/confirmar'
 import { useAuthStore } from '@renderer/state/authStore'
 import { possuiPermissao } from '@shared/permissions'
 import type { ReceitaOptica } from '@shared/types'
@@ -28,6 +29,7 @@ function formatarDataBr(iso: string | null): string {
 }
 
 export function ClienteDetailPage(): ReactNode {
+  const confirmar = useConfirm()
   const { id } = useParams<{ id: string }>()
   const clienteId = Number(id)
   const navigate = useNavigate()
@@ -101,8 +103,15 @@ export function ClienteDetailPage(): ReactNode {
           <Button
             variant="danger"
             loading={remover.isPending}
-            onClick={() => {
-              if (confirm(`Remover o cliente ${c.nome}?`)) remover.mutate()
+            onClick={async () => {
+              const ok = await confirmar({
+                variante: 'excluir',
+                entidade: 'cliente',
+                item: c.nome,
+                detalhe: 'Se o cliente já tiver vendas, receitas ou ordens de serviço, ele é apenas inativado e o histórico fica preservado.',
+                rotuloConfirmar: 'Remover'
+              })
+              if (ok) remover.mutate()
             }}
           >
             <Trash2 className="size-4" /> Remover

@@ -9,6 +9,7 @@ import { Field } from '@renderer/components/ui/Field'
 import { Input } from '@renderer/components/ui/Input'
 import { Select } from '@renderer/components/ui/Select'
 import { unwrap, ApiCallError } from '@renderer/lib/ipc'
+import { useConfirm } from '@renderer/lib/confirmar'
 import { usuarioCreateSchema, usuarioResetSenhaSchema } from '@shared/ipc'
 import { toast } from '@renderer/state/toastStore'
 import { useAuthStore } from '@renderer/state/authStore'
@@ -136,6 +137,7 @@ function ResetarSenhaDialog({
 }
 
 export function UsuariosPage(): ReactNode {
+  const confirmar = useConfirm()
   const [novoOpen, setNovoOpen] = useState(false)
   const [resetarUsuario, setResetarUsuario] = useState<Usuario | null>(null)
   const queryClient = useQueryClient()
@@ -199,7 +201,17 @@ export function UsuariosPage(): ReactNode {
                       variant="ghost"
                       size="sm"
                       disabled={u.id === sessao?.usuario.id}
-                      onClick={() => toggleAtivo.mutate({ id: u.id, ativo: !u.ativo })}
+                      onClick={async () => {
+                        if (u.ativo) {
+                          const ok = await confirmar({
+                            titulo: 'Inativar usuário?',
+                            mensagem: `${u.nome} não consegue mais entrar no sistema. As vendas e o histórico dele continuam. Você pode reativar depois.`,
+                            rotuloConfirmar: 'Inativar'
+                          })
+                          if (!ok) return
+                        }
+                        toggleAtivo.mutate({ id: u.id, ativo: !u.ativo })
+                      }}
                     >
                       {u.ativo ? <Ban className="size-4" /> : <CheckCircle2 className="size-4" />}
                     </Button>

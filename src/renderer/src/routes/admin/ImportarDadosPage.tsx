@@ -8,6 +8,7 @@ import { Button } from '@renderer/components/ui/Button'
 import { Badge } from '@renderer/components/ui/Badge'
 import { unwrap, ApiCallError } from '@renderer/lib/ipc'
 import { toast } from '@renderer/state/toastStore'
+import { useConfirm } from '@renderer/lib/confirmar'
 import {
   ROTULO_TIPO_PENDENCIA,
   type MigracaoAnalise,
@@ -49,6 +50,7 @@ function mensagem(err: unknown): string {
 }
 
 export function ImportarDadosPage(): ReactNode {
+  const confirmar = useConfirm()
   const [form, setForm] = useState<FormState>(VALORES_PADRAO)
   const [analise, setAnalise] = useState<MigracaoAnalise | null>(null)
   const [resultado, setResultado] = useState<MigracaoResultado | null>(null)
@@ -93,10 +95,13 @@ export function ImportarDadosPage(): ReactNode {
     onError: (err) => toast.error(mensagem(err))
   })
 
-  function onImportarClick(): void {
-    const confirmado = window.confirm(
-      'Vou tirar um backup do sistema e importar os dados do sistema antigo. O que for duvidoso fica na tela de Pendências para você conferir. Continuar?'
-    )
+  async function onImportarClick(): Promise<void> {
+    const confirmado = await confirmar({
+      titulo: 'Importar dados do sistema antigo?',
+      mensagem:
+        'Vou tirar um backup do sistema e importar os dados do sistema antigo. O que for duvidoso fica na tela de Pendências para você conferir.',
+      rotuloConfirmar: 'Importar'
+    })
     if (confirmado) importar.mutate()
   }
 
@@ -377,6 +382,7 @@ function ResumoItem({ label, valor, destaque }: { label: string; valor: number; 
 
 function OsAntigasCard(): ReactNode {
   const queryClient = useQueryClient()
+  const confirmarAcao = useConfirm()
   const resumo = useQuery({
     queryKey: ['migracao', 'os-antigas'],
     queryFn: () => unwrap(window.api.migracao.osAntigasAbertas())
@@ -397,15 +403,14 @@ function OsAntigasCard(): ReactNode {
 
   const total = resumo.data?.total ?? 0
 
-  function confirmar(): void {
+  async function confirmar(): Promise<void> {
     const br = `${dataEscolhida.slice(8, 10)}/${dataEscolhida.slice(5, 7)}/${dataEscolhida.slice(0, 4)}`
-    if (
-      window.confirm(
-        `Marcar as ${total} ordens de serviço antigas em aberto como ENTREGUES em ${br}? Elas deixam as telas de pesquisa, o painel e o Relacionamento. Um backup é feito antes e tudo fica na Auditoria.`
-      )
-    ) {
-      encerrar.mutate()
-    }
+    const ok = await confirmarAcao({
+      titulo: 'Encerrar as ordens de serviço antigas?',
+      mensagem: `Marcar as ${total} ordens de serviço antigas em aberto como ENTREGUES em ${br}? Elas deixam as telas de pesquisa, o painel e o Relacionamento. Um backup é feito antes e tudo fica na Auditoria.`,
+      rotuloConfirmar: 'Marcar como entregues'
+    })
+    if (ok) encerrar.mutate()
   }
 
   return (

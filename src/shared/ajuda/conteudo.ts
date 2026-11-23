@@ -547,7 +547,8 @@ export const SECOES_AJUDA: SecaoAjuda[] = [
         itens: [
           'Identidade visual: logo (PNG, JPG ou SVG, até 3 MB) e a cor de destaque, usada no sistema e no cabeçalho dos relatórios.',
           'Dados da ótica: nome fantasia, razão social, CNPJ, inscrição estadual e tema claro, escuro ou automático.',
-          'Endereço e contato: aparecem no cabeçalho dos relatórios.'
+          'Endereço e contato: aparecem no cabeçalho dos relatórios.',
+          'Preferências deste computador: formato dos graus, Decimal (+1,25) ou Inteiro (+125, sem a vírgula). Só muda como o número aparece e é digitado neste computador; o que fica gravado é igual nos dois.'
         ]
       },
       { tipo: 'paragrafo', texto: 'Regras operacionais, que valem para todos:' },

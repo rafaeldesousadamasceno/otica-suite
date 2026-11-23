@@ -11,6 +11,9 @@ import { unwrap, ApiCallError } from '@renderer/lib/ipc'
 import { empresaUpdateSchema, configuracaoOperacionalSchema, type EmpresaUpdateInput, type ConfiguracaoOperacionalInput } from '@shared/ipc'
 import { UNIDADES_FEDERATIVAS } from '@shared/types'
 import { toast } from '@renderer/state/toastStore'
+import { useConfirm } from '@renderer/lib/confirmar'
+import { usePreferenciasStore } from '@renderer/state/preferenciasStore'
+import { formatarDioptria, type FormatoNumero } from '@shared/dioptria'
 
 function fileParaBase64(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -21,7 +24,25 @@ function fileParaBase64(file: File): Promise<string> {
   })
 }
 
+const OPCOES_FORMATO: { valor: FormatoNumero; titulo: string; exemplo: string; ajuda: string }[] = [
+  {
+    valor: 'decimal',
+    titulo: 'Decimal',
+    exemplo: formatarDioptria(1.25, { formato: 'decimal' }),
+    ajuda: 'Como na receita em papel: digite 1,25 e aparece +1,25.'
+  },
+  {
+    valor: 'inteiro',
+    titulo: 'Inteiro',
+    exemplo: formatarDioptria(1.25, { formato: 'inteiro' }),
+    ajuda: 'Sem a vírgula: digite 125 e vale +1,25; digite -50 e vale -0,50.'
+  }
+]
+
 export function ConfiguracoesPage(): ReactNode {
+  const confirmar = useConfirm()
+  const formatoNumero = usePreferenciasStore((st) => st.formatoNumero)
+  const setFormatoNumero = usePreferenciasStore((st) => st.setFormatoNumero)
   const queryClient = useQueryClient()
   const empresa = useQuery({ queryKey: ['empresa'], queryFn: () => unwrap(window.api.empresa.get()) })
   const [form, setForm] = useState<EmpresaUpdateInput | null>(null)
@@ -106,7 +127,14 @@ export function ConfiguracoesPage(): ReactNode {
   }
 
   async function onRemoverLogo(): Promise<void> {
-    if (!confirm('Remover a logo atual? A sidebar e a tela de login voltam a mostrar o ícone padrão.')) return
+    const ok = await confirmar({
+      variante: 'excluir',
+      entidade: 'logo',
+      item: 'A logo atual da ótica',
+      detalhe: 'A sidebar e a tela de login voltam a mostrar o ícone padrão.',
+      rotuloConfirmar: 'Remover'
+    })
+    if (!ok) return
     setRemovendoLogo(true)
     try {
       await unwrap(window.api.empresa.removerLogo())
@@ -258,6 +286,45 @@ export function ConfiguracoesPage(): ReactNode {
           Salvar configurações
         </Button>
       </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Preferências deste computador</CardTitle>
+        </CardHeader>
+        <CardBody className="flex flex-col gap-3">
+          <fieldset className="flex flex-col gap-2">
+            <legend className="mb-1 text-sm font-medium text-[var(--ink-2)]">Formato dos graus (esférico, cilíndrico, adição)</legend>
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+              {OPCOES_FORMATO.map((o) => (
+                <label
+                  key={o.valor}
+                  className={`flex cursor-pointer items-start gap-3 rounded-md border p-3 ${
+                    formatoNumero === o.valor ? 'border-[var(--accent)] bg-[var(--accent)]/10' : 'border-[var(--rule-strong)] hover:bg-[var(--surface-2)]'
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="formato-numero"
+                    className="mt-1 accent-[var(--accent)]"
+                    checked={formatoNumero === o.valor}
+                    onChange={() => setFormatoNumero(o.valor)}
+                  />
+                  <span className="flex flex-col gap-0.5">
+                    <span className="text-sm font-medium text-[var(--ink)]">
+                      {o.titulo} <span className="font-mono-tab text-[var(--accent)]">{o.exemplo}</span>
+                    </span>
+                    <span className="text-xs text-[var(--ink-3)]">{o.ajuda}</span>
+                  </span>
+                </label>
+              ))}
+            </div>
+            <p className="text-xs text-[var(--ink-3)]">
+              Muda só como o número aparece e é digitado neste computador. O que fica gravado é o mesmo nos dois formatos. Porcentagens
+              sempre aparecem com o valor exato e o símbolo %, como 8,99%.
+            </p>
+          </fieldset>
+        </CardBody>
+      </Card>
 
       {formOperacional && (
         <Card>

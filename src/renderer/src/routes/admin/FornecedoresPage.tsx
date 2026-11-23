@@ -8,10 +8,12 @@ import { Badge } from '@renderer/components/ui/Badge'
 import { unwrap, ApiCallError } from '@renderer/lib/ipc'
 import { useDebouncedValue } from '@renderer/lib/useDebouncedValue'
 import { toast } from '@renderer/state/toastStore'
+import { useConfirm } from '@renderer/lib/confirmar'
 import { FornecedorFormDialog } from '@renderer/components/FornecedorFormDialog'
 import type { Fornecedor } from '@shared/types'
 
 export function FornecedoresPage(): ReactNode {
+  const confirmar = useConfirm()
   const queryClient = useQueryClient()
   const [busca, setBusca] = useState('')
   const [novoOpen, setNovoOpen] = useState(false)
@@ -79,8 +81,16 @@ export function FornecedoresPage(): ReactNode {
                     <button
                       type="button"
                       title={f.ativo ? 'Inativar' : 'Reativar'}
-                      onClick={(e) => {
+                      onClick={async (e) => {
                         e.stopPropagation()
+                        if (f.ativo) {
+                          const ok = await confirmar({
+                            titulo: 'Inativar fornecedor?',
+                            mensagem: `${f.razaoSocial} deixa de aparecer nas novas compras. O histórico continua como está e você pode reativar depois.`,
+                            rotuloConfirmar: 'Inativar'
+                          })
+                          if (!ok) return
+                        }
                         setAtivo.mutate({ id: f.id, ativo: !f.ativo })
                       }}
                       className="rounded p-1 text-[var(--ink-3)] hover:bg-[var(--surface-2)] hover:text-[var(--ink)]"

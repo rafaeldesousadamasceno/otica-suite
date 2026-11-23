@@ -9,6 +9,7 @@ import { NovaUnidadeMedidaForm } from '@renderer/components/NovaUnidadeMedidaFor
 import { unwrap, ApiCallError } from '@renderer/lib/ipc'
 import { CHAVE_UNIDADES_MEDIDA, useUnidadesMedida } from '@renderer/lib/unidadesMedida'
 import { toast } from '@renderer/state/toastStore'
+import { useConfirm } from '@renderer/lib/confirmar'
 import { UNIDADE_PADRAO, type UnidadeMedida } from '@shared/types'
 
 interface Props {
@@ -20,6 +21,7 @@ const mensagem = (err: unknown): string => (err instanceof ApiCallError || err i
 
 /** Cadastro das unidades de medida: incluir, corrigir a descricao e desativar/reativar. */
 export function UnidadesMedidaDialog({ open, onClose }: Props): ReactNode {
+  const confirmar = useConfirm()
   const unidades = useUnidadesMedida()
   const queryClient = useQueryClient()
   const [editandoId, setEditandoId] = useState<number | null>(null)
@@ -151,7 +153,17 @@ export function UnidadesMedidaDialog({ open, onClose }: Props): ReactNode {
                           variant="ghost"
                           className="w-20"
                           disabled={alternarAtivo.isPending}
-                          onClick={() => alternarAtivo.mutate(u)}
+                          onClick={async () => {
+                            if (u.ativo) {
+                              const ok = await confirmar({
+                                titulo: 'Desativar unidade?',
+                                mensagem: `${u.sigla} sai das opções de novos produtos. Os ${u.produtos} produto(s) que já usam continuam com ela.`,
+                                rotuloConfirmar: 'Desativar'
+                              })
+                              if (!ok) return
+                            }
+                            alternarAtivo.mutate(u)
+                          }}
                         >
                           {u.ativo ? 'Desativar' : 'Reativar'}
                         </Button>
