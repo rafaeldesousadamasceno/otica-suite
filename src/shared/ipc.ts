@@ -4,7 +4,7 @@ import { PRESETS_PERIODO, validarPeriodo } from './periodos'
 import { CAMPOS_DATA_EXAME, TIPOS_PENDENCIA } from './importacao'
 import { BASES_PRISMA } from './prescricao'
 import { cnpjValido, digitosCnpj } from './cnpj'
-import { digitosTelefone, telefoneValido } from './telefone'
+import { digitosTelefoneCompleto, telefoneValido } from './telefone'
 import { validarFaixaDeGrau } from './dioptria'
 
 /**
@@ -283,7 +283,7 @@ const telefoneDigitos = z
   .trim()
   .optional()
   .nullable()
-  .transform((v) => digitosTelefone(v) || null)
+  .transform((v) => digitosTelefoneCompleto(v) || null)
   .refine((v) => telefoneValido(v), 'Informe o telefone com DDD: 10 ou 11 dígitos')
 
 export const ordemServicoCreateSchema = z.object({
@@ -532,7 +532,7 @@ const telefoneLab = (rotulo: string) =>
     .trim()
     .optional()
     .nullable()
-    .transform((v) => digitosTelefone(v) || null)
+    .transform((v) => digitosTelefoneCompleto(v) || null)
     .refine((v) => telefoneValido(v), `${rotulo}: informe DDD e número (10 ou 11 dígitos)`)
 
 export const laboratorioInputSchema = z.object({

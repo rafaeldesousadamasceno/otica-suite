@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { digitosTelefone, mascararTelefoneBr, telefoneValido } from './telefone'
+import { digitosTelefone, digitosTelefoneCompleto, mascararTelefoneBr, telefoneValido } from './telefone'
 
 describe('mascararTelefoneBr', () => {
   it('celular de 11 digitos', () => {
@@ -39,6 +39,19 @@ describe('telefoneValido', () => {
     expect(telefoneValido('(85) 9 9999-8888')).toBe(true)
     expect(telefoneValido('85999')).toBe(false)
     expect(telefoneValido('859999988')).toBe(false)
+  })
+
+  it('mais de 11 dígitos não é válido (nada de cortar em silêncio)', () => {
+    expect(telefoneValido('859999988889')).toBe(false)
+    expect(telefoneValido('85999998888999')).toBe(false)
+  })
+
+  it('número colado com +55 perde o código do país', () => {
+    expect(telefoneValido('+55 85 99999-8888')).toBe(true)
+    expect(digitosTelefone('+55 85 99999-8888')).toBe('85999998888')
+    expect(digitosTelefoneCompleto('+55 85 3333-4444')).toBe('8533334444')
+    // DDD 55 de verdade (RS), com 11 digitos, nao e mexido
+    expect(digitosTelefone('55 9 9999-8888')).toBe('55999998888')
   })
 
   it('guarda so os digitos', () => {

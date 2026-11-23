@@ -123,11 +123,18 @@ export const laboratorioRepository = {
     const limpo = nome?.trim()
     if (!limpo) return null
     const db = getDb()
+    // Procura pelo nome COMO SERA GRAVADO (maiusculo, com acento: o NOCASE do SQLite nao dobra letra acentuada)
+    // e tambem pelo texto cru, que e como a migracao 015 gravou os nomes que ja existiam.
+    const grafia = maiusculo(limpo)
     const existente = db
-      .prepare('SELECT id, nome FROM laboratorio WHERE nome = :nome COLLATE NOCASE AND excluido_em IS NULL')
-      .get({ nome: limpo }) as { id: number; nome: string } | undefined
+      .prepare(
+        `SELECT id, nome FROM laboratorio
+         WHERE (nome = :grafia COLLATE NOCASE OR nome = :cru COLLATE NOCASE) AND excluido_em IS NULL
+         ORDER BY id LIMIT 1`
+      )
+      .get({ grafia, cru: limpo }) as { id: number; nome: string } | undefined
     if (existente) return existente
-    const info = db.prepare('INSERT INTO laboratorio (nome) VALUES (:nome)').run({ nome: maiusculo(limpo) })
-    return { id: Number(info.lastInsertRowid), nome: maiusculo(limpo) }
+    const info = db.prepare('INSERT INTO laboratorio (nome) VALUES (:nome)').run({ nome: grafia })
+    return { id: Number(info.lastInsertRowid), nome: grafia }
   }
 }

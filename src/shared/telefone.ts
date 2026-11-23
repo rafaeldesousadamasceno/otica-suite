@@ -4,8 +4,15 @@
  * (Os cadastros antigos seguem com `mascararTelefone` de mascaras.ts.)
  */
 
+/** So os digitos, sem cortar; o "55" do pais, quando colado com DDD e numero (12 ou 13 digitos), sai. */
+export function digitosTelefoneCompleto(texto: string | null | undefined): string {
+  const d = (texto ?? '').replace(/\D/g, '')
+  return (d.length === 12 || d.length === 13) && d.startsWith('55') ? d.slice(2) : d
+}
+
+/** Para a mascara enquanto se digita: no maximo 11 digitos. */
 export function digitosTelefone(texto: string | null | undefined): string {
-  return (texto ?? '').replace(/\D/g, '').slice(0, 11)
+  return digitosTelefoneCompleto(texto).slice(0, 11)
 }
 
 /** Aplica a mascara enquanto se digita; aceita texto ja mascarado. */
@@ -29,6 +36,7 @@ export function mascararTelefoneBr(texto: string | null | undefined): string {
 
 /** Vazio e permitido (campo opcional); preenchido precisa de 10 ou 11 digitos. */
 export function telefoneValido(texto: string | null | undefined): boolean {
-  const d = digitosTelefone(texto)
-  return d.length === 0 || d.length === 10 || d.length === 11
+  // Sem cortar em 11: um numero com digitos a mais NAO e valido (cortado, viraria outro numero).
+  const n = digitosTelefoneCompleto(texto).length
+  return n === 0 || n === 10 || n === 11
 }

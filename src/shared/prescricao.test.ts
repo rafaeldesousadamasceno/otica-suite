@@ -177,6 +177,11 @@ describe('conversão das prescrições antigas', () => {
     expect(converterLegado({ ...LEGADA, pertoOdEsf: 5.5 }).formatoAnterior).toBe(true)
     expect(converterLegado({ ...LEGADA, pertoOdEsf: 1.1 }).formatoAnterior).toBe(true)
   })
+  it('perto fora da grade de 0,25 → formato anterior (senão o valor mudaria sem aviso)', () => {
+    // longe -1,10 e perto +0,90 dão adição 2,00, mas o perto calculado seria +1,00
+    expect(converterLegado({ ...LEGADA, longeOdEsf: -1.1, pertoOdEsf: 0.9, adicao: 2 }).formatoAnterior).toBe(true)
+    expect(converterLegado({ ...LEGADA, pertoOeEsf: 0.6, longeOeEsf: -1.4 }).formatoAnterior).toBe(true)
+  })
   it('perto preenchido sem esférico de longe → formato anterior', () => {
     expect(converterLegado({ ...LEGADA, longeOdEsf: null }).formatoAnterior).toBe(true)
   })

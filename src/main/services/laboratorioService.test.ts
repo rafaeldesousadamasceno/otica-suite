@@ -232,6 +232,18 @@ describe('laboratorioService', () => {
       expect(codigo(() => ordemServicoService.atualizarDados(edicao({ laboratorioId: b.id })))).toBe('VALIDACAO')
     })
 
+    it('a prescrição vinculada tem de existir e ser do mesmo cliente', () => {
+      const db = banco.db!
+      db.prepare("INSERT INTO cliente (nome) VALUES ('Bia')").run()
+      db.prepare("INSERT INTO receita_optica (cliente_id, data_exame, versao) VALUES (1, '2026-01-01', 1), (2, '2026-01-02', 1), (1, '2026-01-03', 2)").run()
+      db.prepare("UPDATE receita_optica SET excluido_em = datetime('now') WHERE id = 3").run()
+
+      expect(ordemServicoService.criar(nova({ receitaOpticaId: 1 })).receitaOpticaId).toBe(1)
+      expect(codigo(() => ordemServicoService.criar(nova({ receitaOpticaId: 2 })))).toBe('VALIDACAO') // de outro cliente
+      expect(codigo(() => ordemServicoService.criar(nova({ receitaOpticaId: 3 })))).toBe('VALIDACAO') // excluída
+      expect(codigo(() => ordemServicoService.criar(nova({ receitaOpticaId: 999 })))).toBe('VALIDACAO') // não existe
+    })
+
     it('OS antiga só com o texto do laboratório continua mostrando o texto', () => {
       banco.db!.prepare("INSERT INTO ordem_servico (numero, cliente_id, laboratorio) VALUES ('OS-X', 1, 'Lab de Antes')").run()
       const os = ordemServicoService.listar({}).find((o) => o.numero === 'OS-X')!

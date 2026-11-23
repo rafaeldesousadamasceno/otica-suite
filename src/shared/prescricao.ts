@@ -273,13 +273,17 @@ export function converterLegado(p: PrescricaoLegada): PrescricaoConvertida {
 
   const adicaoOk = (a: N): boolean => a !== null && dentro(a, FAIXAS.adicao)
   const mesmoQueLonge = (perto: N, longe: N): boolean => perto === null || perto === longe
+  // O perto gravado precisa estar na grade de 0,25: o atual e calculado nela e mudaria sem aviso.
+  const naGrade = (v: N): boolean => v === null || multiploDe(v, FAIXAS.esf.passo)
   const seguraRegra =
     adicaoOk(adicaoOd) &&
     adicaoOk(adicaoOe) &&
     mesmoQueLonge(p.pertoOdCil, p.longeOdCil) &&
     mesmoQueLonge(p.pertoOdEixo, p.longeOdEixo) &&
     mesmoQueLonge(p.pertoOeCil, p.longeOeCil) &&
-    mesmoQueLonge(p.pertoOeEixo, p.longeOeEixo)
+    mesmoQueLonge(p.pertoOeEixo, p.longeOeEixo) &&
+    naGrade(p.pertoOdEsf) &&
+    naGrade(p.pertoOeEsf)
 
   return {
     adicaoOd: seguraRegra ? adicaoOd : null,

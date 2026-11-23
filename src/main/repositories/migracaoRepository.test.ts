@@ -113,6 +113,22 @@ describe('importarExame: prescrição e laboratório importados', () => {
     expect(oss[0].laboratorio).toBe('Lab Importado') // o texto do sistema antigo continua gravado
   })
 
+  it('mesmo laboratório com letra acentuada em vários exames não derruba a importação nem duplica', async () => {
+    const db = banco.db!
+    const clienteId = Number((db.prepare("SELECT id FROM cliente WHERE nome = 'Cliente Importado'").get() as { id: number }).id)
+    const vendedorId = Number((db.prepare("SELECT id FROM usuario WHERE login = 'ana-imp'").get() as { id: number }).id)
+    const { importarExame, garantirProdutoGenerico } = await import('./migracaoRepository')
+    const produto = garantirProdutoGenerico()
+
+    importarExame({ ...EXAME, clienteId, vendedorId, laboratorio: 'Laboratório Sul' }, produto, 9101)
+    importarExame({ ...EXAME, clienteId, vendedorId, laboratorio: 'Laboratório Sul' }, produto, 9102)
+
+    const labs = db.prepare("SELECT id FROM laboratorio WHERE nome = 'LABORATÓRIO SUL'").all() as { id: number }[]
+    expect(labs).toHaveLength(1)
+    const ids = db.prepare("SELECT laboratorio_id FROM ordem_servico WHERE numero IN ('MDO-9101', 'MDO-9102')").all() as { laboratorio_id: number }[]
+    expect(ids.map((o) => o.laboratorio_id)).toEqual([labs[0].id, labs[0].id])
+  })
+
   it('a prescrição importada segue a conversão: perto = longe + adição entra no formato atual', async () => {
     const db = banco.db!
     const r = db.prepare("SELECT adicao_od, adicao_oe, dp_longe, formato_anterior FROM receita_optica ORDER BY id DESC LIMIT 1").get() as Record<string, unknown>

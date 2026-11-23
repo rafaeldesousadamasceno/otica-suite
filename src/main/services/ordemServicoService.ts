@@ -1,6 +1,7 @@
 import { ordemServicoRepository } from '@main/repositories/ordemServicoRepository'
 import { clienteRepository } from '@main/repositories/clienteRepository'
 import { laboratorioRepository } from '@main/repositories/laboratorioRepository'
+import { receitaOpticaRepository } from '@main/repositories/receitaOpticaRepository'
 import { configuracaoRepository } from '@main/repositories/configuracaoRepository'
 import { auditoriaRepository } from '@main/repositories/auditoriaRepository'
 import { requirePermissao } from '@main/auth/session'
@@ -35,6 +36,15 @@ function resolverLaboratorio(id: number | null, atualId: number | null): { id: n
   return { id: lab.id, nome: lab.nome }
 }
 
+/** A prescricao vinculada tem de existir (nao excluida) e ser deste cliente: o FK sozinho nao garante nem uma coisa nem outra. */
+function exigirPrescricaoDoCliente(receitaId: number | null | undefined, clienteId: number): void {
+  if (!receitaId) return
+  const receita = receitaOpticaRepository.buscarPorId(receitaId)
+  if (!receita || receita.clienteId !== clienteId) {
+    throw Errors.validacao('A prescrição selecionada não existe mais ou não pertence a este cliente.')
+  }
+}
+
 export const ordemServicoService = {
   listar(query: OrdensServicoQuery): OrdemServico[] {
     requirePermissao('ordens_servico', 'ver')
@@ -60,6 +70,7 @@ export const ordemServicoService = {
       throw Errors.naoEncontrado('Cliente')
     }
 
+    exigirPrescricaoDoCliente(input.receitaOpticaId, input.clienteId)
     const lab = resolverLaboratorio(input.laboratorioId ?? null, null)
     const prefixo = configuracaoRepository.obter('prefixo_os') ?? ''
     const id = ordemServicoRepository.criar(input, lab, prefixo, sessao.usuario.id)

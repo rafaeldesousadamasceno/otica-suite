@@ -562,7 +562,13 @@ export function corrigirTextosExame(vendaId: number, descricaoItem: string, labo
     | { id: number; receita_optica_id: number | null }
     | undefined
   if (os) {
-    mudou = corrigirCampos('ordem_servico', os.id, { laboratorio }) || mudou
+    const textoLabMudou = corrigirCampos('ordem_servico', os.id, { laboratorio })
+    mudou = textoLabMudou || mudou
+    if (textoLabMudou) {
+      // O vinculo acompanha o texto corrigido (senao a tela, que mostra o nome do cadastro, continuaria com o nome quebrado).
+      const lab = laboratorioRepository.garantirPorNome(laboratorio)
+      if (lab) db.prepare('UPDATE ordem_servico SET laboratorio_id = :labId WHERE id = :id').run({ labId: lab.id, id: os.id })
+    }
 
     // O profissional e criado "por nome": se o nome antigo veio quebrado, a receita passa a apontar para o certo.
     if (os.receita_optica_id && medico?.trim()) {

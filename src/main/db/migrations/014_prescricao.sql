@@ -56,6 +56,9 @@ UPDATE receita_optica SET formato_anterior = CASE WHEN (
   AND (perto_od_eixo IS NULL OR perto_od_eixo = longe_od_eixo)
   AND (perto_oe_cil IS NULL OR perto_oe_cil = longe_oe_cil)
   AND (perto_oe_eixo IS NULL OR perto_oe_eixo = longe_oe_eixo)
+  -- O perto gravado tem de estar na grade de 0,25: o atual e calculado nessa grade, e um perto fora dela mudaria sem aviso.
+  AND (perto_od_esf IS NULL OR abs(perto_od_esf * 4 - round(perto_od_esf * 4)) < 0.000001)
+  AND (perto_oe_esf IS NULL OR abs(perto_oe_esf * 4 - round(perto_oe_esf * 4)) < 0.000001)
 ) THEN 0 ELSE 1 END;
 
 UPDATE receita_optica SET adicao_od = NULL, adicao_oe = NULL WHERE formato_anterior = 1;

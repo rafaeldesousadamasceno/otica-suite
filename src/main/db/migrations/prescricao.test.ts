@@ -60,6 +60,7 @@ const CASOS: [string, Partial<PrescricaoLegada>][] = [
   ['adição negativa', { pertoOdEsf: -2 }],
   ['adição acima de +4', { pertoOdEsf: 5.5 }],
   ['adição fora do passo de 0,25', { pertoOdEsf: 1.1 }],
+  ['perto fora da grade com adição certinha', { longeOdEsf: -1.1, pertoOdEsf: 0.9 }],
   ['perto sem esférico de longe', { longeOdEsf: null }],
   ['sem DNP de um lado', { longeOeDnp: null, pertoOdDnp: null }],
   ['tudo vazio', { longeOdEsf: null, longeOdCil: null, longeOdEixo: null, longeOeEsf: null, pertoOdEsf: null, pertoOeEsf: null, pertoOdCil: null, pertoOdEixo: null, adicao: null }]
