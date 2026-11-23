@@ -4,6 +4,7 @@ import { temMojibake } from '@main/migracao/transformar'
 import { DESCRICAO_PRODUTO_IMPORTADO } from '@shared/importacao'
 import { maiusculo, maiusculoOuNulo } from '@shared/texto'
 import { converterLegado } from '@shared/prescricao'
+import { laboratorioRepository } from '@main/repositories/laboratorioRepository'
 import type { CampoDataExame, DetalhesExamePendencia, OsAntigasAbertas } from '@shared/importacao'
 import type { ClienteExistente } from '@main/migracao/analisar'
 
@@ -266,10 +267,10 @@ export function importarExame(dados: ExameTransformado, produtoGenericoId: numbe
 
     db.prepare(
       `INSERT INTO ordem_servico (
-         numero, venda_id, cliente_id, receita_optica_id, laboratorio, situacao,
+         numero, venda_id, cliente_id, receita_optica_id, laboratorio, laboratorio_id, situacao,
          data_abertura, data_envio, data_chegada, data_entrega
        ) VALUES (
-         :numero, :vendaId, :clienteId, :receitaId, :laboratorio, :situacao,
+         :numero, :vendaId, :clienteId, :receitaId, :laboratorio, :laboratorioId, :situacao,
          :dataAbertura, :dataEnvio, :dataChegada, :dataEntrega
        )`
     ).run({
@@ -278,6 +279,8 @@ export function importarExame(dados: ExameTransformado, produtoGenericoId: numbe
       clienteId: dados.clienteId,
       receitaId,
       laboratorio: dados.laboratorio,
+      // O laboratorio do sistema antigo vira (ou acha) um cadastro, para a OS importada ja nascer vinculada.
+      laboratorioId: laboratorioRepository.garantirPorNome(dados.laboratorio)?.id ?? null,
       situacao: dados.situacaoOS,
       dataAbertura: dados.dataExame,
       dataEnvio: dados.dataEnvio,

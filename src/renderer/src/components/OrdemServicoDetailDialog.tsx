@@ -9,6 +9,8 @@ import { Input } from '@renderer/components/ui/Input'
 import { unwrap, ApiCallError } from '@renderer/lib/ipc'
 import { useGerarPdf } from '@renderer/lib/useGerarPdf'
 import { usePreferenciasStore } from '@renderer/state/preferenciasStore'
+import { LaboratorioSelect } from '@renderer/components/LaboratorioSelect'
+import { EntregadorCampos } from '@renderer/components/EntregadorCampos'
 import { toast } from '@renderer/state/toastStore'
 import { TOM_SITUACAO_OS } from '@renderer/lib/situacaoOSTone'
 import { podeCancelar, rotuloAvanco } from '@shared/situacaoOS'
@@ -27,7 +29,9 @@ interface Props {
 
 export function OrdemServicoDetailDialog({ osId, onClose }: Props): ReactNode {
   const queryClient = useQueryClient()
-  const [laboratorio, setLaboratorio] = useState('')
+  const [laboratorioId, setLaboratorioId] = useState('')
+  const [entregadorNome, setEntregadorNome] = useState('')
+  const [entregadorContato, setEntregadorContato] = useState('')
   const [dataPrevisao, setDataPrevisao] = useState('')
   const [observacao, setObservacao] = useState('')
   const [cancelando, setCancelando] = useState(false)
@@ -42,7 +46,9 @@ export function OrdemServicoDetailDialog({ osId, onClose }: Props): ReactNode {
 
   useEffect(() => {
     if (os.data) {
-      setLaboratorio(os.data.laboratorio ?? '')
+      setLaboratorioId(os.data.laboratorioId !== null ? String(os.data.laboratorioId) : '')
+      setEntregadorNome(os.data.entregadorNome ?? '')
+      setEntregadorContato(os.data.entregadorContato ?? '')
       setDataPrevisao(os.data.dataPrevisao ?? '')
       setObservacao(os.data.observacao ?? '')
       setCancelando(false)
@@ -80,6 +86,7 @@ export function OrdemServicoDetailDialog({ osId, onClose }: Props): ReactNode {
   })
 
   const exibirDp = usePreferenciasStore((s) => s.exibirDp)
+  const laboratorioInicial = os.data?.laboratorioId != null ? String(os.data.laboratorioId) : ''
   const imprimir = useGerarPdf(() => window.api.relatorios.ordemServico({ id: osId!, exibirDp }))
 
   const salvarDados = useMutation({
@@ -88,7 +95,10 @@ export function OrdemServicoDetailDialog({ osId, onClose }: Props): ReactNode {
         window.api.ordensServico.atualizarDatas(
           ordemServicoAtualizarDatasSchema.parse({
             id: osId!,
-            laboratorio: laboratorio || null,
+            // So manda o laboratorio se foi mexido: uma OS antiga so com o texto nao perde o que tem.
+            laboratorioId: laboratorioId === laboratorioInicial ? undefined : laboratorioId ? Number(laboratorioId) : null,
+            entregadorNome: entregadorNome || null,
+            entregadorContato: entregadorContato || null,
             dataPrevisao: dataPrevisao || null,
             observacao: observacao || null
           })
@@ -180,13 +190,19 @@ export function OrdemServicoDetailDialog({ osId, onClose }: Props): ReactNode {
         <div className="flex flex-col gap-3 border-t border-[var(--rule)] pt-4">
           <p className="text-xs font-semibold uppercase tracking-wide text-[var(--ink-3)]">Laboratório e prazo</p>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <Field label="Laboratório">
-              <Input value={laboratorio} onChange={(e) => setLaboratorio(e.target.value)} />
+            <Field label="Laboratório" hint={os.data?.laboratorioId === null && os.data?.laboratorio ? `Antes: "${os.data.laboratorio}" (sem cadastro)` : undefined}>
+              <LaboratorioSelect
+                valor={laboratorioId}
+                onChange={setLaboratorioId}
+                atual={os.data?.laboratorioId != null ? { id: os.data.laboratorioId, nome: os.data.laboratorio ?? '' } : null}
+                aria-label="Laboratório"
+              />
             </Field>
             <Field label="Previsão de entrega">
               <Input type="date" value={dataPrevisao} onChange={(e) => setDataPrevisao(e.target.value)} />
             </Field>
           </div>
+          <EntregadorCampos nome={entregadorNome} contato={entregadorContato} onNome={setEntregadorNome} onContato={setEntregadorContato} />
           <Field label="Observações">
             <textarea
               className="min-h-16 w-full rounded-md border border-[var(--rule-strong)] bg-[var(--surface)] px-3 py-2 text-sm text-[var(--ink)] focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-[var(--accent)]"

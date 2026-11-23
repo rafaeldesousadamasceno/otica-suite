@@ -20,6 +20,7 @@ import type {
   UnidadeMedida,
   AuditoriaEntrada,
   Fornecedor,
+  Laboratorio,
   CompraResumo,
   CompraDetalhada,
   EstoqueItem,
@@ -81,6 +82,11 @@ import type {
   ContasReceberListQuery,
   ContaReceberBaixarInput,
   FornecedorInput,
+  LaboratorioInput,
+  LaboratorioUpdateInput,
+  LaboratorioSetAtivoInput,
+  LaboratorioExcluirInput,
+  LaboratoriosListQuery,
   FornecedorUpdateInput,
   FornecedorSetAtivoInput,
   FornecedoresListQuery,
@@ -205,6 +211,13 @@ interface Api {
   }
   auditoria: {
     list: () => Promise<ApiResult<AuditoriaEntrada[]>>
+  }
+  laboratorios: {
+    list: (input: LaboratoriosListQuery) => Promise<ApiResult<Laboratorio[]>>
+    create: (input: LaboratorioInput) => Promise<ApiResult<Laboratorio>>
+    update: (input: LaboratorioUpdateInput) => Promise<ApiResult<Laboratorio>>
+    setAtivo: (input: LaboratorioSetAtivoInput) => Promise<ApiResult<void>>
+    excluir: (input: LaboratorioExcluirInput) => Promise<ApiResult<void>>
   }
   fornecedores: {
     list: (input: FornecedoresListQuery) => Promise<ApiResult<Fornecedor[]>>

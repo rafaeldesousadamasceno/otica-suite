@@ -94,6 +94,13 @@ const api = {
   auditoria: {
     list: () => ipcRenderer.invoke(IPC.auditoria.list)
   },
+  laboratorios: {
+    list: (input: unknown) => ipcRenderer.invoke(IPC.laboratorios.list, input),
+    create: (input: unknown) => ipcRenderer.invoke(IPC.laboratorios.create, input),
+    update: (input: unknown) => ipcRenderer.invoke(IPC.laboratorios.update, input),
+    setAtivo: (input: unknown) => ipcRenderer.invoke(IPC.laboratorios.setAtivo, input),
+    excluir: (input: unknown) => ipcRenderer.invoke(IPC.laboratorios.excluir, input)
+  },
   fornecedores: {
     list: (input: unknown) => ipcRenderer.invoke(IPC.fornecedores.list, input),
     get: (input: unknown) => ipcRenderer.invoke(IPC.fornecedores.get, input),

@@ -49,7 +49,7 @@ describe('classificação das tabelas', () => {
 describe('010_sync_base.sql', () => {
   it('é exatamente a saída do gerador (não ficou desatualizado nem foi editado à mão)', () => {
     const db = banco(9)
-    const gerado = gerarSyncSql(TABELAS_SINCRONIZAVEIS, (t) =>
+    const gerado = gerarSyncSql(TABELAS_SINCRONIZAVEIS.filter((t) => !t.desdeMigracao), (t) =>
       (db.prepare(`PRAGMA table_info(${t})`).all() as { name: string }[]).map((c) => c.name)
     )
     const arquivo = readFileSync(join(__dirname, '../db/migrations/010_sync_base.sql'), 'utf8')

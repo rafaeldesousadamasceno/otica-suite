@@ -6,6 +6,8 @@ import { Input } from '@renderer/components/ui/Input'
 import { Select } from '@renderer/components/ui/Select'
 import { Button } from '@renderer/components/ui/Button'
 import { ClienteBuscaInput } from '@renderer/components/ClienteBuscaInput'
+import { LaboratorioSelect } from '@renderer/components/LaboratorioSelect'
+import { EntregadorCampos } from '@renderer/components/EntregadorCampos'
 import { unwrap, ApiCallError } from '@renderer/lib/ipc'
 import { ordemServicoCreateSchema } from '@shared/ipc'
 import { toast } from '@renderer/state/toastStore'
@@ -24,7 +26,9 @@ export function OrdemServicoFormDialog({ open, onClose, clienteFixo, onCreated }
   const queryClient = useQueryClient()
   const [cliente, setCliente] = useState<ClienteResumo | null>(clienteFixo ?? null)
   const [receitaOpticaId, setReceitaOpticaId] = useState('')
-  const [laboratorio, setLaboratorio] = useState('')
+  const [laboratorioId, setLaboratorioId] = useState('')
+  const [entregadorNome, setEntregadorNome] = useState('')
+  const [entregadorContato, setEntregadorContato] = useState('')
   const [dataPrevisao, setDataPrevisao] = useState('')
   const [observacao, setObservacao] = useState('')
   const [erro, setErro] = useState<string | null>(null)
@@ -33,7 +37,9 @@ export function OrdemServicoFormDialog({ open, onClose, clienteFixo, onCreated }
     if (open) {
       setCliente(clienteFixo ?? null)
       setReceitaOpticaId('')
-      setLaboratorio('')
+      setLaboratorioId('')
+      setEntregadorNome('')
+      setEntregadorContato('')
       setDataPrevisao('')
       setObservacao('')
       setErro(null)
@@ -46,19 +52,15 @@ export function OrdemServicoFormDialog({ open, onClose, clienteFixo, onCreated }
     enabled: Boolean(cliente)
   })
 
-  const laboratorios = useQuery({
-    queryKey: ['listaValor', 'laboratorio'],
-    queryFn: () => unwrap(window.api.listasValor.listByTipo({ tipo: 'laboratorio' })),
-    enabled: open
-  })
-
   const mutation = useMutation({
     mutationFn: async () => {
       if (!cliente) throw new Error('Selecione o cliente.')
       const dados = ordemServicoCreateSchema.parse({
         clienteId: cliente.id,
         receitaOpticaId: receitaOpticaId ? Number(receitaOpticaId) : null,
-        laboratorio: laboratorio || null,
+        laboratorioId: laboratorioId ? Number(laboratorioId) : null,
+        entregadorNome: entregadorNome || null,
+        entregadorContato: entregadorContato || null,
         dataPrevisao: dataPrevisao || null,
         observacao: observacao || null
       })
@@ -113,22 +115,15 @@ export function OrdemServicoFormDialog({ open, onClose, clienteFixo, onCreated }
         </Field>
 
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <Field label="Laboratório">
-            <Input
-              list="laboratorios-sugeridos"
-              value={laboratorio}
-              onChange={(e) => setLaboratorio(e.target.value)}
-            />
-            <datalist id="laboratorios-sugeridos">
-              {laboratorios.data?.map((l) => (
-                <option key={l.id} value={l.valor} />
-              ))}
-            </datalist>
+          <Field label="Laboratório" hint="Só os laboratórios ativos. Cadastre novos em Laboratórios.">
+            <LaboratorioSelect valor={laboratorioId} onChange={setLaboratorioId} aria-label="Laboratório" />
           </Field>
           <Field label="Previsão de entrega">
             <Input type="date" value={dataPrevisao} onChange={(e) => setDataPrevisao(e.target.value)} />
           </Field>
         </div>
+
+        <EntregadorCampos nome={entregadorNome} contato={entregadorContato} onNome={setEntregadorNome} onContato={setEntregadorContato} />
 
         <Field label="Observações">
           <textarea

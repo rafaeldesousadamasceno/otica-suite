@@ -31,6 +31,7 @@ export type Recurso =
   | 'estoque'
   | 'estoque.ajustar'
   | 'fornecedores_compras'
+  | 'laboratorios'
   | 'contas_receber'
   | 'contas_pagar'
   | 'financeiro_caixa'
@@ -70,6 +71,7 @@ export const PERMISSOES: MatrizPermissoes = {
     estoque: TUDO,
     'estoque.ajustar': SO_VER,
     fornecedores_compras: TUDO,
+    laboratorios: TUDO,
     contas_receber: TUDO,
     contas_pagar: TUDO,
     financeiro_caixa: TUDO,
@@ -113,6 +115,7 @@ export const RECURSOS_POR_MODULO: Record<Perfil, Recurso[]> = {
     'produtos',
     'estoque',
     'fornecedores_compras',
+    'laboratorios',
     'contas_pagar',
     'financeiro_caixa',
     'relatorios_gerenciais',

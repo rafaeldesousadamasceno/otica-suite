@@ -91,6 +91,13 @@ export const IPC = {
   auditoria: {
     list: 'auditoria:list'
   },
+  laboratorios: {
+    list: 'laboratorios:list',
+    create: 'laboratorios:create',
+    update: 'laboratorios:update',
+    setAtivo: 'laboratorios:setAtivo',
+    excluir: 'laboratorios:excluir'
+  },
   fornecedores: {
     list: 'fornecedores:list',
     get: 'fornecedores:get',

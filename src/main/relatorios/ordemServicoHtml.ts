@@ -1,5 +1,6 @@
 import type { Empresa, OrdemServico, ReceitaOptica } from '@shared/types'
 import { formatarDataBr, texto } from './formatacao'
+import { mascararTelefoneBr } from '@shared/telefone'
 import { TOM_SITUACAO_OS, assinatura, badge, campos, montarDocumento, secao } from './layout'
 import { ESTILO_PRESCRICAO, montarBlocoPrescricao, type OpcoesPrescricao } from './prescricaoHtml'
 
@@ -26,6 +27,9 @@ export function montarHtmlOrdemServico(os: OrdemServico, receita: ReceitaOptica 
       campos([
         { rotulo: 'Situação', valor: badge(os.situacao, TOM_SITUACAO_OS[os.situacao] ?? 'neutro') },
         { rotulo: 'Laboratório', valor: texto(os.laboratorio) },
+        ...(os.entregadorNome || os.entregadorContato
+          ? [{ rotulo: 'Entregador', valor: texto([os.entregadorNome, os.entregadorContato ? mascararTelefoneBr(os.entregadorContato) : null].filter(Boolean).join(' · ')) }]
+          : []),
         { rotulo: 'Data de abertura', valor: formatarDataBr(os.dataAbertura) },
         { rotulo: 'Data de envio', valor: formatarDataBr(os.dataEnvio) },
         { rotulo: 'Previsão', valor: formatarDataBr(os.dataPrevisao) },

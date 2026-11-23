@@ -215,3 +215,14 @@ describe('outros documentos', () => {
     esperaTodos(html, ['DP Longe', '63,5 mm', 'DP Perto', '60,5 mm'])
   })
 })
+
+describe('impressão da OS: entregador', () => {
+  it('sai com nome e telefone mascarado; sem entregador, nem o rótulo', () => {
+    const com = textoVisivel(montarHtmlOrdemServico(OS_EXEMPLO, null, EMPRESA))
+    expect(com).toContain('Entregador CARLOS MOTO · (85) 9 9999-8888')
+    const sem = textoVisivel(montarHtmlOrdemServico({ ...OS_EXEMPLO, entregadorNome: null, entregadorContato: null }, null, EMPRESA))
+    expect(sem).not.toContain('Entregador')
+    const soNome = textoVisivel(montarHtmlOrdemServico({ ...OS_EXEMPLO, entregadorContato: null }, null, EMPRESA))
+    expect(soNome).toContain('Entregador CARLOS MOTO')
+  })
+})

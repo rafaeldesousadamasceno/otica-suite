@@ -3,6 +3,8 @@ import { MOTIVOS_CONTATO, UNIDADE_PADRAO } from './types'
 import { PRESETS_PERIODO, validarPeriodo } from './periodos'
 import { CAMPOS_DATA_EXAME, TIPOS_PENDENCIA } from './importacao'
 import { BASES_PRISMA } from './prescricao'
+import { cnpjValido, digitosCnpj } from './cnpj'
+import { digitosTelefone, telefoneValido } from './telefone'
 
 /**
  * Contrato de IPC: os nomes de canal moram em `ipcChannels.ts` (sem
@@ -274,10 +276,22 @@ export type ReceitaListByClienteInput = z.infer<typeof receitaListByClienteSchem
 
 const dataOpcional = z.string().trim().length(10).optional().nullable().or(z.literal(''))
 
+/** Contato do entregador: so os digitos, 10 ou 11 (RG-05); vazio e permitido. */
+const telefoneDigitos = z
+  .string()
+  .trim()
+  .optional()
+  .nullable()
+  .transform((v) => digitosTelefone(v) || null)
+  .refine((v) => telefoneValido(v), 'Informe o telefone com DDD: 10 ou 11 dígitos')
+
 export const ordemServicoCreateSchema = z.object({
   clienteId: z.number().int().positive(),
   receitaOpticaId: z.number().int().positive().optional().nullable(),
-  laboratorio: z.string().trim().optional().nullable().or(z.literal('')),
+  /** Laboratorio do cadastro (so ativos). */
+  laboratorioId: z.number().int().positive().optional().nullable(),
+  entregadorNome: z.string().trim().max(80).optional().nullable().or(z.literal('')),
+  entregadorContato: telefoneDigitos,
   dataPrevisao: dataOpcional,
   observacao: z.string().trim().optional().nullable().or(z.literal(''))
 })
@@ -298,7 +312,10 @@ export type OrdemServicoCancelarInput = z.infer<typeof ordemServicoCancelarSchem
 
 export const ordemServicoAtualizarDatasSchema = z.object({
   id: z.number().int().positive(),
-  laboratorio: z.string().trim().optional().nullable().or(z.literal('')),
+  /** Ausente = nao mexe no laboratorio; null = tira o laboratorio. */
+  laboratorioId: z.number().int().positive().optional().nullable(),
+  entregadorNome: z.string().trim().max(80).optional().nullable().or(z.literal('')),
+  entregadorContato: telefoneDigitos,
   dataPrevisao: dataOpcional,
   observacao: z.string().trim().optional().nullable().or(z.literal(''))
 })
@@ -496,6 +513,70 @@ export const fornecedoresListQuerySchema = z.object({
   apenasAtivos: z.boolean().optional()
 })
 export type FornecedoresListQuery = z.infer<typeof fornecedoresListQuerySchema>
+
+// ---------------------------------------------------------------------
+// Laboratorios (cadastro; a OS escolhe um)
+// ---------------------------------------------------------------------
+
+const textoOpc = z.string().trim().optional().nullable().or(z.literal(''))
+
+const telefoneLab = (rotulo: string) =>
+  z
+    .string()
+    .trim()
+    .optional()
+    .nullable()
+    .transform((v) => digitosTelefone(v) || null)
+    .refine((v) => telefoneValido(v), `${rotulo}: informe DDD e número (10 ou 11 dígitos)`)
+
+export const laboratorioInputSchema = z.object({
+  nome: z.string().trim().min(1, 'Informe o nome do laboratório').max(80, 'O nome tem no máximo 80 caracteres'),
+  razaoSocial: textoOpc,
+  cnpj: z
+    .string()
+    .trim()
+    .optional()
+    .nullable()
+    .transform((v) => digitosCnpj(v) || null)
+    .refine((v) => v === null || cnpjValido(v), 'CNPJ inválido'),
+  telefone: telefoneLab('Telefone'),
+  whatsapp: telefoneLab('WhatsApp'),
+  email: z
+    .string()
+    .trim()
+    .optional()
+    .nullable()
+    .transform((v) => v || null)
+    .refine((v) => v === null || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v), 'E-mail inválido'),
+  endereco: textoOpc,
+  contatoResponsavel: textoOpc,
+  prazoMedioDias: z
+    .union([z.string(), z.number(), z.null()])
+    .optional()
+    .transform((v) => (v === undefined || v === null || v === '' ? null : Number(v)))
+    .refine((v) => v === null || (Number.isInteger(v) && v >= 0 && v <= 365), 'O prazo vai de 0 a 365 dias'),
+  observacoes: textoOpc
+})
+export type LaboratorioInput = z.infer<typeof laboratorioInputSchema>
+
+export const laboratorioUpdateSchema = z.object({ id: z.number().int().positive(), dados: laboratorioInputSchema })
+export type LaboratorioUpdateInput = z.infer<typeof laboratorioUpdateSchema>
+
+export const laboratorioSetAtivoSchema = z.object({ id: z.number().int().positive(), ativo: z.boolean() })
+export type LaboratorioSetAtivoInput = z.infer<typeof laboratorioSetAtivoSchema>
+
+export const laboratorioExcluirSchema = z.object({
+  id: z.number().int().positive(),
+  motivo: z.string().trim().max(200).optional().nullable()
+})
+export type LaboratorioExcluirInput = z.infer<typeof laboratorioExcluirSchema>
+
+export const laboratoriosListQuerySchema = z.object({
+  busca: z.string().trim().optional(),
+  /** Padrao: so os ativos (o que a OS oferece). A tela de cadastro pede todos. */
+  apenasAtivos: z.boolean().optional()
+})
+export type LaboratoriosListQuery = z.infer<typeof laboratoriosListQuerySchema>
 
 // ---------------------------------------------------------------------
 // Compras (RF-09)

@@ -1,5 +1,5 @@
 import { getDb } from '@main/db/connection'
-import { termoBusca } from '@shared/texto'
+import { maiusculoOuNulo, termoBusca } from '@shared/texto'
 import type { OrdemServico, SituacaoOS } from '@shared/types'
 import type { OrdemServicoCreateInput, OrdensServicoQuery } from '@shared/ipc'
 import { hojeLocal } from '@shared/data'
@@ -13,6 +13,9 @@ interface OrdemServicoRow {
   receita_optica_id: number | null
   receita_tipo_lente: string | null
   laboratorio: string | null
+  laboratorio_id: number | null
+  entregador_nome: string | null
+  entregador_contato: string | null
   situacao: SituacaoOS
   data_abertura: string
   data_envio: string | null
@@ -44,6 +47,9 @@ function toDomain(row: OrdemServicoRow): OrdemServico {
     receitaOpticaId: row.receita_optica_id,
     receitaTipoLente: row.receita_tipo_lente,
     laboratorio: row.laboratorio,
+    laboratorioId: row.laboratorio_id,
+    entregadorNome: row.entregador_nome,
+    entregadorContato: row.entregador_contato,
     situacao: row.situacao,
     dataAbertura: row.data_abertura,
     dataEnvio: row.data_envio,
@@ -57,7 +63,10 @@ function toDomain(row: OrdemServicoRow): OrdemServico {
 
 const SELECT_BASE = `
   SELECT
-    os.id, os.numero, os.cliente_id, os.receita_optica_id, os.laboratorio,
+    os.id, os.numero, os.cliente_id, os.receita_optica_id,
+    -- Nome do cadastro (acompanha se for renomeado); sem vinculo, o texto de antes.
+    COALESCE(l.nome, os.laboratorio) AS laboratorio, os.laboratorio_id,
+    os.entregador_nome, os.entregador_contato,
     os.situacao, os.data_abertura, os.data_envio, os.data_previsao,
     os.data_chegada, os.data_entrega, os.observacao,
     c.nome AS cliente_nome, c.celular AS cliente_celular,
@@ -65,6 +74,7 @@ const SELECT_BASE = `
   FROM ordem_servico os
   INNER JOIN cliente c ON c.id = os.cliente_id
   LEFT JOIN receita_optica r ON r.id = os.receita_optica_id
+  LEFT JOIN laboratorio l ON l.id = os.laboratorio_id
 `
 
 function normalizar(v: string | null | undefined): string | null {
@@ -79,7 +89,12 @@ export const ordemServicoRepository = {
    * recebem o mesmo numero (RF-06, CA1). O sistema anterior deixava o
    * numero ser digitado a mao - a colisao so aparecia no INSERT (D5).
    */
-  criar(data: OrdemServicoCreateInput, prefixo: string, criadoPor: number): number {
+  criar(
+    data: OrdemServicoCreateInput,
+    lab: { id: number; nome: string } | null,
+    prefixo: string,
+    criadoPor: number
+  ): number {
     const db = getDb()
     const ano = new Date().getFullYear()
     const prefixoAno = prefixo ? `${prefixo}-${ano}-` : `${ano}-`
@@ -100,10 +115,12 @@ export const ordemServicoRepository = {
       const info = db
         .prepare(
           `INSERT INTO ordem_servico (
-             numero, cliente_id, receita_optica_id, laboratorio,
+             numero, cliente_id, receita_optica_id, laboratorio, laboratorio_id,
+             entregador_nome, entregador_contato,
              situacao, data_abertura, data_previsao, observacao, criado_por
            ) VALUES (
-             :numero, :clienteId, :receitaOpticaId, :laboratorio,
+             :numero, :clienteId, :receitaOpticaId, :laboratorio, :laboratorioId,
+             :entregadorNome, :entregadorContato,
              'EM ABERTO', :dataAbertura, :dataPrevisao, :observacao, :criadoPor
            )`
         )
@@ -111,7 +128,11 @@ export const ordemServicoRepository = {
           numero,
           clienteId: data.clienteId,
           receitaOpticaId: data.receitaOpticaId ?? null,
-          laboratorio: normalizar(data.laboratorio),
+          // O texto tambem fica gravado (copia do nome na epoca): protege os relatorios e a importacao.
+          laboratorio: lab?.nome ?? null,
+          laboratorioId: lab?.id ?? null,
+          entregadorNome: maiusculoOuNulo(data.entregadorNome),
+          entregadorContato: data.entregadorContato ?? null,
           dataAbertura: hoje(),
           dataPrevisao: normalizar(data.dataPrevisao),
           observacao: normalizar(data.observacao),
@@ -204,18 +225,35 @@ export const ordemServicoRepository = {
       .run({ id, motivo })
   },
 
+  /** `lab`: undefined = nao mexe; null = tira o laboratorio; objeto = o novo. */
   atualizarDados(
     id: number,
-    laboratorio: string | null,
-    dataPrevisao: string | null,
-    observacao: string | null
+    dados: {
+      lab: { id: number; nome: string } | null | undefined
+      entregadorNome: string | null
+      entregadorContato: string | null
+      dataPrevisao: string | null
+      observacao: string | null
+    }
   ): void {
     getDb()
       .prepare(
         `UPDATE ordem_servico
-         SET laboratorio = :laboratorio, data_previsao = :dataPrevisao, observacao = :observacao
+         SET laboratorio = CASE WHEN :mexerLab = 1 THEN :laboratorio ELSE laboratorio END,
+             laboratorio_id = CASE WHEN :mexerLab = 1 THEN :laboratorioId ELSE laboratorio_id END,
+             entregador_nome = :entregadorNome, entregador_contato = :entregadorContato,
+             data_previsao = :dataPrevisao, observacao = :observacao
          WHERE id = :id`
       )
-      .run({ id, laboratorio, dataPrevisao, observacao })
+      .run({
+        id,
+        mexerLab: dados.lab === undefined ? 0 : 1,
+        laboratorio: dados.lab?.nome ?? null,
+        laboratorioId: dados.lab?.id ?? null,
+        entregadorNome: dados.entregadorNome,
+        entregadorContato: dados.entregadorContato,
+        dataPrevisao: dados.dataPrevisao,
+        observacao: dados.observacao
+      })
   }
 }

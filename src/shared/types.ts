@@ -180,7 +180,13 @@ export interface OrdemServico {
   clienteCelular: string | null
   receitaOpticaId: number | null
   receitaTipoLente: string | null
+  /** Nome do laboratorio: o do cadastro (muda junto se for renomeado) ou, nas OS sem vinculo, o texto de antes. */
   laboratorio: string | null
+  laboratorioId: number | null
+  /** Quem leva a armacao ao laboratorio (sem cadastro proprio): fica gravado na propria OS. */
+  entregadorNome: string | null
+  /** So os digitos (10 ou 11). */
+  entregadorContato: string | null
   situacao: SituacaoOS
   dataAbertura: string
   dataEnvio: string | null
@@ -307,6 +313,25 @@ export interface VendaDetalhada extends VendaResumo {
 // ---------------------------------------------------------------------
 // Estoque, fornecedores e compras (RF-08, RF-09, RF-11.2 - fase F4)
 // ---------------------------------------------------------------------
+
+/** Laboratorio para onde as OS sao enviadas (RG-02: nunca some se tiver OS; so inativa). */
+export interface Laboratorio {
+  id: number
+  nome: string
+  razaoSocial: string | null
+  /** So os digitos. */
+  cnpj: string | null
+  telefone: string | null
+  whatsapp: string | null
+  email: string | null
+  endereco: string | null
+  contatoResponsavel: string | null
+  prazoMedioDias: number | null
+  observacoes: string | null
+  ativo: boolean
+  /** Quantas OS (de qualquer situacao) usam este laboratorio. */
+  osVinculadas: number
+}
 
 export interface Fornecedor {
   id: number

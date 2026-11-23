@@ -429,6 +429,37 @@ export const SECOES_AJUDA: SecaoAjuda[] = [
     ]
   },
   {
+    id: 'laboratorios',
+    titulo: 'Laboratórios',
+    rotas: ['/laboratorios'],
+    soAdmin: true,
+    resumo: 'Cadastro dos laboratórios para onde as ordens de serviço são enviadas.',
+    blocos: [
+      {
+        tipo: 'paragrafo',
+        texto:
+          'Cadastre cada laboratório com nome (obrigatório), razão social, CNPJ, telefone, WhatsApp, e-mail, endereço, contato responsável, prazo médio de entrega em dias e observações. O CNPJ é conferido e os telefones precisam de DDD (10 ou 11 dígitos). A busca acha pelo nome, pela razão social ou pelo CNPJ.'
+      },
+      {
+        tipo: 'paragrafo',
+        texto:
+          'Na ordem de serviço, o laboratório é escolhido numa lista com os laboratórios ativos, e dá para informar o entregador (nome e telefone), que é quem leva a armação até o laboratório. Os dois aparecem na impressão da OS.'
+      },
+      {
+        tipo: 'atencao',
+        titulo: 'Inativar ou excluir',
+        texto:
+          'Laboratório que já tem ordem de serviço não pode ser excluído: use o botão de energia para inativar. Inativo, ele sai da lista das OS novas e continua aparecendo nas antigas. Já um laboratório que nunca foi usado pode ser excluído (o sistema sempre pergunta antes).'
+      },
+      {
+        tipo: 'dica',
+        titulo: 'O que aconteceu com os laboratórios de antes',
+        texto:
+          'Na atualização, o sistema criou um laboratório para cada nome já usado nas ordens de serviço e na lista antiga, e ligou cada OS ao seu laboratório. Se o mesmo nome apareceu escrito de dois jeitos (por exemplo com e sem acento), inative o repetido.'
+      }
+    ]
+  },
+  {
     id: 'contas-pagar',
     titulo: 'Contas a pagar',
     rotas: ['/contas-pagar'],
