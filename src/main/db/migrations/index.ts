@@ -13,6 +13,7 @@ import antirriscoSql from './012_antirrisco.sql?raw'
 import unidadeMedidaSql from './013_unidade_medida.sql?raw'
 import prescricaoSql from './014_prescricao.sql?raw'
 import laboratorioSql from './015_laboratorio.sql?raw'
+import vendasFormasBandeirasSql from './016_vendas_formas_bandeiras.sql?raw'
 
 export interface Migration {
   version: number
@@ -39,5 +40,6 @@ export const MIGRATIONS: Migration[] = [
   { version: 12, name: 'antirrisco', sql: antirriscoSql },
   { version: 13, name: 'unidade_medida', sql: unidadeMedidaSql },
   { version: 14, name: 'prescricao', sql: prescricaoSql },
-  { version: 15, name: 'laboratorio', sql: laboratorioSql }
+  { version: 15, name: 'laboratorio', sql: laboratorioSql },
+  { version: 16, name: 'vendas_formas_bandeiras', sql: vendasFormasBandeirasSql }
 ]

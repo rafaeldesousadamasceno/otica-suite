@@ -42,6 +42,9 @@ export const TABELAS_SINCRONIZAVEIS: TabelaSync[] = [
   { nome: 'lista_valor' },
   { nome: 'profissional' },
   { nome: 'laboratorio', desdeMigracao: 15 },
+  { nome: 'forma_pagamento', desdeMigracao: 16 },
+  { nome: 'bandeira', desdeMigracao: 16 },
+  { nome: 'bandeira_faixa', desdeMigracao: 16 },
 
   // Clientes e receitas
   { nome: 'cliente' },
