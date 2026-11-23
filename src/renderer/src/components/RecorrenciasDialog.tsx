@@ -44,7 +44,7 @@ export function RecorrenciasDialog({ open, onClose, onReajustar, onEncerrar }: L
       onClose={onClose}
       title="Despesas recorrentes"
       description="Aluguel, energia e outras despesas que se repetem. Cada mês vira uma conta com o seu próprio valor."
-      className="max-w-3xl"
+      className="max-w-5xl"
     >
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
@@ -61,7 +61,7 @@ export function RecorrenciasDialog({ open, onClose, onReajustar, onEncerrar }: L
           <tbody>
             {recorrencias.data?.map((r) => (
               <tr key={r.id} className="border-b border-[var(--rule)] align-top last:border-0">
-                <td className="px-3 py-2.5">
+                <td className="min-w-56 px-3 py-2.5">
                   <p className="font-medium text-[var(--ink)]">{r.descricao}</p>
                   <p className="text-xs text-[var(--ink-3)]">{[r.categoria, r.fornecedorNome].filter(Boolean).join(' · ') || 'Sem categoria'}</p>
                   {r.vigencias.length > 1 && <p className="mt-0.5 text-xs text-[var(--ink-3)]">{vigenciasTexto(r)}</p>}
@@ -83,7 +83,7 @@ export function RecorrenciasDialog({ open, onClose, onReajustar, onEncerrar }: L
                 </td>
                 <td className="px-3 py-2.5 text-right">
                   {r.status === 'ATIVA' && (
-                    <div className="flex justify-end gap-1">
+                    <div className="flex justify-end gap-1 whitespace-nowrap">
                       <Button size="sm" variant="secondary" onClick={() => onReajustar(r)}>
                         <TrendingUp className="size-3.5" /> Reajustar
                       </Button>

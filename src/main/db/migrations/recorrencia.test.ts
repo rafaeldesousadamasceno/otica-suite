@@ -237,6 +237,16 @@ describe('migração 17: séries que a ótica já tinha', () => {
     expect(d.find((c) => c.id === ids.min1)!.recorrencia_id).toBe(minuscula.id)
   })
 
+  it('aplica dentro de uma transação, como o migrador faz, e não deixa a tabela temporária para trás', () => {
+    const { db } = bancoDeCliente()
+    db.exec('BEGIN IMMEDIATE')
+    db.exec(migracao())
+    db.exec('COMMIT')
+    expect(series(db)).toHaveLength(7)
+    expect(db.prepare("SELECT name FROM sqlite_temp_master WHERE name = 'conta_017'").get()).toBeUndefined()
+    expect(db.prepare('PRAGMA foreign_key_check').all()).toEqual([])
+  })
+
   it('banco sem nenhuma conta recorrente: nada é criado', () => {
     const db = bancoAntes()
     conta(db, 'MATERIAL', null, 1000, '2026-04-12', 'ABERTA', 0)
