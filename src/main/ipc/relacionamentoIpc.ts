@@ -3,6 +3,7 @@ import { handleIpc } from './handle'
 import {
   IPC,
   aceitaContatoSchema,
+  contatoDesfazerSchema,
   contatoMarcarSchema,
   contatoRefSchema,
   modelosMensagemSchema,
@@ -26,6 +27,11 @@ export function registerRelacionamentoIpc(): void {
 
   handleIpc(IPC.relacionamento.marcarContatado, contatoMarcarSchema, (input) => {
     relacionamentoService.marcarContatado(input)
+    return null
+  })
+  handleIpc(IPC.relacionamento.contatados, null, () => relacionamentoService.contatados())
+  handleIpc(IPC.relacionamento.desfazerContato, contatoDesfazerSchema, (input) => {
+    relacionamentoService.desfazerContato(input)
     return null
   })
   handleIpc(IPC.relacionamento.definirAceitaContato, aceitaContatoSchema, (input) => {

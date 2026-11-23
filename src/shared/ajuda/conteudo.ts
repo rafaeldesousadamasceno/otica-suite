@@ -326,6 +326,11 @@ export const SECOES_AJUDA: SecaoAjuda[] = [
       {
         tipo: 'paragrafo',
         texto:
+          'Abaixo da lista fica a seção "Contatados", com quem foi marcado nos últimos 30 dias: cliente, motivo, quem marcou, data e hora e a observação, se houver. Clicou em "Contatado" no cliente errado? Use o botão "Desfazer" na linha dele: a marcação é removida na hora (sem pedir confirmação) e a pessoa volta para a lista, desde que a ocorrência ainda valha. O Vendedor desfaz só os contatos que ele mesmo marcou; o Administrador desfaz qualquer um. Todo "Desfazer" fica registrado na Auditoria.'
+      },
+      {
+        tipo: 'paragrafo',
+        texto:
           'O Administrador vê no topo a seção "Resultados" (últimos 30 ou 90 dias): quantos contatos foram feitos, quantos clientes voltaram, quanto foi vendido depois do contato e quantas parcelas vencidas foram recuperadas. "Voltar" quer dizer comprar (aniversário, pós-venda e renovação), retirar o óculos (retirada) ou pagar a parcela vencida (cobrança), até 30 dias depois do contato. "Ver por motivo" mostra o detalhe de cada um.'
       },
       {

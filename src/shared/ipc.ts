@@ -847,6 +847,9 @@ export const contatoMarcarSchema = contatoRefSchema.extend({
 })
 export type ContatoMarcarInput = z.infer<typeof contatoMarcarSchema>
 
+export const contatoDesfazerSchema = z.object({ id: z.number().int().positive() })
+export type ContatoDesfazerInput = z.infer<typeof contatoDesfazerSchema>
+
 export const aceitaContatoSchema = z.object({
   clienteId: z.number().int().positive(),
   aceita: z.boolean()
