@@ -1,6 +1,6 @@
 import { type ReactNode, useEffect, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Ban, CircleDollarSign, Printer } from 'lucide-react'
+import { Ban, CircleDollarSign, Printer, Trash2 } from 'lucide-react'
 import { Dialog } from '@renderer/components/ui/Dialog'
 import { Badge } from '@renderer/components/ui/Badge'
 import { Button } from '@renderer/components/ui/Button'
@@ -9,9 +9,13 @@ import { BaixaParcelaDialog } from '@renderer/components/BaixaParcelaDialog'
 import { unwrap, ApiCallError } from '@renderer/lib/ipc'
 import { useGerarPdf } from '@renderer/lib/useGerarPdf'
 import { centavosParaBRL } from '@renderer/lib/dinheiro'
+import { useExcluirVenda } from '@renderer/lib/useExcluirVenda'
+import { useAuthStore } from '@renderer/state/authStore'
+import { formatarBp } from '@shared/dinheiro'
+import { descreverAcrescimo } from '@shared/vendaCalculo'
 import { toast } from '@renderer/state/toastStore'
 import type { CredencialAdminInput } from '@shared/ipc'
-import type { ContaReceber, SituacaoComissao, SituacaoContaReceber } from '@shared/types'
+import type { ContaReceber, SituacaoComissao, SituacaoContaReceber, VendaPagamentoDetalhe } from '@shared/types'
 
 function formatarDataBr(iso: string): string {
   const [ano, mes, dia] = iso.split('-')
@@ -35,8 +39,15 @@ interface Props {
   onClose: () => void
 }
 
+/** Texto do pagamento COMO FOI GRAVADO na venda: forma, bandeira e parcelas (o que o cadastro diz hoje nao importa). */
+function textoPagamento(p: VendaPagamentoDetalhe): string {
+  return `${p.formaPagamento}${p.bandeiraNome ? ` ${p.bandeiraNome}` : ''}${p.parcelas > 1 ? ` em ${p.parcelas}x` : ''}`
+}
+
 export function VendaDetailDialog({ vendaId, onClose }: Props): ReactNode {
   const queryClient = useQueryClient()
+  const ehAdmin = useAuthStore((s) => s.sessao?.usuario.perfil === 'admin')
+  const { pedirExclusao, dialogos: dialogosExclusao } = useExcluirVenda({ aoExcluir: onClose })
   const [cancelando, setCancelando] = useState(false)
   const [erro, setErro] = useState<string | null>(null)
   const [motivoAutorizacao, setMotivoAutorizacao] = useState<string | null>(null)
@@ -149,7 +160,9 @@ export function VendaDetailDialog({ vendaId, onClose }: Props): ReactNode {
             <p className="font-mono-tab text-[var(--ink)]">{centavosParaBRL(v.subtotalCentavos)}</p>
           </div>
           <div>
-            <p className="text-xs text-[var(--ink-3)]">Desconto</p>
+            <p className="text-xs text-[var(--ink-3)]">
+              Desconto{v.descontoAdicionalTipo === 'PERCENTUAL' && v.descontoAdicionalValor > 0 ? ` (adicional de ${formatarBp(v.descontoAdicionalValor)})` : ''}
+            </p>
             <p className="font-mono-tab text-[var(--ink)]">{centavosParaBRL(v.descontoCentavos)}</p>
           </div>
           <div>
@@ -158,18 +171,50 @@ export function VendaDetailDialog({ vendaId, onClose }: Props): ReactNode {
               {centavosParaBRL(v.totalCentavos)}
             </p>
           </div>
+          {(v.acrescimoCentavos > 0 || v.descontoClienteCentavos > 0) && (
+            <>
+              {v.acrescimoCentavos > 0 && (
+                <div>
+                  <p className="text-xs text-[var(--ink-3)]">Acréscimo do parcelamento</p>
+                  <p className="font-mono-tab text-[var(--ink)]">+ {centavosParaBRL(v.acrescimoCentavos)}</p>
+                </div>
+              )}
+              {v.descontoClienteCentavos > 0 && (
+                <div>
+                  <p className="text-xs text-[var(--ink-3)]">Desconto do cartão</p>
+                  <p className="font-mono-tab text-[var(--ink)]">− {centavosParaBRL(v.descontoClienteCentavos)}</p>
+                </div>
+              )}
+              <div>
+                <p className="text-xs text-[var(--ink-3)]">O cliente paga</p>
+                <p className="font-mono-tab text-base font-semibold text-[var(--accent)]">{centavosParaBRL(v.totalClienteCentavos)}</p>
+              </div>
+            </>
+          )}
         </div>
 
         <div>
           <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-[var(--ink-3)]">Pagamento</p>
           <div className="flex flex-col gap-1">
             {v.pagamentos.map((p) => (
-              <div key={p.id} className="flex justify-between text-sm">
-                <span className="text-[var(--ink-2)]">
-                  {p.formaPagamento}
-                  {p.parcelas > 1 ? ` em ${p.parcelas}x` : ''}
-                </span>
-                <span className="font-mono-tab text-[var(--ink)]">{centavosParaBRL(p.valorCentavos)}</span>
+              <div key={p.id} className="flex flex-col text-sm">
+                <div className="flex justify-between">
+                  <span className="text-[var(--ink-2)]">{textoPagamento(p)}</span>
+                  <span className="font-mono-tab text-[var(--ink)]">{centavosParaBRL(p.valorCentavos)}</span>
+                </div>
+                {p.acrescimoCentavos > 0 && (
+                  <span className="text-xs text-[var(--ink-3)]">
+                    {descreverAcrescimo(p)}: parcelas somam {centavosParaBRL(p.valorCentavos + p.acrescimoCentavos)}
+                  </span>
+                )}
+                {/* Taxa e liquido sao custo da loja: so o Administrador ve. */}
+                {ehAdmin && p.comportamento === 'OPERADORA' && p.taxaBp !== null && (
+                  <span className="text-xs text-[var(--ink-3)]">
+                    Taxa {formatarBp(p.taxaBp)} · bruto {centavosParaBRL(p.brutoCentavos ?? p.valorCentavos)} · líquido {centavosParaBRL(p.liquidoCentavos ?? 0)}
+                    {p.dataPrevista ? ` · previsto para ${formatarDataBr(p.dataPrevista)}` : ''}
+                    {p.descontoClienteCentavos > 0 ? ` · desconto ao cliente ${centavosParaBRL(p.descontoClienteCentavos)}` : ''}
+                  </span>
+                )}
               </div>
             ))}
           </div>
@@ -226,6 +271,36 @@ export function VendaDetailDialog({ vendaId, onClose }: Props): ReactNode {
           </div>
         )}
 
+        {v.recebiveisOperadora.length > 0 && (
+          <div>
+            <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-[var(--ink-3)]">Recebível da operadora</p>
+            <div className="flex flex-col gap-1.5">
+              {v.recebiveisOperadora.map((r) => (
+                <div key={r.id} className="flex items-center justify-between gap-2 rounded-md border border-[var(--rule)] px-3 py-2 text-sm">
+                  <span className="text-[var(--ink-2)]">
+                    {r.bandeiraNome} em {r.operadoraParcelas}x · previsto para {formatarDataBr(r.vencimento)}
+                    <span className="block text-xs text-[var(--ink-3)]">Não é dívida do cliente: é o que a maquininha ainda vai depositar.</span>
+                  </span>
+                  <span className="flex items-center gap-2">
+                    <span className="font-mono-tab text-[var(--ink)]">{centavosParaBRL(r.valorCentavos)}</span>
+                    <Badge tone={TOM_SITUACAO_CONTA[r.situacao]}>{r.situacao}</Badge>
+                    {ehAdmin && r.situacao === 'ABERTA' && (
+                      <button
+                        type="button"
+                        title="Dar baixa (depósito recebido)"
+                        onClick={() => setParcelaParaBaixa(r)}
+                        className="rounded p-1 text-[var(--ink-3)] hover:bg-[var(--ok-wash)] hover:text-[var(--ok)]"
+                      >
+                        <CircleDollarSign className="size-4" />
+                      </button>
+                    )}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         {v.comissao && (
           <p className="text-sm text-[var(--ink-2)]">
             Comissão: <span className="font-mono-tab text-[var(--ink)]">{centavosParaBRL(v.comissao.valorCentavos)}</span>{' '}
@@ -259,8 +334,19 @@ export function VendaDetailDialog({ vendaId, onClose }: Props): ReactNode {
           </div>
         )}
 
+        {ehAdmin && (
+          <div className="flex items-center justify-between gap-3 border-t border-[var(--rule)] pt-4">
+            <p className="text-xs text-[var(--ink-3)]">Excluir tira a venda de todas as listas e relatórios (o número não é reaproveitado).</p>
+            <Button variant="danger" onClick={() => void pedirExclusao(v)}>
+              <Trash2 className="size-4" /> Excluir venda
+            </Button>
+          </div>
+        )}
+
         {erro && <p className="text-sm text-[var(--danger)]">{erro}</p>}
       </div>
+
+      {dialogosExclusao}
 
       <AuthorizeAdminDialog
         open={motivoAutorizacao !== null}

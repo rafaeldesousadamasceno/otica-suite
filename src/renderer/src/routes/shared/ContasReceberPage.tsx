@@ -11,7 +11,7 @@ import { useDebouncedValue } from '@renderer/lib/useDebouncedValue'
 import { centavosParaBRL } from '@renderer/lib/dinheiro'
 import { BaixaParcelaDialog } from '@renderer/components/BaixaParcelaDialog'
 import { useAuthStore } from '@renderer/state/authStore'
-import type { ContaReceber, SituacaoContaReceber } from '@shared/types'
+import type { ContaReceber, SituacaoContaReceber, TipoContaReceber } from '@shared/types'
 
 function formatarDataBr(iso: string): string {
   const [ano, mes, dia] = iso.split('-')
@@ -29,6 +29,7 @@ export function ContasReceberPage(): ReactNode {
   const [params] = useSearchParams()
   const [busca, setBusca] = useState('')
   const [situacao, setSituacao] = useState<'' | SituacaoContaReceber>('')
+  const [tipo, setTipo] = useState<'' | TipoContaReceber>('')
   const [apenasVencidas, setApenasVencidas] = useState(params.get('vencidas') === '1')
   const [parcelaParaBaixa, setParcelaParaBaixa] = useState<ContaReceber | null>(null)
   const buscaDebounced = useDebouncedValue(busca)
@@ -36,8 +37,8 @@ export function ContasReceberPage(): ReactNode {
   const ehAdmin = sessao?.usuario.perfil === 'admin'
 
   const contas = useQuery({
-    queryKey: ['contasReceber', { busca: buscaDebounced, situacao, apenasVencidas }],
-    queryFn: () => unwrap(window.api.contasReceber.list({ busca: buscaDebounced, situacao, apenasVencidas }))
+    queryKey: ['contasReceber', { busca: buscaDebounced, situacao, tipo, apenasVencidas }],
+    queryFn: () => unwrap(window.api.contasReceber.list({ busca: buscaDebounced, situacao, tipo, apenasVencidas }))
   })
 
   return (
@@ -45,6 +46,7 @@ export function ContasReceberPage(): ReactNode {
       <div>
         <h1 className="text-xl font-semibold text-[var(--ink)]">Contas a Receber</h1>
         {!ehAdmin && <p className="text-sm text-[var(--ink-3)]">Mostrando apenas as parcelas das suas vendas.</p>}
+        <p className="text-sm text-[var(--ink-3)]">Vendas no cartão aparecem como recebível da operadora (valor líquido): não são dívida do cliente nem contam como vencidas.</p>
       </div>
 
       <div className="flex flex-wrap items-center gap-3">
@@ -62,6 +64,11 @@ export function ContasReceberPage(): ReactNode {
           <option value="ABERTA">Em aberto</option>
           <option value="PAGA">Pagas</option>
           <option value="CANCELADA">Canceladas</option>
+        </Select>
+        <Select className="w-48" value={tipo} onChange={(e) => setTipo(e.target.value as '' | TipoContaReceber)} aria-label="Tipo de recebível">
+          <option value="">Cliente e operadora</option>
+          <option value="CLIENTE">Parcelas do cliente</option>
+          <option value="OPERADORA">Da operadora (cartão)</option>
         </Select>
         <label className="flex items-center gap-2 text-sm text-[var(--ink-2)]">
           <input type="checkbox" checked={apenasVencidas} onChange={(e) => setApenasVencidas(e.target.checked)} />
@@ -92,7 +99,16 @@ export function ContasReceberPage(): ReactNode {
                   <td className="px-4 py-2.5 font-mono-tab font-medium text-[var(--accent)]">{c.vendaNumero}</td>
                   <td className="px-4 py-2.5 text-[var(--ink)]">{c.clienteNome}</td>
                   <td className="px-4 py-2.5 text-center text-[var(--ink-2)]">
-                    {c.parcela}/{c.totalParcelas}
+                    {c.tipo === 'OPERADORA' ? (
+                      <span title="O que a maquininha ainda vai depositar. Não é dívida do cliente.">
+                        <Badge tone="neutral">Operadora</Badge>
+                        <span className="block text-xs text-[var(--ink-3)]">
+                          {c.bandeiraNome} {c.operadoraParcelas}x
+                        </span>
+                      </span>
+                    ) : (
+                      `${c.parcela}/${c.totalParcelas}`
+                    )}
                   </td>
                   <td className="px-4 py-2.5 font-mono-tab text-[var(--ink-2)]">{formatarDataBr(c.vencimento)}</td>
                   <td className="px-4 py-2.5 text-right font-mono-tab font-medium text-[var(--ink)]">
