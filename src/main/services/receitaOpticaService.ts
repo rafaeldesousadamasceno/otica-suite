@@ -11,7 +11,7 @@ import type { ReceitaExcluirInput, ReceitaOpticaAtualizarInput, ReceitaOpticaInp
 /**
  * Prescricao (no codigo, "receita optica"). Antes de gravar: sem cilindro nao ha
  * eixo e sem prisma a base e "Nenhum" (corrige sozinho); o resto das faixas e
- * regras (DNP obrigatoria, eixo com cilindro, base com prisma, grade da
+ * regras (eixo com cilindro, base com prisma, grade da
  * armacao...) barra o salvamento com a mensagem do primeiro problema. A tela
  * mostra todos; aqui fica a garantia para quem salva sem passar por ela.
  *

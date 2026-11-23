@@ -71,9 +71,14 @@ describe('receitaOpticaService', () => {
       expect(banco.db!.prepare("SELECT acao FROM auditoria WHERE entidade = 'receita_optica'").get()).toEqual({ acao: 'CRIAR' })
     })
 
-    it('a DNP é obrigatória nos dois olhos', () => {
-      expect(codigo(() => receitaOpticaService.criar(nova({ longeOdDnp: '' })))).toBe('VALIDACAO')
-      expect(mensagem(() => receitaOpticaService.criar(nova({ longeOeDnp: '' })))).toBe('Esquerdo: informe a DNP (obrigatória)')
+    it('a DNP é opcional: sem ela salva, e sem DNP dos dois lados não há DP', () => {
+      const r = receitaOpticaService.criar(nova({ longeOdDnp: '', longeOeDnp: '' }))
+      expect([r.longeOdDnp, r.longeOeDnp, r.dpLonge]).toEqual([null, null, null])
+      expect(receitaOpticaService.criar(nova({ longeOeDnp: '' })).dpLonge).toBeNull()
+    })
+
+    it('DNP preenchida fora da faixa continua barrando', () => {
+      expect(mensagem(() => receitaOpticaService.criar(nova({ longeOeDnp: 50 })))).toContain('a DNP vai de 20 a 45 mm')
     })
 
     it('eixo é obrigatório com cilindro; sem cilindro o eixo é descartado', () => {
@@ -133,7 +138,7 @@ describe('receitaOpticaService', () => {
 
     it('valida do mesmo jeito que ao criar', () => {
       const criada = receitaOpticaService.criar(nova())
-      expect(codigo(() => receitaOpticaService.atualizar(edicao(criada.id, { longeOdDnp: '' })))).toBe('VALIDACAO')
+      expect(codigo(() => receitaOpticaService.atualizar(edicao(criada.id, { longeOdDnp: 50 })))).toBe('VALIDACAO')
     })
 
     it('exige permissão de edição', () => {

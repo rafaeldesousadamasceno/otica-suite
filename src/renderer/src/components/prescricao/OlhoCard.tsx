@@ -80,9 +80,7 @@ export function OlhoCard({ olho, valor, onChange, invalidos, pertoOriginal }: Pr
 
       <div className="grid grid-cols-3 items-end gap-x-2 gap-y-2.5 border-t border-[var(--rule)] pt-3">
         <div className="flex flex-col gap-1">
-          <Rotulo htmlFor={`${id}-dnp`} destaque>
-            DNP longe <span className="text-[var(--danger)]">*</span>
-          </Rotulo>
+          <Rotulo htmlFor={`${id}-dnp`}>DNP longe</Rotulo>
           <NumeroInput id={`${id}-dnp`} aria-label={`${nome}: DNP de longe`} value={valor.dnp} casas={1} passo={0.5} unidade="mm" invalid={invalidos.has('Dnp')} onChange={(dnp) => mudar({ dnp })} />
         </div>
         <div className="flex flex-col gap-1">

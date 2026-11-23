@@ -98,8 +98,8 @@ describe('eixo e cilindro', () => {
 })
 
 describe('DNP e demais faixas', () => {
-  it('DNP é obrigatória nos dois olhos', () => {
-    expect(campos(valida({ longeOdDnp: null, longeOeDnp: null }))).toEqual(['longeOdDnp', 'longeOeDnp'])
+  it('DNP é opcional: vazia passa nos dois olhos', () => {
+    expect(campos(valida({ longeOdDnp: null, longeOeDnp: null }))).toEqual([])
   })
   it('DNP de 20 a 45, de 0,5 em 0,5', () => {
     expect(campos(valida({ longeOdDnp: 19.5 }))).toEqual(['longeOdDnp'])

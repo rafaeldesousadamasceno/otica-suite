@@ -204,8 +204,8 @@ export function validarPrescricao(e: EntradaPrescricao): ProblemaPrescricao[] {
     if (cil !== null && !dentro(cil, FAIXAS.cil)) erro(`longe${o}Cil`, `${lado}: o cilíndrico vai de ${grauTexto(FAIXAS.cil.min)} a ${grauTexto(FAIXAS.cil.max)}, em passos de 0,25`)
     if (cil !== null && cil !== 0 && eixo === null) erro(`longe${o}Eixo`, `${lado}: informe o eixo, ele é obrigatório quando há cilindro`)
     if (eixo !== null && !dentro(eixo, FAIXAS.eixo)) erro(`longe${o}Eixo`, `${lado}: o eixo vai de 0° a 180°`)
-    if (dnp === null) erro(`longe${o}Dnp`, `${lado}: informe a DNP (obrigatória)`)
-    else if (!dentro(dnp, FAIXAS.dnp)) erro(`longe${o}Dnp`, `${lado}: a DNP vai de ${FAIXAS.dnp.min} a ${FAIXAS.dnp.max} mm, em passos de 0,5`)
+    // DNP e opcional (decisao do dono): vazia passa; preenchida, precisa estar na faixa.
+    if (dnp !== null && !dentro(dnp, FAIXAS.dnp)) erro(`longe${o}Dnp`, `${lado}: a DNP vai de ${FAIXAS.dnp.min} a ${FAIXAS.dnp.max} mm, em passos de 0,5`)
     if (alt !== null && !dentro(alt, FAIXAS.alt)) erro(`longe${o}Alt`, `${lado}: a altura vai de ${FAIXAS.alt.min} a ${FAIXAS.alt.max} mm, em passos de 0,5`)
     if (prisma !== null && (prisma < FAIXAS.prisma.min || prisma > FAIXAS.prisma.max)) erro(`longe${o}Prisma`, `${lado}: o prisma vai de 0 a ${FAIXAS.prisma.max} Δ`)
     else if (prisma !== null && prisma > 0 && base === 'NENHUM') erro(`longe${o}BasePrisma`, `${lado}: escolha a base do prisma`)

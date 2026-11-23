@@ -169,7 +169,7 @@ export const SECOES_AJUDA: SecaoAjuda[] = [
         itens: [
           'Na ficha, clique em "Nova prescrição".',
           'Informe a data do exame e, se quiser, o profissional (optometrista) que atendeu.',
-          'Preencha o olho Direito (à esquerda da tela) e o Esquerdo (à direita). Em cada um: Esférico, Cilíndrico e Eixo de Longe, a Adição, a DNP de longe (obrigatória) e, se precisar, a Altura, o Prisma com a base e a DNP de perto.',
+          'Preencha o olho Direito (à esquerda da tela) e o Esquerdo (à direita). Em cada um: Esférico, Cilíndrico e Eixo de Longe, a Adição, a DNP de longe (opcional) e, se precisar, a Altura, o Prisma com a base e a DNP de perto.',
           'Escolha o Tipo de lente e o Índice de refração, marque os Tratamentos (pode marcar mais de um) e preencha a Armação.',
           'Se quiser, abra "Medidas da armação (opcional)" e informe Ponte, Horizontal, Vertical e Diagonal Maior em milímetros.',
           'Clique em "Salvar prescrição".'
