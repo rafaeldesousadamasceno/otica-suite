@@ -75,6 +75,12 @@ export const MAX_PARCELAS_CARTAO = 24
 
 export type Resultado<T> = ({ ok: true } & T) | { ok: false; erro: string }
 
+/** 899 -> "8,99"; 1000 -> "10"; 50 -> "0,5": o percentual exato, so com as casas que ele tem (o "%" fica fora, no campo). */
+export function textoPercentual(bp: number | null): string {
+  if (bp === null) return ''
+  return (bp / 100).toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 2, useGrouping: false })
+}
+
 /** R$ 1.234,56 (so para mensagens de erro: a tela tem o seu formatador). */
 export function brl(centavos: number): string {
   return (centavos / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }).replace(/\u00a0/g, ' ')

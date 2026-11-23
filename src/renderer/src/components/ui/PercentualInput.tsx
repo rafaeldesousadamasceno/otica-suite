@@ -1,6 +1,7 @@
 import { type ReactNode, useEffect, useState } from 'react'
 import { cn } from '@renderer/lib/cn'
 import { percentualParaBp } from '@shared/dinheiro'
+import { textoPercentual } from '@shared/vendaCalculo'
 
 interface Props {
   /** Percentual em PONTOS-BASE (8,99% = 899); `null` = vazio. */
@@ -16,12 +17,6 @@ interface Props {
   placeholder?: string
   'aria-label'?: string
   autoFocus?: boolean
-}
-
-/** 899 -> "8,99"; 1000 -> "10"; 50 -> "0,5": o valor exato, so com as casas que ele tem (o "%" fica no campo). */
-export function textoPercentual(bp: number | null): string {
-  if (bp === null) return ''
-  return (bp / 100).toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 2, useGrouping: false })
 }
 
 /**

@@ -10,8 +10,10 @@ import {
   descreverAcrescimo,
   liquidoEstimado,
   resumirPagamentos,
-  somarDiasISO
+  somarDiasISO,
+  textoPercentual
 } from './vendaCalculo'
+import { percentualParaBp } from './dinheiro'
 
 const forma = (extra: Partial<FormaPagamentoConfig>): FormaPagamentoConfig => ({
   id: 1,
@@ -37,6 +39,25 @@ const visa: BandeiraConfig = {
     { parcelas: 12, taxaBp: 1299, prazoDias: 360, descontoClienteBp: 500 }
   ]
 }
+
+describe('percentual no campo da tela', () => {
+  it('mostra o valor exato com vírgula, só com as casas que ele tem', () => {
+    expect(textoPercentual(899)).toBe('8,99')
+    expect(textoPercentual(1000)).toBe('10')
+    expect(textoPercentual(50)).toBe('0,5')
+    expect(textoPercentual(10000)).toBe('100')
+    expect(textoPercentual(0)).toBe('0')
+    expect(textoPercentual(null)).toBe('')
+  })
+
+  it('o que a pessoa digita volta para pontos-base sem erro de ponto flutuante', () => {
+    expect(percentualParaBp('8,99')).toBe(899)
+    expect(percentualParaBp('0,29')).toBe(29)
+    expect(percentualParaBp('1,15')).toBe(115)
+    expect(percentualParaBp('abc')).toBeNull()
+    expect(percentualParaBp('')).toBeNull()
+  })
+})
 
 describe('tipo -> comportamento financeiro', () => {
   it('cada tipo segue a regra do documento', () => {
