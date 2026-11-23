@@ -7,6 +7,7 @@ import { cnpjValido, digitosCnpj } from './cnpj'
 import { digitosTelefoneCompleto, telefoneValido } from './telefone'
 import { validarFaixaDeGrau } from './dioptria'
 import { MAX_PARCELAS_CARTAO, MAX_PARCELAS_CLIENTE, TIPOS_FORMA_PAGAMENTO, comportamentoDoTipo } from './vendaCalculo'
+import { dataIsoValida, normalizarCompetencia } from './recorrencia'
 
 /**
  * Contrato de IPC: os nomes de canal moram em `ipcChannels.ts` (sem
@@ -795,14 +796,82 @@ export type EstoqueAjustarInput = z.infer<typeof estoqueAjustarSchema>
 // Contas a pagar (RF-11.2)
 // ---------------------------------------------------------------------
 
-export const contaPagarCriarSchema = z.object({
-  descricao: z.string().trim().min(1, 'Informe a descrição'),
-  categoria: z.string().trim().optional().nullable().or(z.literal('')),
-  valorCentavos: dinheiroCentavos,
-  vencimento: z.string().trim().length(10, 'Informe o vencimento'),
-  recorrente: z.boolean().optional()
-})
+const dataIso = (mensagem: string) => z.string().trim().refine(dataIsoValida, mensagem)
+
+/** Valor de uma conta ou vigencia de recorrencia: maior que zero. */
+const dinheiroPositivo = dinheiroCentavos.refine((v) => v > 0, 'Informe um valor maior que zero')
+
+const frequenciaRecorrencia = z.enum(['MENSAL', 'ANUAL'])
+
+/**
+ * Conta avulsa ou, com `recorrente`, uma recorrencia: nesse caso `vencimento` e o PRIMEIRO vencimento
+ * (define o dia do mes e o inicio da serie), `frequencia` e MENSAL por padrao e `dataFim` (ultimo
+ * vencimento permitido) e opcional.
+ */
+export const contaPagarCriarSchema = z
+  .object({
+    descricao: z.string().trim().min(1, 'Informe a descrição'),
+    categoria: z.string().trim().optional().nullable().or(z.literal('')),
+    fornecedorId: z.number().int().positive().optional().nullable(),
+    valorCentavos: dinheiroCentavos,
+    vencimento: dataIso('Informe o vencimento'),
+    recorrente: z.boolean().optional(),
+    frequencia: frequenciaRecorrencia.optional(),
+    dataFim: z.string().trim().optional().nullable().or(z.literal(''))
+  })
+  .superRefine((v, ctx) => {
+    if (!v.recorrente) return
+    if (v.valorCentavos <= 0) ctx.addIssue({ code: 'custom', path: ['valorCentavos'], message: 'Informe um valor maior que zero' })
+    if (v.dataFim) {
+      if (!dataIsoValida(v.dataFim)) ctx.addIssue({ code: 'custom', path: ['dataFim'], message: 'Informe a data de término' })
+      else if (v.dataFim < v.vencimento) ctx.addIssue({ code: 'custom', path: ['dataFim'], message: 'O término não pode ser antes do primeiro vencimento' })
+    }
+  })
 export type ContaPagarCriarInput = z.infer<typeof contaPagarCriarSchema>
+
+export const escoposEdicaoConta = ['SOMENTE_ESTE', 'ESTE_E_PROXIMOS'] as const
+export const escoposExclusaoConta = ['SOMENTE_ESTA', 'ESTA_E_PROXIMAS'] as const
+
+/**
+ * Editar uma ocorrencia de recorrencia em aberto. "Somente este" muda o valor (e o vencimento) so desta
+ * conta; "Este e os proximos" e um reajuste a partir da competencia dela (o vencimento nao entra).
+ * Nao existe "todos": o passado nunca muda.
+ */
+export const contaPagarEditarSchema = z.object({
+  id: z.number().int().positive(),
+  escopo: z.enum(escoposEdicaoConta),
+  valorCentavos: dinheiroPositivo,
+  vencimento: dataIso('Informe o vencimento').optional()
+})
+export type ContaPagarEditarInput = z.infer<typeof contaPagarEditarSchema>
+
+export const contaPagarExcluirSchema = z.object({
+  id: z.number().int().positive(),
+  /** So conta para ocorrencia de recorrencia; a avulsa ignora. Padrao: so esta. */
+  escopo: z.enum(escoposExclusaoConta).optional(),
+  motivo: z.string().trim().max(300).optional().nullable().or(z.literal(''))
+})
+export type ContaPagarExcluirInput = z.infer<typeof contaPagarExcluirSchema>
+
+export const recorrenciaReajustarSchema = z.object({
+  id: z.number().int().positive(),
+  valorCentavos: dinheiroPositivo,
+  /** Competencia (AAAA-MM) ou uma data: vale da competencia dela em diante. */
+  aPartirDe: z
+    .string()
+    .trim()
+    .transform((v) => normalizarCompetencia(v))
+    .refine((v): v is string => v !== null, 'Informe o mês do reajuste')
+})
+export type RecorrenciaReajustarInput = z.infer<typeof recorrenciaReajustarSchema>
+
+export const recorrenciaEncerrarSchema = z.object({
+  id: z.number().int().positive(),
+  /** Ultimo vencimento da serie: o que vence depois, e ainda esta em aberto, e removido. */
+  dataFim: dataIso('Informe a data de término'),
+  motivo: z.string().trim().max(300).optional().nullable().or(z.literal(''))
+})
+export type RecorrenciaEncerrarInput = z.infer<typeof recorrenciaEncerrarSchema>
 
 export const contaPagarPagarSchema = z.object({
   id: z.number().int().positive(),
@@ -815,7 +884,9 @@ export type ContaPagarPagarInput = z.infer<typeof contaPagarPagarSchema>
 export const contasPagarListQuerySchema = z.object({
   busca: z.string().trim().optional(),
   situacao: z.enum(['ABERTA', 'PAGA', 'CANCELADA', '']).optional(),
-  apenasVencidas: z.boolean().optional()
+  apenasVencidas: z.boolean().optional(),
+  /** Inclui as ocorrencias de recorrencia alem do mes seguinte (por padrao ficam escondidas). */
+  incluirFuturas: z.boolean().optional()
 })
 export type ContasPagarListQuery = z.infer<typeof contasPagarListQuerySchema>
 

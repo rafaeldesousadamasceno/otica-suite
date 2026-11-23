@@ -95,7 +95,7 @@ export const financeiroRepository = {
     const row = getDb()
       .prepare(
         `SELECT COALESCE(SUM(valor_centavos), 0) AS soma
-         FROM conta_pagar WHERE situacao != 'CANCELADA' AND vencimento BETWEEN :dataInicio AND :dataFim`
+         FROM conta_pagar WHERE situacao != 'CANCELADA' AND excluido_em IS NULL AND vencimento BETWEEN :dataInicio AND :dataFim`
       )
       .get({ dataInicio, dataFim }) as { soma: number }
     return row.soma
@@ -106,7 +106,7 @@ export const financeiroRepository = {
       .prepare(
         `SELECT categoria, COALESCE(SUM(valor_centavos), 0) AS total
          FROM conta_pagar
-         WHERE situacao != 'CANCELADA' AND vencimento BETWEEN :dataInicio AND :dataFim
+         WHERE situacao != 'CANCELADA' AND excluido_em IS NULL AND vencimento BETWEEN :dataInicio AND :dataFim
          GROUP BY categoria
          ORDER BY total DESC`
       )

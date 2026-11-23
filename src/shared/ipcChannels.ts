@@ -135,7 +135,12 @@ export const IPC = {
   contasPagar: {
     list: 'contasPagar:list',
     criar: 'contasPagar:criar',
-    pagar: 'contasPagar:pagar'
+    pagar: 'contasPagar:pagar',
+    editar: 'contasPagar:editar',
+    excluir: 'contasPagar:excluir',
+    recorrencias: 'contasPagar:recorrencias',
+    reajustarRecorrencia: 'contasPagar:reajustarRecorrencia',
+    encerrarRecorrencia: 'contasPagar:encerrarRecorrencia'
   },
   configuracoes: {
     getOperacional: 'configuracoes:getOperacional',

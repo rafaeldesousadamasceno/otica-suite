@@ -28,6 +28,8 @@ import type {
   CompraDetalhada,
   EstoqueItem,
   ContaPagar,
+  Recorrencia,
+  RecorrenciaAcaoResultado,
   ConfiguracaoOperacional,
   FluxoCaixaResultado,
   LucroPrejuizoResultado,
@@ -112,6 +114,10 @@ import type {
   EstoqueAjustarInput,
   ContaPagarCriarInput,
   ContaPagarPagarInput,
+  ContaPagarEditarInput,
+  ContaPagarExcluirInput,
+  RecorrenciaReajustarInput,
+  RecorrenciaEncerrarInput,
   ContasPagarListQuery,
   ConfiguracaoOperacionalInput,
   PeriodoQuery,
@@ -273,6 +279,11 @@ interface Api {
     list: (input: ContasPagarListQuery) => Promise<ApiResult<ContaPagar[]>>
     criar: (input: ContaPagarCriarInput) => Promise<ApiResult<ContaPagar>>
     pagar: (input: ContaPagarPagarInput) => Promise<ApiResult<ContaPagar>>
+    editar: (input: ContaPagarEditarInput) => Promise<ApiResult<ContaPagar>>
+    excluir: (input: ContaPagarExcluirInput) => Promise<ApiResult<RecorrenciaAcaoResultado>>
+    recorrencias: () => Promise<ApiResult<Recorrencia[]>>
+    reajustarRecorrencia: (input: RecorrenciaReajustarInput) => Promise<ApiResult<RecorrenciaAcaoResultado>>
+    encerrarRecorrencia: (input: RecorrenciaEncerrarInput) => Promise<ApiResult<RecorrenciaAcaoResultado>>
   }
   configuracoes: {
     getOperacional: () => Promise<ApiResult<ConfiguracaoOperacional>>

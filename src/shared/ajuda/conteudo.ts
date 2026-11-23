@@ -563,18 +563,41 @@ export const SECOES_AJUDA: SecaoAjuda[] = [
     titulo: 'Contas a pagar',
     rotas: ['/contas-pagar'],
     soAdmin: true,
-    resumo: 'Contas geradas pelas compras e contas lançadas à mão.',
+    resumo: 'Contas geradas pelas compras, contas lançadas à mão e despesas que se repetem (aluguel, energia).',
     blocos: [
       {
         tipo: 'paragrafo',
-        texto: 'Além das contas geradas pela entrada de mercadoria, dá para lançar uma conta manual: descrição, categoria, valor e vencimento. Há a opção "Só vencidas".'
+        texto: 'Além das contas geradas pela entrada de mercadoria, dá para lançar uma conta manual: descrição, categoria, fornecedor (opcional), valor e vencimento. Há as opções "Só vencidas" e "Mostrar contas futuras".'
+      },
+      { tipo: 'paragrafo', texto: 'Para pagar, clique no ícone de cifrão: informe o valor (aceita pagamento parcial), a data e a forma de pagamento.' },
+      { tipo: 'paragrafo', texto: 'Despesa recorrente' },
+      {
+        tipo: 'paragrafo',
+        texto: 'Marque "Despesa recorrente" nas despesas que se repetem (aluguel, energia, mensalidades). Informe o primeiro vencimento (o dia dele vale para todos os meses; em mês mais curto, vence no último dia), a frequência (mensal ou anual), o valor e, se quiser, quando termina. O sistema lança sozinho os próximos 12 meses, cada conta com o seu valor, e completa o que faltar toda vez que você abre Contas a pagar. Pagar uma conta não cria mais a próxima: ela já está lançada.'
+      },
+      {
+        tipo: 'paragrafo',
+        texto: 'Por padrão a lista mostra as contas recorrentes só até o mês seguinte. Marque "Mostrar contas futuras" para ver todas. As contas de despesa recorrente trazem um selo com o mês de competência.'
+      },
+      {
+        tipo: 'passos',
+        itens: [
+          'Reajustar valor: no ícone de engrenagem da conta (ou em "Despesas recorrentes"), escolha "Reajustar valor", digite o novo valor e o mês a partir do qual ele vale. Só as contas em aberto daquele mês em diante mudam.',
+          'Encerrar recorrência: informe o último vencimento e confirme. As contas em aberto que vencem depois saem da lista e nada novo é lançado. Para continuar com outra despesa, crie uma recorrência nova.',
+          'Editar uma conta: escolha "Somente este" (muda só aquela conta) ou "Este e os próximos" (reajusta daquele mês em diante).',
+          'Excluir (lixeira): conta avulsa pede confirmação; conta recorrente pergunta se é "somente esta" ou "esta e as próximas (encerra a recorrência)".'
+        ]
+      },
+      {
+        tipo: 'atencao',
+        titulo: 'O passado nunca muda',
+        texto: 'Contas pagas e meses anteriores ficam como estão em qualquer reajuste, edição ou encerramento. Uma conta já paga não pode ser excluída: o pagamento precisa ser estornado antes. A conta excluída "somente esta" não volta a ser lançada pelo sistema.'
       },
       {
         tipo: 'dica',
-        titulo: 'Despesa recorrente',
-        texto: 'Marque "Despesa recorrente" nas contas que se repetem todo mês (aluguel, energia). Assim que ela for paga, o sistema cria a do mês seguinte.'
-      },
-      { tipo: 'paragrafo', texto: 'Para pagar, clique no ícone de cifrão: informe o valor (aceita pagamento parcial), a data e a forma de pagamento.' }
+        titulo: 'Quem já usava a recorrência antiga',
+        texto: 'Na atualização, cada despesa que estava marcada como recorrente virou uma recorrência (mesma descrição e categoria = mesma série), com o valor mais recente e o dia do último vencimento. As contas e os valores que você já tinha continuam iguais, e o sistema passa a lançar os próximos 12 meses. Se alguma despesa não existe mais, abra "Despesas recorrentes" e use "Encerrar".'
+      }
     ]
   },
   {
