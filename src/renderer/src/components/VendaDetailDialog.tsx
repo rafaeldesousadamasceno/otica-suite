@@ -337,7 +337,7 @@ export function VendaDetailDialog({ vendaId, onClose }: Props): ReactNode {
         {ehAdmin && (
           <div className="flex items-center justify-between gap-3 border-t border-[var(--rule)] pt-4">
             <p className="text-xs text-[var(--ink-3)]">Excluir tira a venda de todas as listas e relatórios (o número não é reaproveitado).</p>
-            <Button variant="danger" onClick={() => void pedirExclusao(v)}>
+            <Button variant="danger" className="shrink-0 whitespace-nowrap" onClick={() => void pedirExclusao(v)}>
               <Trash2 className="size-4" /> Excluir venda
             </Button>
           </div>

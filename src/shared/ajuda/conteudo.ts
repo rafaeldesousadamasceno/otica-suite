@@ -245,7 +245,7 @@ export const SECOES_AJUDA: SecaoAjuda[] = [
     id: 'vendas',
     titulo: 'Vendas',
     rotas: ['/vendas'],
-    resumo: 'Fazer, consultar e cancelar uma venda.',
+    resumo: 'Fazer, consultar, cancelar e excluir uma venda.',
     blocos: [
       {
         tipo: 'paragrafo',
@@ -257,14 +257,23 @@ export const SECOES_AJUDA: SecaoAjuda[] = [
           'Clique em "Nova venda" e escolha o cliente.',
           'Se quiser, vincule uma prescrição e uma ordem de serviço já existentes.',
           'Busque e adicione os produtos. Cada item tem quantidade, preço e desconto próprios.',
-          'Se precisar, aplique um desconto adicional sobre o total.',
-          'Adicione uma ou mais formas de pagamento (à vista, cartão, parcelado...) até o valor bater com o total.',
-          'Clique em "Concluir venda".'
+          'Se precisar, aplique um desconto adicional sobre o total: o botão ao lado do campo troca entre R$ (no máximo o subtotal) e % (de 0 a 100).',
+          'Adicione uma ou mais formas de pagamento até o valor bater com o total. A entrada é só uma linha comum (Dinheiro ou PIX), e cada linha segue a regra da sua forma.',
+          'Confira o resumo que aparece antes de concluir e clique em "Concluir venda".'
         ]
       },
       {
         tipo: 'paragrafo',
-        texto: 'O sistema calcula subtotal, desconto e total ao vivo e avisa se falta ou sobra valor no pagamento.'
+        texto: 'O sistema calcula subtotal, desconto e total ao vivo e avisa se falta ou sobra valor no pagamento. Depois de escolher as formas, o resumo mostra o que cada uma vai gerar.'
+      },
+      {
+        tipo: 'tabela',
+        colunas: ['Forma', 'O que acontece na venda'],
+        linhas: [
+          ['Dinheiro, PIX, Transferência', 'Entra como recebido na data da venda.'],
+          ['Cartão de débito ou crédito', 'Escolha a bandeira e, no crédito, as parcelas (a lista mostra a taxa e o valor líquido estimado). A venda gera um único recebível da operadora, com o valor líquido e a data prevista. Nada vira parcela do cliente.'],
+          ['Promissória, Boleto, Cheque', 'Gera as parcelas do cliente em Contas a Receber, respeitando o máximo de parcelas e o intervalo da forma. O acréscimo, se houver, aparece explícito no resumo e é aplicado uma vez sobre o valor da linha.']
+        ]
       },
       {
         tipo: 'atencao',
@@ -274,7 +283,17 @@ export const SECOES_AJUDA: SecaoAjuda[] = [
       {
         tipo: 'paragrafo',
         texto:
-          'No detalhe da venda há os botões para imprimir o comprovante e o carnê de parcelas (um canhoto por parcela). Cancelar a venda devolve os produtos ao estoque, estorna o que já tinha entrado no financeiro e cancela a comissão, tudo de uma vez.'
+          'No detalhe da venda há os botões para imprimir o comprovante e o carnê de parcelas (um canhoto por parcela, só as do cliente). O Administrador vê também a taxa e o líquido do cartão. Cancelar a venda devolve os produtos ao estoque, estorna o que já tinha entrado no financeiro e cancela a comissão, tudo de uma vez.'
+      },
+      {
+        tipo: 'dica',
+        titulo: 'O que vale para a comissão e o lucro',
+        texto: 'A comissão e a margem continuam sobre o valor dos itens menos o desconto: o acréscimo da promissória e a taxa da operadora ficam de fora. Cada venda guarda o que foi calculado na hora (taxa, acréscimo, líquido), então mudar uma bandeira ou uma forma depois não altera vendas antigas.'
+      },
+      {
+        tipo: 'atencao',
+        titulo: 'Excluir venda (só Administrador)',
+        texto: 'O botão Excluir fica na lista e no detalhe e sempre pergunta antes (com o campo "Motivo", opcional). A exclusão desfaz tudo de uma vez: devolve os produtos ao estoque, remove as parcelas e recebíveis em aberto e cancela a comissão. A venda some das listas, relatórios e do painel, e o número dela nunca é reaproveitado. Se já houver parcela paga, recebível da operadora baixado, pagamento à vista ou ordem de serviço ligada, o sistema lista esses itens e só exclui se o Administrador digitar a própria senha; nesse caso o que já entrou no caixa é estornado.'
       }
     ]
   },
@@ -282,7 +301,7 @@ export const SECOES_AJUDA: SecaoAjuda[] = [
     id: 'contas-receber',
     titulo: 'Contas a receber',
     rotas: ['/contas-receber'],
-    resumo: 'Parcelas das vendas parceladas e a baixa de cada uma.',
+    resumo: 'Parcelas das vendas parceladas, o que a operadora do cartão vai depositar e a baixa de cada um.',
     blocos: [
       {
         tipo: 'paragrafo',
@@ -297,7 +316,12 @@ export const SECOES_AJUDA: SecaoAjuda[] = [
           'Confirme.'
         ]
       },
-      { tipo: 'paragrafo', texto: 'O Vendedor só vê e recebe as parcelas das próprias vendas.' }
+      { tipo: 'paragrafo', texto: 'O Vendedor só vê e recebe as parcelas das próprias vendas.' },
+      {
+        tipo: 'atencao',
+        titulo: 'Recebível da operadora (cartão)',
+        texto: 'Venda no cartão não gera parcela do cliente: gera um recebível da operadora, com o valor líquido e a data prevista, marcado como "Operadora". Ele não é dívida do cliente, por isso nunca aparece como vencido, nem na inadimplência, nem na cobrança do Relacionamento, nem no carnê. O filtro "Cliente e operadora" separa os dois, e dá para dar baixa quando o depósito cair.'
+      }
     ]
   },
   {
