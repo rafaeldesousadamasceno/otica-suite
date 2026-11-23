@@ -37,6 +37,19 @@ describe('matriz de permissoes (PRD secao 7.4)', () => {
     expect(possuiPermissao('vendedor', 'relacionamento.resultados', 'ver')).toBe(false)
   })
 
+  it('formas de pagamento e bandeiras: o Administrador cuida do cadastro, o Vendedor so enxerga o que a venda precisa', () => {
+    for (const recurso of ['formas_pagamento', 'bandeiras'] as const) {
+      for (const acao of ['ver', 'criar', 'editar', 'excluir'] as const) expect(possuiPermissao('admin', recurso, acao), `admin ${recurso}.${acao}`).toBe(true)
+      expect(possuiPermissao('vendedor', recurso, 'ver')).toBe(true)
+      for (const acao of ['criar', 'editar', 'excluir'] as const) expect(possuiPermissao('vendedor', recurso, acao), `vendedor ${recurso}.${acao}`).toBe(false)
+    }
+  })
+
+  it('excluir venda e so do Administrador', () => {
+    expect(possuiPermissao('admin', 'vendas', 'excluir')).toBe(true)
+    expect(possuiPermissao('vendedor', 'vendas', 'excluir')).toBe(false)
+  })
+
   it('recurso nao mapeado para o perfil nunca autoriza', () => {
     expect(possuiPermissao('vendedor', 'usuarios', 'ver')).toBe(false)
     expect(possuiPermissao('vendedor', 'auditoria', 'ver')).toBe(false)

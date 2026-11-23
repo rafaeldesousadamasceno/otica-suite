@@ -1,4 +1,4 @@
-import { type ReactNode, useEffect, useRef } from 'react'
+import { type ReactNode, useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { TriangleAlert } from 'lucide-react'
 import { Button } from '@renderer/components/ui/Button'
@@ -6,7 +6,8 @@ import type { ConfirmacaoMontada } from '@shared/confirmacao'
 
 interface Props {
   confirmacao: ConfirmacaoMontada | null
-  onResponder: (confirmou: boolean) => void
+  /** `motivo` so vem quando a confirmacao pediu o campo "Motivo (opcional)". */
+  onResponder: (confirmou: boolean, motivo?: string) => void
 }
 
 /**
@@ -17,9 +18,12 @@ interface Props {
 export function ConfirmDialog({ confirmacao, onResponder }: Props): ReactNode {
   const cancelarRef = useRef<HTMLButtonElement>(null)
   const confirmarRef = useRef<HTMLButtonElement>(null)
+  const motivoRef = useRef<HTMLInputElement>(null)
+  const [motivo, setMotivo] = useState('')
 
   useEffect(() => {
     if (!confirmacao) return
+    setMotivo('')
     const anterior = document.activeElement instanceof HTMLElement ? document.activeElement : null
     cancelarRef.current?.focus()
 
@@ -29,10 +33,13 @@ export function ConfirmDialog({ confirmacao, onResponder }: Props): ReactNode {
         e.preventDefault()
         onResponder(false)
       } else if (e.key === 'Tab') {
-        // O foco fica preso nos dois botoes enquanto a caixa esta aberta.
+        // O foco fica preso dentro da caixa: o campo do motivo (se houver), Cancelar e o botao de confirmar.
         e.preventDefault()
-        const noCancelar = document.activeElement === cancelarRef.current
-        ;(noCancelar ? confirmarRef : cancelarRef).current?.focus()
+        const ordem: HTMLElement[] = []
+        for (const el of [motivoRef.current, cancelarRef.current, confirmarRef.current]) if (el) ordem.push(el)
+        const atual = ordem.indexOf(document.activeElement as HTMLElement)
+        const proximo = (atual + (e.shiftKey ? -1 : 1) + ordem.length) % ordem.length
+        ordem[proximo]?.focus()
       }
     }
     // Captura: roda antes do Esc das outras janelas (que ouvem na fase normal).
@@ -72,6 +79,19 @@ export function ConfirmDialog({ confirmacao, onResponder }: Props): ReactNode {
             {confirmacao.aviso && <p className="text-sm font-medium text-[var(--danger)]">{confirmacao.aviso}</p>}
           </div>
         </div>
+        {confirmacao.pedirMotivo && (
+          <label className="flex flex-col gap-1.5 text-sm font-medium text-[var(--ink-2)]">
+            Motivo (opcional)
+            <input
+              ref={motivoRef}
+              value={motivo}
+              maxLength={200}
+              onChange={(e) => setMotivo(e.target.value)}
+              placeholder="Por que está excluindo?"
+              className="h-9 w-full rounded-md border border-[var(--rule-strong)] bg-[var(--surface)] px-3 text-sm font-normal text-[var(--ink)] placeholder:text-[var(--ink-3)] focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-[var(--accent)]"
+            />
+          </label>
+        )}
         <div className="flex justify-end gap-2">
           <Button ref={cancelarRef} type="button" variant="secondary" onClick={() => onResponder(false)}>
             {confirmacao.rotuloCancelar}
@@ -80,7 +100,7 @@ export function ConfirmDialog({ confirmacao, onResponder }: Props): ReactNode {
             ref={confirmarRef}
             type="button"
             variant={confirmacao.destrutiva ? 'danger' : 'primary'}
-            onClick={() => onResponder(true)}
+            onClick={() => onResponder(true, confirmacao.pedirMotivo ? motivo : undefined)}
           >
             {confirmacao.rotuloConfirmar}
           </Button>

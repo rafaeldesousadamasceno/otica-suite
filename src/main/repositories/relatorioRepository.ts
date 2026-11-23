@@ -77,7 +77,7 @@ export const relatorioRepository = {
          FROM comissao c
          INNER JOIN venda v ON v.id = c.venda_id
          INNER JOIN usuario u ON u.id = c.vendedor_id
-         WHERE v.data BETWEEN :dataInicio AND :dataFim
+         WHERE v.data BETWEEN :dataInicio AND :dataFim AND v.excluido_em IS NULL
            AND (:vendedorId = 0 OR c.vendedor_id = :vendedorId)
          ORDER BY v.data, v.id`
       )

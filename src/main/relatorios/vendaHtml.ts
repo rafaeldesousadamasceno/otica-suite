@@ -1,6 +1,7 @@
 import type { Empresa, VendaDetalhada } from '@shared/types'
 import { escapeHtml, formatarContatos, formatarDataBr, formatarMoeda, texto } from './formatacao'
 import { assinatura, badge, campos, montarDocumento, resumoCards, secao, tabela, type Tom } from './layout'
+import { descreverAcrescimo } from '@shared/vendaCalculo'
 
 const TOM_PARCELA: Record<string, Tom> = { ABERTA: 'atencao', PAGA: 'ok', CANCELADA: 'perigo' }
 
@@ -24,12 +25,20 @@ export function montarHtmlComprovanteVenda(venda: VendaDetalhada, empresa: Empre
     vazio: 'Venda sem itens.'
   })
 
+  // O comprovante e do cliente: mostra o acrescimo da promissoria e o desconto da faixa do cartao, mas nunca a taxa da
+  // operadora nem o liquido (isso e custo da loja).
   const pagamentos = tabela({
     colunas: [{ label: 'Forma de pagamento' }, { label: 'Valor', alinhar: 'direita' }],
-    linhas: venda.pagamentos.map((p) => [
-      `${texto(p.formaPagamento)}${p.parcelas > 1 ? ` em ${p.parcelas}x` : ''}`,
-      formatarMoeda(p.valorCentavos)
-    ]),
+    linhas: venda.pagamentos.map((p) => {
+      const bandeira = p.bandeiraNome ? ` ${texto(p.bandeiraNome)}` : ''
+      const nota =
+        p.acrescimoCentavos > 0
+          ? `<br><span style="font-size:8px;color:#5b6b6f">${escapeHtml(descreverAcrescimo(p))}. Total das parcelas: ${formatarMoeda(p.valorCentavos + p.acrescimoCentavos)}</span>`
+          : p.descontoClienteCentavos > 0
+            ? `<br><span style="font-size:8px;color:#5b6b6f">Desconto no cartão: ${formatarMoeda(p.descontoClienteCentavos)}</span>`
+            : ''
+      return [`${texto(p.formaPagamento)}${bandeira}${p.parcelas > 1 ? ` em ${p.parcelas}x` : ''}${nota}`, formatarMoeda(p.valorCentavos)]
+    }),
     vazio: 'Nenhum pagamento registrado.'
   })
 
@@ -47,7 +56,11 @@ export function montarHtmlComprovanteVenda(venda: VendaDetalhada, empresa: Empre
     resumoCards([
       { label: 'Subtotal', valor: formatarMoeda(venda.subtotalCentavos) },
       { label: 'Desconto', valor: formatarMoeda(venda.descontoCentavos) },
-      { label: 'Total', valor: formatarMoeda(venda.totalCentavos), tom: 'destaque' }
+      { label: 'Total', valor: formatarMoeda(venda.totalCentavos), tom: 'destaque' },
+      ...(venda.acrescimoCentavos > 0 ? [{ label: 'Acréscimo (parcelamento)', valor: formatarMoeda(venda.acrescimoCentavos) }] : []),
+      ...(venda.acrescimoCentavos > 0 || venda.descontoClienteCentavos > 0
+        ? [{ label: 'Total a pagar', valor: formatarMoeda(venda.totalClienteCentavos), tom: 'destaque' as const }]
+        : [])
     ]),
     secao('Pagamento', pagamentos),
     assinatura('Assinatura do cliente')

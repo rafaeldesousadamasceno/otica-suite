@@ -11,6 +11,7 @@ import { centavosParaBRL, centavosParaTexto, textoParaCentavos } from '@renderer
 import { toast } from '@renderer/state/toastStore'
 import type { ContaReceber } from '@shared/types'
 import { hojeLocal } from '@shared/data'
+import { comportamentoDoTipo } from '@shared/vendaCalculo'
 import { enterAvancaCampo } from '@renderer/lib/enterAvancaCampo'
 
 interface Props {
@@ -28,11 +29,17 @@ export function BaixaParcelaDialog({ conta, onClose }: Props): ReactNode {
 
   const restanteCentavos = conta ? conta.valorCentavos - conta.valorRecebidoCentavos : 0
 
-  const formasPagamento = useQuery({
-    queryKey: ['listaValor', 'forma_pagamento'],
-    queryFn: () => unwrap(window.api.listasValor.listByTipo({ tipo: 'forma_pagamento' })),
+  // Como o dinheiro entrou: as formas ATIVAS do cadastro, menos as que parcelam (promissoria, boleto, cheque).
+  const formasQuery = useQuery({
+    queryKey: ['formasPagamento', { ativas: true }],
+    queryFn: () => unwrap(window.api.formasPagamento.list({ apenasAtivos: true })),
     enabled: conta !== null
   })
+  const formasPagamento = {
+    data: formasQuery.data
+      ?.filter((f) => comportamentoDoTipo(f.tipo) !== 'PARCELADO_CLIENTE')
+      .map((f) => ({ id: f.id, valor: f.nome, tipo: f.tipo }))
+  }
 
   useEffect(() => {
     if (conta) {
@@ -44,9 +51,11 @@ export function BaixaParcelaDialog({ conta, onClose }: Props): ReactNode {
 
   useEffect(() => {
     if (formasPagamento.data?.[0] && !formaPagamento) {
-      setFormaPagamento(formasPagamento.data[0].valor)
+      // O deposito da operadora costuma chegar por transferencia; o resto comeca na primeira forma da lista.
+      const padrao = conta?.tipo === 'OPERADORA' ? formasPagamento.data.find((f) => f.tipo === 'TRANSFERENCIA') : undefined
+      setFormaPagamento((padrao ?? formasPagamento.data[0]).valor)
     }
-  }, [formasPagamento.data, formaPagamento])
+  }, [formasPagamento.data, formaPagamento, conta?.tipo])
 
   const mutation = useMutation({
     mutationFn: () =>
@@ -74,7 +83,12 @@ export function BaixaParcelaDialog({ conta, onClose }: Props): ReactNode {
   const podeSubmeter = valorCentavos > 0 && valorCentavos <= restanteCentavos && Boolean(formaPagamento) && Boolean(data)
 
   return (
-    <Dialog open onClose={onClose} title={`Baixar parcela ${conta.parcela}/${conta.totalParcelas}`} className="max-w-sm">
+    <Dialog
+      open
+      onClose={onClose}
+      title={conta.tipo === 'OPERADORA' ? 'Baixar depósito da operadora' : `Baixar parcela ${conta.parcela}/${conta.totalParcelas}`}
+      className="max-w-sm"
+    >
       <form
         // Enter só passa para o próximo campo: o formulário só envia pelo botão.
         onKeyDown={enterAvancaCampo}
@@ -87,6 +101,12 @@ export function BaixaParcelaDialog({ conta, onClose }: Props): ReactNode {
       >
         <p className="text-sm text-[var(--ink-2)]">
           Venda {conta.vendaNumero} · {conta.clienteNome}
+          {conta.tipo === 'OPERADORA' && (
+            <>
+              <br />
+              {conta.bandeiraNome} em {conta.operadoraParcelas}x (valor líquido, já sem a taxa)
+            </>
+          )}
           <br />
           Restante: <span className="font-mono-tab text-[var(--ink)]">{centavosParaBRL(restanteCentavos)}</span>
         </p>

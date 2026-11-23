@@ -1,6 +1,6 @@
 import { type ReactNode, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { Search, ShoppingCart } from 'lucide-react'
+import { Search, ShoppingCart, Trash2 } from 'lucide-react'
 import { Card } from '@renderer/components/ui/Card'
 import { Input } from '@renderer/components/ui/Input'
 import { Button } from '@renderer/components/ui/Button'
@@ -11,6 +11,7 @@ import { centavosParaBRL } from '@renderer/lib/dinheiro'
 import { VendaFormDialog } from '@renderer/components/VendaFormDialog'
 import { VendaDetailDialog } from '@renderer/components/VendaDetailDialog'
 import { useAuthStore } from '@renderer/state/authStore'
+import { useExcluirVenda } from '@renderer/lib/useExcluirVenda'
 
 function formatarDataBr(iso: string): string {
   const [ano, mes, dia] = iso.split('-')
@@ -24,6 +25,8 @@ export function VendasPage(): ReactNode {
   const buscaDebounced = useDebouncedValue(busca)
   const sessao = useAuthStore((s) => s.sessao)
   const ehAdmin = sessao?.usuario.perfil === 'admin'
+  // Excluir (so Administrador): a lista continua com a mesma busca e e atualizada pelo proprio fluxo.
+  const { pedirExclusao, dialogos: dialogosExclusao } = useExcluirVenda()
 
   const vendas = useQuery({
     queryKey: ['vendas', { busca: buscaDebounced }],
@@ -63,6 +66,7 @@ export function VendasPage(): ReactNode {
                 <th className="px-4 py-2.5">Data</th>
                 <th className="px-4 py-2.5 text-right">Total</th>
                 <th className="px-4 py-2.5">Situação</th>
+                {ehAdmin && <th className="w-12"></th>}
               </tr>
             </thead>
             <tbody>
@@ -82,12 +86,28 @@ export function VendasPage(): ReactNode {
                   <td className="px-4 py-2.5">
                     <Badge tone={v.situacao === 'CANCELADA' ? 'danger' : 'ok'}>{v.situacao}</Badge>
                   </td>
+                  {ehAdmin && (
+                    <td className="px-2 py-2.5 text-right">
+                      <button
+                        type="button"
+                        title="Excluir venda"
+                        aria-label={`Excluir a venda ${v.numero}`}
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          void pedirExclusao(v)
+                        }}
+                        className="rounded p-1 text-[var(--ink-3)] hover:bg-[var(--danger-wash)] hover:text-[var(--danger)]"
+                      >
+                        <Trash2 className="size-4" />
+                      </button>
+                    </td>
+                  )}
                 </tr>
               ))}
 
               {vendas.data?.length === 0 && (
                 <tr>
-                  <td colSpan={ehAdmin ? 6 : 5} className="px-4 py-8 text-center text-[var(--ink-3)]">
+                  <td colSpan={ehAdmin ? 7 : 5} className="px-4 py-8 text-center text-[var(--ink-3)]">
                     Nenhuma venda encontrada.
                   </td>
                 </tr>
@@ -99,6 +119,7 @@ export function VendasPage(): ReactNode {
 
       <VendaFormDialog open={novaOpen} onClose={() => setNovaOpen(false)} onCreated={(id) => setVendaSelecionada(id)} />
       <VendaDetailDialog vendaId={vendaSelecionada} onClose={() => setVendaSelecionada(null)} />
+      {dialogosExclusao}
     </div>
   )
 }

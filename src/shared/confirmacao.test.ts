@@ -28,6 +28,13 @@ describe('montarConfirmacao', () => {
     expect(c.destrutiva).toBe(true)
   })
 
+  it('exclusao pode pedir o motivo (campo opcional na caixa)', () => {
+    const c = montarConfirmacao({ variante: 'excluir', entidade: 'venda', item: 'Venda 2026-00001', pedirMotivo: true })
+    expect(c.pedirMotivo).toBe(true)
+    expect(c.titulo).toBe('Excluir venda?')
+    expect(montarConfirmacao({ variante: 'excluir', entidade: 'venda', item: 'x' }).pedirMotivo).toBeUndefined()
+  })
+
   it('confirmacao comum: sem aviso de irreversivel e sem botao vermelho', () => {
     const c = montarConfirmacao({ titulo: 'Importar dados?', mensagem: 'Vai tirar um backup.', rotuloConfirmar: 'Importar' })
     expect(c).toEqual({

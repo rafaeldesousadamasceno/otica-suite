@@ -2,7 +2,7 @@ import type { DatabaseSync } from 'node:sqlite'
 import { getDb } from '@main/db/connection'
 import { termoBusca } from '@shared/texto'
 import { comissaoRepository } from './comissaoRepository'
-import type { ContaReceber, SituacaoContaReceber } from '@shared/types'
+import type { ContaReceber, SituacaoContaReceber, TipoContaReceber } from '@shared/types'
 import { hojeLocal } from '@shared/data'
 
 function hoje(): string {
@@ -14,6 +14,7 @@ const SELECT_CONTA_RECEBER = `
          cr.cliente_id, c.nome AS cliente_nome,
          v.vendedor_id, u.nome AS vendedor_nome,
          cr.parcela, cr.total_parcelas, cr.valor_centavos, cr.vencimento, cr.situacao,
+         cr.tipo, cr.bandeira_nome, cr.operadora_parcelas, cr.taxa_bp, cr.bruto_centavos,
          COALESCE((SELECT SUM(r.valor_centavos) FROM recebimento r WHERE r.conta_receber_id = cr.id), 0) AS valor_recebido_centavos
   FROM conta_receber cr
   INNER JOIN venda v ON v.id = cr.venda_id
@@ -34,6 +35,11 @@ interface ContaReceberRow {
   valor_centavos: number
   vencimento: string
   situacao: SituacaoContaReceber
+  tipo: TipoContaReceber
+  bandeira_nome: string | null
+  operadora_parcelas: number | null
+  taxa_bp: number | null
+  bruto_centavos: number | null
   valor_recebido_centavos: number
 }
 
@@ -52,34 +58,43 @@ function toContaReceber(row: ContaReceberRow): ContaReceber {
     valorRecebidoCentavos: row.valor_recebido_centavos,
     vencimento: row.vencimento,
     situacao: row.situacao,
-    vencida: row.situacao === 'ABERTA' && row.vencimento < hoje()
+    // So a parcela do CLIENTE atrasa: o que a operadora ainda vai depositar nao e inadimplencia.
+    vencida: row.tipo === 'CLIENTE' && row.situacao === 'ABERTA' && row.vencimento < hoje(),
+    tipo: row.tipo,
+    bandeiraNome: row.bandeira_nome,
+    operadoraParcelas: row.operadora_parcelas,
+    taxaBp: row.taxa_bp,
+    brutoCentavos: row.bruto_centavos
   }
 }
 
 export const contaReceberRepository = {
-  listar(query: { busca?: string; situacao?: string; apenasVencidas?: boolean }): ContaReceber[] {
+  listar(query: { busca?: string; situacao?: string; tipo?: string; apenasVencidas?: boolean }): ContaReceber[] {
     const rows = getDb()
       .prepare(
         `${SELECT_CONTA_RECEBER}
          WHERE (sem_acento(c.nome) LIKE :termo OR sem_acento(v.numero) LIKE :termo)
            AND (:situacao = '' OR cr.situacao = :situacao)
-           AND (:apenasVencidas = 0 OR (cr.situacao = 'ABERTA' AND cr.vencimento < :hoje))
+           AND (:tipo = '' OR cr.tipo = :tipo)
+           AND (:apenasVencidas = 0 OR (cr.tipo = 'CLIENTE' AND cr.situacao = 'ABERTA' AND cr.vencimento < :hoje))
          ORDER BY cr.vencimento ASC, cr.id ASC
          LIMIT 500`
       )
       .all({
         termo: termoBusca(query.busca),
         situacao: query.situacao?.trim() || '',
+        tipo: query.tipo?.trim() || '',
         apenasVencidas: query.apenasVencidas ? 1 : 0,
         hoje: hoje()
       }) as unknown as ContaReceberRow[]
     return rows.map(toContaReceber)
   },
 
-  listarPorVenda(vendaId: number): ContaReceber[] {
+  /** As parcelas da venda; `tipo` separa as do cliente (carne) do recebivel da operadora. Sem `tipo`, todas. */
+  listarPorVenda(vendaId: number, tipo: TipoContaReceber | '' = ''): ContaReceber[] {
     const rows = getDb()
-      .prepare(`${SELECT_CONTA_RECEBER} WHERE cr.venda_id = :vendaId ORDER BY cr.parcela`)
-      .all({ vendaId }) as unknown as ContaReceberRow[]
+      .prepare(`${SELECT_CONTA_RECEBER} WHERE cr.venda_id = :vendaId AND (:tipo = '' OR cr.tipo = :tipo) ORDER BY cr.parcela, cr.id`)
+      .all({ vendaId, tipo }) as unknown as ContaReceberRow[]
     return rows.map(toContaReceber)
   },
 
@@ -103,8 +118,8 @@ export const contaReceberRepository = {
     db.exec('BEGIN IMMEDIATE')
     try {
       const conta = db
-        .prepare('SELECT venda_id, valor_centavos FROM conta_receber WHERE id = :id')
-        .get({ id }) as { venda_id: number; valor_centavos: number } | undefined
+        .prepare('SELECT venda_id, valor_centavos, tipo, bandeira_nome FROM conta_receber WHERE id = :id')
+        .get({ id }) as { venda_id: number; valor_centavos: number; tipo: TipoContaReceber; bandeira_nome: string | null } | undefined
       if (!conta) throw new Error(`Parcela #${id} não encontrada.`)
 
       const dataRecebimento = params.data?.trim() || hoje()
@@ -134,7 +149,10 @@ export const contaReceberRepository = {
         `INSERT INTO lancamento (tipo, categoria, descricao, valor_centavos, data, origem_tipo, origem_id, usuario_id)
          VALUES ('RECEITA', 'VENDA', :descricao, :valor, :data, 'conta_receber', :contaId, :usuarioId)`
       ).run({
-        descricao: `Recebimento de parcela - ${params.formaPagamento}`,
+        descricao:
+          conta.tipo === 'OPERADORA'
+            ? `Recebimento da operadora${conta.bandeira_nome ? ` (${conta.bandeira_nome})` : ''} - ${params.formaPagamento}`
+            : `Recebimento de parcela - ${params.formaPagamento}`,
         valor: params.valorCentavos,
         data: dataRecebimento,
         contaId: id,

@@ -32,3 +32,27 @@ export async function resolverAutorizador(
   })
   return admin.id
 }
+
+/**
+ * Acao tao grave que ate o Administrador logado precisa CONFIRMAR digitando a propria senha (excluir uma venda com
+ * dinheiro ja recebido, por exemplo): um clique so nao basta. Diferente de `resolverAutorizador`, nunca dispensa a
+ * credencial, e ela precisa ser a do PROPRIO usuario da sessao (outra conta de administrador nao serve). Devolve o
+ * id de quem confirmou, para ficar na auditoria. Sem credencial, o erro e o mesmo `AUTORIZACAO_ADMIN_NECESSARIA`.
+ */
+export async function exigirSenhaDoProprioAdmin(
+  sessao: Sessao,
+  credencial: CredencialAdmin | undefined | null,
+  motivoSeFaltando: string
+): Promise<number> {
+  if (sessao.usuario.perfil !== 'admin') throw Errors.semPermissao()
+  if (!credencial) throw Errors.autorizacaoAdminNecessaria(motivoSeFaltando)
+
+  const admin = await authService.autorizarComoAdmin({
+    loginAdmin: credencial.loginAdmin,
+    senhaAdmin: credencial.senhaAdmin
+  })
+  if (admin.id !== sessao.usuario.id) {
+    throw Errors.validacao('Digite a sua própria senha de Administrador para liberar esta exclusão.')
+  }
+  return admin.id
+}
