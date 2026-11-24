@@ -115,9 +115,14 @@ export interface ClaimsPc {
   duracao?: number
 }
 
+/** `sub` do token do PC. Nenhuma conta do Supabase tem este id, então `auth.uid()` nunca é o de uma pessoa. */
+export const SUB_DO_PC = '00000000-0000-0000-0000-000000000000'
+
 /**
  * JWT HS256 que o PostgREST aceita: role `authenticated`, com `loja_id` e `dispositivo_id` no TOPO do token
  * (é onde `optialeph.pc_autorizado` lê; user_metadata nunca é usado).
+ * SEGURANÇA: `sub` é fixo (SUB_DO_PC). O `dispositivo_id` quem escolhe é o PC; se ele virasse `sub`, um PC com
+ * qualquer licença válida poderia se registrar com o id da conta de outra pessoa e agir como ela (auth.uid()).
  */
 export async function montarJwtDoPc(c: ClaimsPc, segredo: string): Promise<{ token: string; expiraEm: number }> {
   const exp = c.agora + (c.duracao ?? 3600)
@@ -125,7 +130,7 @@ export async function montarJwtDoPc(c: ClaimsPc, segredo: string): Promise<{ tok
   const corpo = `${enc({ alg: 'HS256', typ: 'JWT' })}.${enc({
     aud: 'authenticated',
     role: 'authenticated',
-    sub: c.dispositivo_id,
+    sub: SUB_DO_PC,
     loja_id: c.loja_id,
     dispositivo_id: c.dispositivo_id,
     iat: c.agora,

@@ -95,13 +95,20 @@ describe('pc-token: JWT', () => {
     const [h, c, s] = token.split('.')
     expect(JSON.parse(Buffer.from(h, 'base64url').toString())).toEqual({ alg: 'HS256', typ: 'JWT' })
     const claims = JSON.parse(Buffer.from(c, 'base64url').toString())
-    expect(claims).toMatchObject({ role: 'authenticated', aud: 'authenticated', loja_id: LOJA, dispositivo_id: DISP, sub: DISP })
+    expect(claims).toMatchObject({ role: 'authenticated', aud: 'authenticated', loja_id: LOJA, dispositivo_id: DISP })
     expect(claims.exp).toBe(1_000_000 + 3600)
     expect(expiraEm).toBe(1_003_600)
     // A assinatura confere com o mesmo segredo e não com outro.
     const { createHmac } = await import('node:crypto')
     expect(s).toBe(createHmac('sha256', 'segredo').update(`${h}.${c}`).digest('base64url'))
     expect(s).not.toBe(createHmac('sha256', 'outro').update(`${h}.${c}`).digest('base64url'))
+  })
+
+  it('sub é o UUID nulo, nunca o dispositivo_id (que o PC escolhe e poderia ser o id de uma conta)', async () => {
+    const { token } = await montarJwtDoPc({ loja_id: LOJA, dispositivo_id: DISP, agora: 1_000_000 }, 'segredo')
+    const claims = JSON.parse(Buffer.from(token.split('.')[1], 'base64url').toString())
+    expect(claims.sub).toBe('00000000-0000-0000-0000-000000000000')
+    expect(claims.dispositivo_id).toBe(DISP)
   })
 
   it('base64url ida e volta', () => {
