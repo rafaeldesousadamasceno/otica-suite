@@ -11,6 +11,8 @@ export interface DepsCiclo {
   gravarEstado(e: EstadoNuvem): void
   fingerprint: string
   agora(): Date
+  /** A nuvem continua ligada? Conferido antes de cada chamada à nuvem; false para o ciclo na hora. */
+  continuar(): boolean
   tamanhoLote?: number
 }
 
@@ -19,6 +21,8 @@ export interface ResultadoCiclo {
   excluidos: number
   varredura: boolean
   cursor: number
+  /** Desligada no meio: nada local foi gravado (cursor e sync_exclusao como estavam). */
+  interrompido: boolean
 }
 
 const TAMANHO_LOTE_PADRAO = 500
@@ -26,6 +30,8 @@ const TAMANHO_LOTE_PADRAO = 500
 /**
  * Um ciclo de envio: manda o que mudou depois do cursor (ou tudo, na varredura), as exclusões e,
  * só então, grava o novo cursor e limpa sync_exclusao. Qualquer erro sobe sem tocar em nada local.
+ * Se a nuvem for desligada no meio (`continuar()` false), para antes da próxima chamada, também sem
+ * tocar em nada local.
  */
 export async function executarCiclo(d: DepsCiclo): Promise<ResultadoCiclo> {
   const tamanho = d.tamanhoLote ?? TAMANHO_LOTE_PADRAO
@@ -38,6 +44,7 @@ export async function executarCiclo(d: DepsCiclo): Promise<ResultadoCiclo> {
   if (estado.cursor > n) d.gravarEstado({ fingerprint: d.fingerprint, cursor: 0 })
   let enviados = 0
   let excluidos = 0
+  const interrompido = (): ResultadoCiclo => ({ enviados, excluidos, varredura, cursor: d.lerEstado().cursor, interrompido: true })
 
   for (const t of TABELAS_SINCRONIZAVEIS) {
     const sql = montarConsultaEnvio(t, lerInfoTabela(d.db, t.nome))
@@ -45,6 +52,7 @@ export async function executarCiclo(d: DepsCiclo): Promise<ResultadoCiclo> {
     for (;;) {
       const linhas = lerLote(d.db, sql, posicao, n, tamanho)
       if (linhas.length > 0) {
+        if (!d.continuar()) return interrompido()
         await d.cliente.upsert(t.nome, linhas, recebidoEm)
         enviados += linhas.length
         const ultima = linhas[linhas.length - 1]
@@ -67,10 +75,12 @@ export async function executarCiclo(d: DepsCiclo): Promise<ResultadoCiclo> {
       porTabela.set(r.tabela, l)
     }
     for (const [tabela, uuids] of porTabela) {
+      if (!d.continuar()) return interrompido()
       await d.cliente.apagar(tabela, uuids)
       excluidos += uuids.length
     }
   } else {
+    if (!d.continuar()) return interrompido()
     await d.cliente.varrer(
       TABELAS_SINCRONIZAVEIS.map((t) => t.nome),
       recebidoEm
@@ -79,5 +89,5 @@ export async function executarCiclo(d: DepsCiclo): Promise<ResultadoCiclo> {
 
   d.gravarEstado({ fingerprint: d.fingerprint, cursor: n })
   d.db.prepare('DELETE FROM sync_exclusao WHERE sync_rev <= ?').run(n)
-  return { enviados, excluidos, varredura, cursor: n }
+  return { enviados, excluidos, varredura, cursor: n, interrompido: false }
 }

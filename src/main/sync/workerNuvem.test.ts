@@ -40,7 +40,11 @@ function nuvemFalsa() {
     upserts: [] as { tabela: string; linhas: Record<string, unknown>[] }[],
     varreduras: 0,
     paineis: [] as string[],
-    configs: [] as ConfigCliente[]
+    configs: [] as ConfigCliente[],
+    /** Chamado no começo de cada upsert com o número dele (1, 2, ...). */
+    aoUpsert: null as ((n: number) => void) | null,
+    qtdUpserts: 0,
+    aoPainel: null as (() => void) | null
   }
   const passar = (): void => {
     s.chamadas++
@@ -48,6 +52,7 @@ function nuvemFalsa() {
   }
   const cliente: ClienteNuvem = {
     async upsert(tabela, linhas) {
+      s.aoUpsert?.(++s.qtdUpserts)
       passar()
       s.upserts.push({ tabela, linhas })
     },
@@ -59,6 +64,7 @@ function nuvemFalsa() {
       s.varreduras++
     },
     async gravarPainel(periodo) {
+      s.aoPainel?.()
       s.chamadas++
       if (s.falharPainel) throw new NuvemErro('NUVEM_HTTP', 500, 'A nuvem recusou a operação (HTTP 500).')
       s.paineis.push(periodo)
@@ -75,17 +81,19 @@ function nuvemFalsa() {
 
 let atual: ReturnType<typeof criarWorker> | null = null
 
-function montar(o: { licenca?: string | null; configurada?: boolean; identidade?: () => IdentidadePc } = {}) {
+function montar(
+  o: { licenca?: string | null; configurada?: boolean; identidade?: () => IdentidadePc; monotonico?: () => number } = {}
+) {
   const nuvem = nuvemFalsa()
   const estado = { atual: null as EstadoNuvem | null }
-  /** Instante (ms) de cada ciclo iniciado: o ciclo carrega a identidade uma vez, logo no começo. */
+  /** Instante monotônico (ms) de cada ciclo iniciado: o ciclo carrega a identidade uma vez, logo no começo. */
   const tentativas: number[] = []
   const identidade: IdentidadePc = { dispositivoId: randomUUID(), chavePublica: 'chave-publica', assinar: () => 'assinatura', nova: false }
   const deps: DepsWorker = {
     getDb: () => banco.db!,
     criarCliente: nuvem.criarCliente,
     identidade: () => {
-      tentativas.push(Date.now())
+      tentativas.push(performance.now())
       return o.identidade ? o.identidade() : identidade
     },
     estado: {
@@ -98,6 +106,8 @@ function montar(o: { licenca?: string | null; configurada?: boolean; identidade?
     obterLicenca: () => (o.licenca === undefined ? 'licenca-de-teste' : o.licenca),
     nuvemConfigurada: () => o.configurada ?? true,
     agora: () => new Date(),
+    // Com vi.useFakeTimers o performance.now() é falso: anda com os timers e não muda com vi.setSystemTime.
+    monotonico: o.monotonico ?? (() => performance.now()),
     timers: {
       setInterval: (fn, ms) => setInterval(fn, ms),
       clearInterval: (h) => clearInterval(h as ReturnType<typeof setInterval>),
@@ -370,6 +380,99 @@ describe('workerNuvem', () => {
     ligarDireto()
     await w.sincronizarAgora()
     expect(w.obterStatusNuvem().estado).toBe('sem_licenca')
+  })
+
+  it('desligar no meio do ciclo (lote 2): para na hora, cursor intacto e sem erro', async () => {
+    const { w, nuvem, estado, tentativas } = montar()
+    nuvem.s.aoUpsert = (n) => {
+      if (n === 2) w.desligarNuvem()
+    }
+    ligarDireto()
+    w.iniciarWorkerNuvem()
+    await w.sincronizarAgora()
+    expect(nuvem.s.qtdUpserts).toBe(2)
+    expect(nuvem.s.varreduras).toBe(0)
+    expect(nuvem.s.paineis).toEqual([])
+    expect(estado.atual).toBeNull()
+    expect(w.obterStatusNuvem()).toMatchObject({ estado: 'desligada', ligada: false, ultimoErro: null, ultimoEnvioEm: null })
+    const chamadas = nuvem.s.chamadas
+    await vi.advanceTimersByTimeAsync(30 * MIN)
+    expect(nuvem.s.chamadas).toBe(chamadas)
+    expect(tentativas).toHaveLength(1)
+  })
+
+  it('desligar enquanto grava o painel: não grava os períodos que faltam', async () => {
+    const { w, nuvem, estado } = montar()
+    let n = 0
+    nuvem.s.aoPainel = () => {
+      n = contador(banco.db!) // antes do desligar, que também mexe em configuracao
+      w.desligarNuvem()
+    }
+    ligarDireto()
+    await w.sincronizarAgora()
+    expect(nuvem.s.varreduras).toBe(1)
+    expect(estado.atual?.cursor).toBe(n) // as linhas já tinham ido: o cursor avança
+    expect(nuvem.s.paineis).toHaveLength(1)
+    expect(w.obterStatusNuvem()).toMatchObject({ estado: 'desligada', ultimoErro: null })
+  })
+
+  it('desligar durante um envio que depois falha: não registra a falha', async () => {
+    const { w, nuvem, estado } = montar()
+    nuvem.s.aoUpsert = (n) => {
+      if (n !== 1) return
+      w.desligarNuvem()
+      nuvem.s.modo = new NuvemErro('REDE', 0, 'Sem conexão com a nuvem.')
+    }
+    ligarDireto()
+    await w.sincronizarAgora()
+    expect(estado.atual).toBeNull()
+    expect(w.obterStatusNuvem()).toMatchObject({ estado: 'desligada', ultimoErro: null })
+
+    // Religar começa do zero: sem falha acumulada, envia tudo e o relógio volta a 2 minutos.
+    nuvem.s.aoUpsert = null
+    nuvem.s.modo = 'ok'
+    w.ligarNuvem({ versao: 1, usuarioId: 1 })
+    await w.sincronizarAgora()
+    expect(w.obterStatusNuvem()).toMatchObject({ estado: 'ok', ultimoErro: null, pendentes: 0 })
+  })
+
+  it('relógio do Windows atrasado 1 hora não congela as tentativas', async () => {
+    const { w, nuvem, tentativas } = montar()
+    nuvem.s.modo = new NuvemErro('REDE', 0, 'Sem conexão com a nuvem.')
+    ligarDireto()
+    w.iniciarWorkerNuvem()
+    await vi.advanceTimersByTimeAsync(30_000)
+    expect(tentativas).toHaveLength(1)
+    vi.setSystemTime(new Date(Date.now() - 60 * MIN))
+    await vi.advanceTimersByTimeAsync(6 * MIN)
+    expect(intervalosEmMinutos(tentativas)).toEqual([2, 4])
+  })
+
+  it('relógio do Windows adiantado 1 hora não pula o intervalo crescente', async () => {
+    const { w, nuvem, tentativas } = montar()
+    nuvem.s.modo = new NuvemErro('REDE', 0, 'Sem conexão com a nuvem.')
+    ligarDireto()
+    w.iniciarWorkerNuvem()
+    await vi.advanceTimersByTimeAsync(30_000 + 2 * MIN) // falhas em 0:30 e 2:30; a próxima é em 6:30
+    vi.setSystemTime(new Date(Date.now() + 60 * MIN))
+    await vi.advanceTimersByTimeAsync(2 * MIN)
+    expect(tentativas).toHaveLength(2)
+    await vi.advanceTimersByTimeAsync(2 * MIN)
+    expect(intervalosEmMinutos(tentativas)).toEqual([2, 4])
+  })
+
+  it('o relógio que bate uns milissegundos antes do previsto não perde a vez', async () => {
+    // O setInterval conta do tempo do laço de eventos, que pode ser um pouco anterior ao início medido do ciclo.
+    let adiantado = 0
+    const { w, nuvem, tentativas } = montar({ monotonico: () => performance.now() - adiantado })
+    nuvem.s.modo = new NuvemErro('REDE', 0, 'Sem conexão com a nuvem.')
+    ligarDireto()
+    w.iniciarWorkerNuvem()
+    await vi.advanceTimersByTimeAsync(30_000)
+    expect(tentativas).toHaveLength(1)
+    adiantado = 3
+    await vi.advanceTimersByTimeAsync(2 * MIN)
+    expect(tentativas).toHaveLength(2)
   })
 
   it('desligar grava a chave e o status volta a desligada', async () => {

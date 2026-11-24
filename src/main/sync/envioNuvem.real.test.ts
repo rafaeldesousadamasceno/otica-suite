@@ -94,7 +94,8 @@ describe.skipIf(!ATIVO)('envio para a nuvem real', () => {
         estado = e
       },
       fingerprint: 'FP-TESTE-REAL',
-      agora: () => new Date()
+      agora: () => new Date(),
+      continuar: () => true
     }
     token = await obterToken()
   }, 60_000)

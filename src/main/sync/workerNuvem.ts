@@ -24,6 +24,11 @@ export const INTERVALO_MAXIMO_MS = 30 * MINUTO
 export const ESPERA_APROVACAO_MS = 30 * MINUTO
 /** Primeiro ciclo um pouco depois de abrir, para não disputar com a abertura do app. */
 export const ATRASO_INICIAL_MS = 30_000
+/**
+ * O setInterval conta do tempo do laço de eventos, que pode ser um pouco anterior ao início medido do ciclo:
+ * o relógio pode bater uns ms "antes" do previsto. Sem esta folga, essa batida seria pulada (2 min virariam 4).
+ */
+const FOLGA_RELOGIO_MS = 1_000
 
 const CHAVE_LIGADA = 'nuvem_ligada'
 const CHAVE_CONSENTIMENTO = 'nuvem_consentimento'
@@ -53,7 +58,10 @@ export interface DepsWorker {
   /** Chave da licença liberada para a nuvem, ou null. */
   obterLicenca(): string | null
   nuvemConfigurada(): boolean
+  /** Data e hora do relógio do Windows: só para mostrar (último envio, consentimento) e para o painel. */
   agora(): Date
+  /** Relógio monotônico em ms (performance.now()): mede os intervalos; não muda quando acertam o relógio do Windows. */
+  monotonico(): number
   timers: TimersWorker
 }
 
@@ -108,7 +116,7 @@ export function criarWorker(d: DepsWorker): WorkerNuvem {
   let resultado: { estado: NuvemEstado; erro: string | null } | null = null
   let ultimoEnvioEm: string | null = null
   let falhasSeguidas = 0
-  /** Antes deste instante (ms) o relógio não dispara ciclo; `sincronizarAgora` ignora. */
+  /** Antes deste instante (ms do relógio monotônico) o relógio não dispara ciclo; `sincronizarAgora` ignora. */
   let proximaEm = 0
   /** Revogado: o relógio para de tentar até religar. */
   let parado = false
@@ -124,7 +132,7 @@ export function criarWorker(d: DepsWorker): WorkerNuvem {
 
   function tique(): void {
     if (parado || emAndamento) return
-    if (d.agora().getTime() < proximaEm) return
+    if (d.monotonico() + FOLGA_RELOGIO_MS < proximaEm) return
     void executar()
   }
 
@@ -155,10 +163,22 @@ export function criarWorker(d: DepsWorker): WorkerNuvem {
     return novo
   }
 
+  /** A nuvem continua ligada? Na dúvida (banco fechado), não. */
+  function ligada(): boolean {
+    try {
+      return configuracaoRepository.obter(CHAVE_LIGADA) === '1'
+    } catch {
+      return false
+    }
+  }
+
   async function enviarPainel(c: ClienteNuvem): Promise<void> {
     try {
       const paineis = montarPaineis(dataLocalISO(d.agora()))
-      for (const [periodo, indicadores] of Object.entries(paineis)) await c.gravarPainel(periodo, indicadores)
+      for (const [periodo, indicadores] of Object.entries(paineis)) {
+        if (!ligada()) return
+        await c.gravarPainel(periodo, indicadores)
+      }
     } catch (e) {
       // As linhas já foram enviadas e o cursor já avançou: o painel tenta de novo no próximo ciclo.
       console.error('[nuvem] falha ao gravar o painel', e)
@@ -181,21 +201,24 @@ export function criarWorker(d: DepsWorker): WorkerNuvem {
   }
 
   async function ciclo(): Promise<void> {
-    const inicio = d.agora().getTime()
+    const inicio = d.monotonico()
     rearmar()
     try {
       const identidade = d.identidade()
       const db = d.getDb()
       const c = cliente(lerLoja(db), identidade)
       const fingerprint = d.fingerprint()
-      await executarCiclo({
+      const r = await executarCiclo({
         db,
         cliente: c,
         lerEstado: () => d.estado.ler() ?? { fingerprint, cursor: 0 },
         gravarEstado: (e) => d.estado.gravar(e),
         fingerprint,
-        agora: () => d.agora()
+        agora: () => d.agora(),
+        continuar: ligada
       })
+      // Desligada no meio: o desligar já zerou o status; nem sucesso nem falha a registrar.
+      if (r.interrompido) return
       ultimoEnvioEm = d.agora().toISOString()
       resultado = { estado: 'ok', erro: null }
       parado = false
@@ -203,6 +226,8 @@ export function criarWorker(d: DepsWorker): WorkerNuvem {
       proximaEm = inicio + INTERVALO_BASE_MS
       await enviarPainel(c)
     } catch (e) {
+      // Falha de uma chamada que já estava no ar quando desligaram: não conta como falha.
+      if (!ligada()) return
       registrarFalha(e, inicio)
     }
   }
@@ -332,6 +357,7 @@ const workerPadrao = criarWorker({
   obterLicenca: obterChaveParaNuvem,
   nuvemConfigurada,
   agora: () => new Date(),
+  monotonico: () => performance.now(),
   timers: {
     setInterval: (fn, ms) => setInterval(fn, ms),
     clearInterval: (h) => clearInterval(h as ReturnType<typeof setInterval>),

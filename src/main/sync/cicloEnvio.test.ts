@@ -15,12 +15,13 @@ function banco(): DatabaseSync {
   return db
 }
 
-function clienteFalso(falharNoUpsert?: number): { cliente: ClienteNuvem; chamadas: Chamada[] } {
+function clienteFalso(falharNoUpsert?: number, aoEnviar?: (n: number) => void): { cliente: ClienteNuvem; chamadas: Chamada[] } {
   const chamadas: Chamada[] = []
   let upserts = 0
   const cliente: ClienteNuvem = {
     async upsert(tabela, linhas, recebidoEm) {
       upserts++
+      aoEnviar?.(upserts)
       if (falharNoUpsert === upserts) throw new Error('sem internet')
       chamadas.push({ tipo: 'upsert', tabela, linhas, recebidoEm })
     },
@@ -47,6 +48,7 @@ function montar(db: DatabaseSync, cliente: ClienteNuvem, inicial: EstadoNuvem, e
     },
     fingerprint: 'fp',
     agora: () => new Date('2026-01-01T00:00:00.000Z'),
+    continuar: () => true,
     ...extra
   }
   return { deps, estado }
@@ -237,6 +239,70 @@ describe('executarCiclo', () => {
     ]) {
       expect(texto, proibido).not.toContain(proibido)
     }
+  })
+
+  it('desligada no meio (lote 2): para sem mais chamadas, sem gravar o cursor nem apagar exclusões', async () => {
+    const db = banco()
+    for (let i = 0; i < 5; i++) novoCliente(db, `C${i}`)
+    db.prepare("DELETE FROM cliente WHERE nome = 'C0'").run()
+    const exclusoesAntes = db.prepare('SELECT * FROM sync_exclusao').all()
+    let ligada = true
+    const { cliente, chamadas } = clienteFalso(undefined, (n) => {
+      if (n === 2) ligada = false
+    })
+    const { deps, estado } = montar(db, cliente, { fingerprint: 'fp', cursor: 0 }, { tamanhoLote: 2, continuar: () => ligada })
+    const r = await executarCiclo(deps)
+    expect(r.interrompido).toBe(true)
+    expect(chamadas).toHaveLength(2)
+    expect(chamadas.every((c) => c.tipo === 'upsert')).toBe(true)
+    expect(estado.gravacoes).toBe(0)
+    expect(estado.atual).toEqual({ fingerprint: 'fp', cursor: 0 })
+    expect(db.prepare('SELECT * FROM sync_exclusao').all()).toEqual(exclusoesAntes)
+  })
+
+  it('desligada antes de apagar: não apaga na nuvem e as exclusões ficam para depois', async () => {
+    const db = banco()
+    novoCliente(db, 'Ana')
+    const { deps, estado } = montar(db, clienteFalso().cliente, { fingerprint: 'fp', cursor: 0 })
+    await executarCiclo(deps)
+    const antes = { ...estado.atual }
+    db.prepare("DELETE FROM cliente WHERE nome = 'Ana'").run()
+    const exclusoesAntes = db.prepare('SELECT * FROM sync_exclusao').all()
+    const { cliente, chamadas } = clienteFalso()
+    const r = await executarCiclo({ ...deps, cliente, continuar: () => false })
+    expect(r.interrompido).toBe(true)
+    expect(chamadas).toEqual([])
+    expect(estado.atual).toEqual(antes)
+    expect(db.prepare('SELECT * FROM sync_exclusao').all()).toEqual(exclusoesAntes)
+  })
+
+  it('desligada no último lote, antes da varredura: não varre nem grava o cursor', async () => {
+    // Quantos lotes um ciclo completo manda para este banco (o mesmo conteúdo, em outro banco).
+    const referencia = banco()
+    novoCliente(referencia, 'Ana')
+    const ref = clienteFalso()
+    await executarCiclo(montar(referencia, ref.cliente, { fingerprint: 'fp', cursor: 0 }).deps)
+    const totalLotes = upserts(ref.chamadas).length
+
+    const db = banco()
+    novoCliente(db, 'Ana')
+    let ligada = true
+    const { cliente, chamadas } = clienteFalso(undefined, (n) => {
+      if (n === totalLotes) ligada = false
+    })
+    const { deps, estado } = montar(db, cliente, { fingerprint: 'fp', cursor: 0 }, { continuar: () => ligada })
+    const r = await executarCiclo(deps)
+    expect(r.interrompido).toBe(true)
+    expect(upserts(chamadas)).toHaveLength(totalLotes)
+    expect(chamadas.some((c) => c.tipo === 'varrer')).toBe(false)
+    expect(estado.gravacoes).toBe(0)
+  })
+
+  it('ciclo completo não é interrompido', async () => {
+    const db = banco()
+    novoCliente(db, 'Ana')
+    const { deps } = montar(db, clienteFalso().cliente, { fingerprint: 'fp', cursor: 0 })
+    expect((await executarCiclo(deps)).interrompido).toBe(false)
   })
 
   it('a varredura só roda depois de enviar tudo', async () => {
