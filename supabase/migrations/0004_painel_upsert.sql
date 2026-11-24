@@ -1,0 +1,11 @@
+-- Corrige o upsert do painel pelo PC (achado no teste ao vivo da N1).
+--
+-- O upsert do PostgREST vira `INSERT ... ON CONFLICT (loja_id, periodo) DO UPDATE SET loja_id = excluded.loja_id,
+-- periodo = excluded.periodo, indicadores = ..., gerado_em = ...`. O Postgres exige privilégio de UPDATE em TODAS as
+-- colunas do SET, mesmo na primeira inserção; a 0001 só concedia `indicadores` e `gerado_em`, então o PC levava
+-- "permission denied" (HTTP 403) ao gravar o painel.
+--
+-- SEGURANÇA: conceder UPDATE em `loja_id` e `periodo` não deixa o PC mover uma linha para outra loja: a policy
+-- `painel_snapshot_update_pc` tem WITH CHECK (pc_autorizado(loja_id)), que é avaliado sobre a linha NOVA. Mudar
+-- `periodo` é inofensivo (a chave é só (loja_id, periodo) e o check de valores continua valendo).
+grant update (loja_id, periodo) on optialeph.painel_snapshot to authenticated;
