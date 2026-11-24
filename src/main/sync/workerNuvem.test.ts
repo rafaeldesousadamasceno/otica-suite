@@ -532,6 +532,38 @@ describe('workerNuvem', () => {
     expect(tentativas).toHaveLength(2)
   })
 
+  it('marcarReenvioTotal (backup restaurado): cursor 0 e o próximo ciclo reenvia tudo com varredura', async () => {
+    const { w, nuvem, estado } = montar()
+    novoCliente(banco.db!, 'Ana')
+    ligarDireto()
+    await w.sincronizarAgora()
+    expect(nuvem.s.varreduras).toBe(1)
+    w.marcarReenvioTotal()
+    expect(estado.atual).toEqual({ fingerprint: 'fp', cursor: 0 })
+    nuvem.s.upserts = []
+    await w.sincronizarAgora()
+    expect(nuvem.s.varreduras).toBe(2)
+    expect(nuvem.s.upserts.some((u) => u.tabela === 'cliente')).toBe(true)
+    expect(estado.atual?.cursor).toBe(contador(banco.db!))
+  })
+
+  it('marcarReenvioTotal sem a nuvem ter rodado nunca: não cria estado', () => {
+    const { w, estado } = montar()
+    w.marcarReenvioTotal()
+    expect(estado.atual).toBeNull()
+  })
+
+  it('marcarReenvioTotal com um ciclo em andamento: o cursor gravado pelo ciclo não apaga a marca', async () => {
+    const { w, nuvem, estado } = montar()
+    ligarDireto()
+    await w.sincronizarAgora()
+    nuvem.s.aoUpsert = () => w.marcarReenvioTotal()
+    novoCliente(banco.db!, 'Bia')
+    await w.sincronizarAgora()
+    expect(nuvem.s.qtdUpserts).toBeGreaterThan(0)
+    expect(estado.atual?.cursor).toBe(0)
+  })
+
   it('desligar grava a chave e o status volta a desligada', async () => {
     const { w } = montar()
     w.ligarNuvem({ versao: 1, usuarioId: 1 })

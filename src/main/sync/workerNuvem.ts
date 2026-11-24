@@ -82,6 +82,7 @@ export interface WorkerNuvem {
   obterStatusNuvem(): NuvemStatus
   ligarNuvem(consentimento: { versao: number; usuarioId: number }): void
   desligarNuvem(): void
+  marcarReenvioTotal(): void
 }
 
 type Loja = ConfigCliente['loja']
@@ -148,6 +149,10 @@ export function criarWorker(d: DepsWorker): WorkerNuvem {
   /** Revogado: o relógio para de tentar até religar. */
   let parado = false
   let clienteAtual: { chave: string; cliente: ClienteNuvem } | null = null
+  /** Do começo ao fim de `ciclo()` (`emAndamento` só é atribuído depois da primeira chamada assíncrona). */
+  let rodando = false
+  /** Backup restaurado durante um ciclo: refaz a marca de reenvio total quando ele terminar. */
+  let remarcarNoFim = false
 
   /** O relógio bate a cada 2 min contados do início do último ciclo, então os intervalos ficam exatos. */
   function rearmar(): void {
@@ -227,7 +232,31 @@ export function criarWorker(d: DepsWorker): WorkerNuvem {
     proximaEm = inicio + Math.min(INTERVALO_BASE_MS * 2 ** (falhasSeguidas - 1), INTERVALO_MAXIMO_MS)
   }
 
+  /** Cursor 0 no estado: o próximo ciclo reenvia tudo com varredura. Sem estado (nuvem nunca rodou), nada. */
+  function marcarCursorZero(): void {
+    try {
+      const e = d.estado.ler()
+      if (e) d.estado.gravar({ fingerprint: e.fingerprint, cursor: 0 })
+    } catch (err) {
+      console.error('[nuvem] falha ao marcar o reenvio total', err)
+    }
+  }
+
   async function ciclo(): Promise<void> {
+    rodando = true
+    try {
+      await cicloEmSi()
+    } finally {
+      rodando = false
+      // O ciclo que estava no ar gravou o cursor dele no fim: a marca do backup restaurado é refeita por cima.
+      if (remarcarNoFim) {
+        remarcarNoFim = false
+        marcarCursorZero()
+      }
+    }
+  }
+
+  async function cicloEmSi(): Promise<void> {
     const inicio = d.monotonico()
     rearmar()
     try {
@@ -349,6 +378,11 @@ export function criarWorker(d: DepsWorker): WorkerNuvem {
       configuracaoRepository.definir(CHAVE_LIGADA, '0')
       configuracaoRepository.definir(CHAVE_CONSENTIMENTO, '')
       reiniciarTentativas()
+    },
+
+    marcarReenvioTotal() {
+      marcarCursorZero()
+      if (rodando) remarcarNoFim = true
     }
   }
 }
@@ -419,4 +453,12 @@ export function ligarNuvem(consentimento: { versao: number; usuarioId: number })
 /** Para o envio (os dados já enviados ficam na nuvem). */
 export function desligarNuvem(): void {
   workerPadrao.desligarNuvem()
+}
+
+/**
+ * Backup restaurado: o próximo ciclo reenvia tudo e varre na nuvem o que o backup não tem mais
+ * (cursor 0 em nuvem-estado.json). Nunca lança; sem estado (nuvem nunca rodou), não faz nada.
+ */
+export function marcarReenvioTotal(): void {
+  workerPadrao.marcarReenvioTotal()
 }
