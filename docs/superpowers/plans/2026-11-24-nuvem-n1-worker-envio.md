@@ -284,20 +284,18 @@
 
 ---
 
-### Task 9: Teste ponta a ponta contra o projeto real
+### Task 9: Teste de integração contra o projeto real
 
 **Files:**
-- Create: `scripts/testar-envio-nuvem.mjs`
+- Create: `src/main/sync/envioNuvem.real.test.ts`
 
 **Interfaces:**
-- Consumes: o ciclo real (Tasks 1–6) rodando contra `NUVEM_URL`.
-- Produces: script que, **sem abrir o app**, copia o `dados.db` de desenvolvimento para uma pasta temporária, roda `executarCiclo` com identidade e licença reais (variáveis `OPTIALEPH_SUPABASE_ANON` e `LICENCA`, como em `scripts/testar-pc-token.mjs`), e confere pela API REST que a contagem de linhas de cada tabela da nuvem bate com a local; roda um segundo ciclo e confere que nada foi reenviado; apaga uma linha local, roda o ciclo e confere a exclusão na nuvem; imprime `OK`/`FALHA` por passo e **não imprime segredos**. Cria uma loja de teste própria (uuid aleatório em `empresa.uuid` da cópia) e informa o id para apagar depois.
+- Consumes: `executarCiclo` (Task 4), `criarClienteNuvem`, `NUVEM_URL` (Task 3), `carregarIdentidadePc` (Task 2), `verificarChave` (`src/main/license/chave.ts`, só para validar a licença antes).
+- Produces: teste vitest que **só roda** quando `OPTIALEPH_SUPABASE_ANON` e `LICENCA` estão definidas (`describe.skipIf(!process.env.OPTIALEPH_SUPABASE_ANON || !process.env.LICENCA)`); a suíte normal o pula. Usa um banco em memória com todas as `MIGRATIONS`, uma loja de teste própria (`empresa.uuid` aleatório, nome "LOJA DE TESTE (apagar)") e uma identidade temporária (pasta `mkdtempSync`). Lê a nuvem pela API REST com a mesma chave anon e o token do cliente.
 
-- [ ] **Step 1: Write** o script (Node com `--experimental-strip-types` ou importando `.ts` como `gerar-sync-sql.mjs` faz).
-- [ ] **Step 2: Rodar** `node scripts/testar-envio-nuvem.mjs` com as variáveis; esperado: todos os passos `OK`.
-- [ ] **Step 3: Commit** — `git commit -m "N1: script de teste de envio ponta a ponta contra a nuvem"`
-
-*(O Rafael precisa fornecer `OPTIALEPH_SUPABASE_ANON` e uma licença da Central. Sem isso a Task 9 e a conferência manual ficam pendentes; as demais tasks não dependem delas.)*
+- [ ] **Step 1: Write the test** com estes passos (cada um um `it` sequencial, `--no-file-parallelism` não é necessário): (1) `'primeiro ciclo envia tudo'`: inserir 3 clientes e 1 usuário com senha; `executarCiclo`; contar na nuvem `cliente` = 3 e `usuario` = 1, e a linha de `usuario` na nuvem não tem coluna `senha_hash`; (2) `'segundo ciclo não reenvia'`: resultado `enviados === 0`; (3) `'alteração e exclusão chegam'`: renomear um cliente e apagar outro; ciclo; nuvem tem 2 clientes e o nome novo; (4) `'painel é gravado'`: `gravarPainel('hoje', {x:1})` e leitura de `painel_snapshot`; (5) limpeza: no `afterAll`, apagar a linha de `loja` de teste (a cascata remove o resto) usando só o token do PC se a RLS permitir, senão imprimir o id da loja para apagar no painel.
+- [ ] **Step 2: Run** sem variáveis: `npx vitest run src/main/sync/envioNuvem.real.test.ts` → teste pulado (0 falhas). Com variáveis (PowerShell: `$env:OPTIALEPH_SUPABASE_ANON=...; $env:LICENCA=...`): todos PASS. A licença e a chave **nunca** entram em arquivo versionado nem em saída.
+- [ ] **Step 3: Commit** — `git commit -m "N1: teste de integração do envio contra a nuvem (só roda com variáveis)"`
 
 ---
 
@@ -315,5 +313,5 @@
 ## Verificação final (depois da Task 10)
 
 1. `cd "E:/OticaSuite" && npx vitest run` e `npm run typecheck` com código de saída 0.
-2. Task 9 verde contra o projeto real, ou registrada como pendente por falta da chave anon e da licença.
+2. Task 9 (teste de integração) verde com as variáveis definidas, ou registrada como pendente.
 3. Conferência manual no app em desenvolvimento com `OTICASUITE_FORCAR_LICENCA=1` e `OPTIALEPH_SUPABASE_ANON` definido: ligar na tela, ver "Enviando" e depois "Em dia"; desligar a internet e ver "Sem internet" com o app funcionando normalmente; conferir no painel do Supabase (Table Editor, schema `optialeph`) que `usuario` não tem `senha_hash` e que `painel_snapshot` tem as quatro linhas.
