@@ -764,6 +764,43 @@ export const SECOES_AJUDA: SecaoAjuda[] = [
     ]
   },
   {
+    id: 'nuvem',
+    titulo: 'Nuvem e celular',
+    rotas: ['/nuvem'],
+    soAdmin: true,
+    resumo: 'Envia uma cópia dos dados da ótica para a nuvem, para consulta fora do computador.',
+    blocos: [
+      {
+        tipo: 'paragrafo',
+        texto: 'Com a nuvem ligada, o sistema envia sozinho, em segundo plano, uma cópia dos dados da ótica para um servidor seguro no Brasil. Se a internet cair, o sistema continua funcionando normalmente e tenta de novo depois. O acesso pelo celular ainda não está disponível nesta versão: por enquanto a tela só prepara e acompanha o envio.'
+      },
+      {
+        tipo: 'passos',
+        itens: [
+          'Abra "Nuvem e celular" no menu (só o Administrador vê).',
+          'Clique em "Ligar".',
+          'Leia o termo de consentimento e marque "Li e concordo". Sem marcar, o botão de confirmar fica desabilitado.',
+          'Confirme. O quadro "Estado" passa a mostrar o andamento do envio.',
+          'Se o estado for "Aguardando aprovação", o Administrador precisa aprovar este computador no celular.'
+        ]
+      },
+      {
+        tipo: 'paragrafo',
+        texto: 'O quadro "Estado" mostra a situação, o último envio, quantas alterações ainda esperam para ser enviadas e o último problema. "Sincronizar agora" força um envio na hora; "Desligar" para os envios novos.'
+      },
+      {
+        tipo: 'atencao',
+        titulo: 'Dado de saúde',
+        texto: 'Receitas e dados de clientes ligados à visão são dados de saúde, com cuidado especial na LGPD. Por isso o envio só começa depois do consentimento dado nesta tela.'
+      },
+      {
+        tipo: 'atencao',
+        titulo: 'Isto não é o backup do computador',
+        texto: 'A nuvem serve para consultar os dados fora daqui. Ela não substitui o backup: continue fazendo as cópias de segurança na tela Backup.'
+      }
+    ]
+  },
+  {
     id: 'importar-dados',
     titulo: 'Importar dados do MD Óculos',
     rotas: ['/importar-dados'],

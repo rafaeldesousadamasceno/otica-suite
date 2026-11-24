@@ -2,6 +2,13 @@
 
 ## Próxima versão
 
+- Nuvem: nova tela "Nuvem e celular" (só Administrador) para ligar o envio de uma
+  cópia dos dados da ótica para um servidor seguro no Brasil. Ao ligar, é preciso ler
+  e aceitar o termo de consentimento, porque receitas são dados de saúde. O envio
+  roda sozinho em segundo plano, sem atrapalhar o uso: sem internet, o sistema
+  continua normal e tenta de novo depois. A tela mostra a situação, o último envio e
+  o que ainda falta enviar. O acesso pelo celular ainda não está disponível, e a
+  nuvem não substitui o backup do computador.
 - Receita óptica: os tratamentos da lente agora são caixinhas de marcar, e dá para
   escolher mais de um (ex.: antirreflexo e filtro azul). Receitas antigas com um
   tratamento só continuam iguais; um valor antigo que não está mais na lista
