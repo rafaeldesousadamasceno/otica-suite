@@ -228,5 +228,11 @@ export const IPC = {
     resultados: 'relacionamento:resultados',
     modelosObter: 'relacionamento:modelosObter',
     modelosSalvar: 'relacionamento:modelosSalvar'
+  },
+  nuvem: {
+    status: 'nuvem:status',
+    ligar: 'nuvem:ligar',
+    desligar: 'nuvem:desligar',
+    sincronizarAgora: 'nuvem:sincronizar-agora'
   }
 } as const

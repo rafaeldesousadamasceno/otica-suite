@@ -7,6 +7,7 @@ import { cnpjValido, digitosCnpj } from './cnpj'
 import { digitosTelefoneCompleto, telefoneValido } from './telefone'
 import { validarFaixaDeGrau } from './dioptria'
 import { MAX_PARCELAS_CARTAO, MAX_PARCELAS_CLIENTE, TIPOS_FORMA_PAGAMENTO, comportamentoDoTipo } from './vendaCalculo'
+import { TERMO_NUVEM_VERSAO } from './termoNuvem'
 import { dataIsoValida, normalizarCompetencia } from './recorrencia'
 
 /**
@@ -937,6 +938,9 @@ export const backupRestaurarSchema = z.object({
   arquivo: z.string().trim().min(1, 'Selecione um backup para restaurar')
 })
 export type BackupRestaurarInput = z.infer<typeof backupRestaurarSchema>
+
+export const nuvemLigarSchema = z.object({ versaoTermo: z.literal(TERMO_NUVEM_VERSAO) })
+export type NuvemLigarInput = z.infer<typeof nuvemLigarSchema>
 
 export const licencaAtivarSchema = z.object({
   chave: z.string().trim().min(1, 'Informe a chave de licença')

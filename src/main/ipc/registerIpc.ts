@@ -19,6 +19,7 @@ import { registerConfiguracaoIpc } from './configuracaoIpc'
 import { registerFinanceiroIpc } from './financeiroIpc'
 import { registerDashboardIpc } from './dashboardIpc'
 import { registerBackupIpc } from './backupIpc'
+import { registerNuvemIpc } from './nuvemIpc'
 import { registerLicencaIpc } from './licencaIpc'
 import { registerMigracaoIpc } from './migracaoIpc'
 import { registerCaixaIpc } from './caixaIpc'
@@ -52,6 +53,7 @@ export function registerAllIpc(): void {
   registerFinanceiroIpc()
   registerDashboardIpc()
   registerBackupIpc()
+  registerNuvemIpc()
   registerLicencaIpc()
   registerMigracaoIpc()
   registerCaixaIpc()
