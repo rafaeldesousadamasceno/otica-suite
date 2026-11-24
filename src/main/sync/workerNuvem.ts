@@ -321,11 +321,7 @@ const workerPadrao = criarWorker({
       pasta: paths.root(),
       cofre: cofreDoSistema,
       fingerprint: obterFingerprint(),
-      lerDispositivoId: () => {
-        const id = configuracaoRepository.obter(CHAVE_DISPOSITIVO)
-        if (!id) throw new Error('Identificador do dispositivo ausente no banco.')
-        return id
-      },
+      lerDispositivoId: () => configuracaoRepository.obter(CHAVE_DISPOSITIVO) || null,
       gravarDispositivoId: (id) => configuracaoRepository.definir(CHAVE_DISPOSITIVO, id)
     }),
   estado: {
