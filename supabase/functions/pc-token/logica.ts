@@ -39,12 +39,12 @@ function spkiDer(chave: string): Uint8Array {
 }
 
 async function importarChavePublica(chave: string): Promise<CryptoKey> {
-  return crypto.subtle.importKey('spki', spkiDer(chave), { name: 'Ed25519' }, false, ['verify'])
+  return crypto.subtle.importKey('spki', spkiDer(chave) as BufferSource, { name: 'Ed25519' }, false, ['verify'])
 }
 
 async function verificarEd25519(chavePublica: string, dados: Uint8Array, assinatura: Uint8Array): Promise<boolean> {
   try {
-    return await crypto.subtle.verify({ name: 'Ed25519' }, await importarChavePublica(chavePublica), assinatura, dados)
+    return await crypto.subtle.verify({ name: 'Ed25519' }, await importarChavePublica(chavePublica), assinatura as BufferSource, dados as BufferSource)
   } catch {
     return false
   }
