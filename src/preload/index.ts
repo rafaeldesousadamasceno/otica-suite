@@ -223,6 +223,7 @@ const api = {
     semContato: () => ipcRenderer.invoke(IPC.relacionamento.semContato),
     resultados: (input: unknown) => ipcRenderer.invoke(IPC.relacionamento.resultados, input),
     abrirWhatsapp: (input: unknown) => ipcRenderer.invoke(IPC.relacionamento.abrirWhatsapp, input),
+    abrirWhatsappAniversario: (input: unknown) => ipcRenderer.invoke(IPC.relacionamento.abrirWhatsappAniversario, input),
     marcarContatado: (input: unknown) => ipcRenderer.invoke(IPC.relacionamento.marcarContatado, input),
     contatados: () => ipcRenderer.invoke(IPC.relacionamento.contatados),
     desfazerContato: (input: unknown) => ipcRenderer.invoke(IPC.relacionamento.desfazerContato, input),

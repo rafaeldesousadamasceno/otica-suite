@@ -5,7 +5,7 @@ import { auditoriaRepository } from '@main/repositories/auditoriaRepository'
 import { requirePermissao } from '@main/auth/session'
 import { AppError, Errors } from '@main/errors'
 import { JANELA_CONTATADOS_DIAS, MOTIVOS_CONTATO } from '@shared/types'
-import { montarLinkWhatsapp, normalizarCelularBR, preencherModelo } from '@shared/whatsapp'
+import { montarLinkWhatsapp, normalizarCelularBR, preencherModelo, primeiroNome } from '@shared/whatsapp'
 import type { ClienteSemContato, ContatoFeito, ContatoPendente, ModelosMensagem, MotivoContato, ResultadosRelacionamento } from '@shared/types'
 import type {
   AceitaContatoInput,
@@ -70,6 +70,31 @@ export const relacionamentoService = {
     const otica = empresaRepository.get()?.nomeFantasia ?? ''
     const modelo = configuracaoRepository.obter(chaveModelo(item.motivo)) ?? ''
     return montarLinkWhatsapp(numero, preencherModelo(modelo, { ...item.variaveis, otica }))
+  },
+
+  /**
+   * Link do WhatsApp com a mensagem de ANIVERSARIO para um cliente da tela Aniversariantes: serve para
+   * felicitar fora do dia (domingo com a otica fechada, por exemplo), quando ele ja saiu da lista de
+   * Relacionamento. Nao registra contato nem mexe na lista: so abre a conversa. Respeita quem pediu
+   * para nao ser contatado.
+   */
+  linkWhatsappAniversario(clienteId: number): string {
+    requirePermissao('aniversariantes', 'ver')
+
+    const cliente = relacionamentoRepository.clienteParaMensagem(clienteId)
+    if (!cliente || !cliente.ativo) throw Errors.naoEncontrado('Cliente')
+    if (!cliente.aceitaContato) {
+      throw Errors.validacao('Este cliente pediu para não receber mensagens. Para voltar a contatá-lo, reative em Relacionamento.')
+    }
+
+    const numero = normalizarCelularBR(cliente.celular)
+    if (!numero) {
+      throw Errors.validacao('Este cliente não tem um celular válido cadastrado. Corrija o cadastro para usar o WhatsApp.')
+    }
+
+    const otica = empresaRepository.get()?.nomeFantasia ?? ''
+    const modelo = configuracaoRepository.obter(chaveModelo('ANIVERSARIO')) ?? ''
+    return montarLinkWhatsapp(numero, preencherModelo(modelo, { nome: primeiroNome(cliente.nome), otica }))
   },
 
   marcarContatado(input: ContatoMarcarInput): void {

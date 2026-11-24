@@ -6,6 +6,7 @@ import {
   contatoDesfazerSchema,
   contatoMarcarSchema,
   contatoRefSchema,
+  idSchema,
   modelosMensagemSchema,
   resultadosRelacionamentoSchema
 } from '@shared/ipc'
@@ -20,6 +21,13 @@ export function registerRelacionamentoIpc(): void {
   handleIpc(IPC.relacionamento.abrirWhatsapp, contatoRefSchema, async (input) => {
     const url = relacionamentoService.linkWhatsapp(input)
     // Defesa em profundidade: so este destino pode ser aberto pelo sistema operacional, aconteca o que acontecer.
+    if (!url.startsWith('https://wa.me/')) throw Errors.validacao('Link inválido.')
+    await shell.openExternal(url)
+    return null
+  })
+
+  handleIpc(IPC.relacionamento.abrirWhatsappAniversario, idSchema, async (input) => {
+    const url = relacionamentoService.linkWhatsappAniversario(input.id)
     if (!url.startsWith('https://wa.me/')) throw Errors.validacao('Link inválido.')
     await shell.openExternal(url)
     return null
