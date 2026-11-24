@@ -1,6 +1,6 @@
 # Nuvem e app do Administrador no celular: arquitetura
 
-Status: **só a base do banco está pronta** (migração 010). Nenhum dado sai do computador ainda. Este documento define como o resto será construído: o espelho da loja na nuvem, o app de celular do Administrador (plano Premium) e o backup online.
+Status: **a fase N1 (espelho) está implementada**: o PC já envia a cópia da loja e o painel pronto para o Supabase quando a nuvem é ligada na tela "Nuvem e celular" (detalhes na tabela de fases). O app de celular e os pedidos (N2 em diante) ainda não existem. Este documento define como o resto será construído: o espelho da loja na nuvem, o app de celular do Administrador (plano Premium) e o backup online.
 
 ## Objetivo
 
@@ -73,21 +73,67 @@ Tabelas criadas depois da 010 trazem as mesmas peças na própria migração (`d
 
 - `_migrations`, `migracao_registro`, `migracao_pendencia`, `sync_contador`, `sync_exclusao`.
 - Em `usuario`: `senha_hash`, `tentativas_login`, `bloqueado_ate`, `ultimo_acesso`. **A senha nunca sai do computador.**
-- Em `configuracao`: as chaves de `CHAVES_CONFIGURACAO_LOCAIS` (hoje `licenca_local` e `sync_dispositivo_id`; as chaves novas deste documento entram lá).
+- Em `configuracao`: as chaves de `CHAVES_CONFIGURACAO_LOCAIS`: `licenca_local`, `sync_dispositivo_id` e, desde a N1, `nuvem_ligada` e `nuvem_consentimento` (as chaves futuras deste documento entram lá também).
 - Arquivos de licença, sessão e backups.
 
 ## No PC: o que muda no app
 
 ### Worker de envio
 
-- Acorda quando há internet e a cada poucos minutos, no processo main.
-- Para cada tabela: lê as linhas com `sync_rev` maior que o último enviado, troca `cliente_id` por `cliente_uuid` (e assim por diante), omite `colunasLocais` e as linhas de `filtroLocal`, e envia em lotes para a Edge Function `sync-push`, que faz **upsert por uuid** (reenviar o mesmo lote não duplica nada). Depois envia as exclusões de `sync_exclusao`.
-- O cursor de envio só avança depois que a nuvem confirma o lote. Internet caiu no meio: o próximo ciclo reenvia o lote inteiro.
-- Se a nuvem estiver fora do ar, nada muda para a ótica: o worker tenta de novo depois, com intervalo crescente.
+Implementado na N1 (`src/main/sync/`: `workerNuvem`, `cicloEnvio`, `consultaEnvio`, `clienteNuvem`, `identidadePc`, `estadoNuvem`, `painelPronto`; serviço em `nuvemService`). Roda no processo main.
+
+**Gravação direta no PostgREST, sem Edge Function de envio.** O PC pede um token à `pc-token` (licença + prova de posse da chave do PC) e grava direto nas tabelas do espelho, com `Prefer: resolution=merge-duplicates` (upsert por uuid) e `DELETE` filtrado. Uma função `sync-push` não é necessária porque o RLS e os GRANTs da migração 0001 já restringem o token à própria loja (`loja_id` e `dispositivo_id` do token), e há menos uma peça para publicar e manter. O PC acrescenta `loja_id` e `recebido_em` a cada linha.
+
+Quando roda:
+
+- O primeiro ciclo sai cerca de 30 segundos depois de abrir o app; depois, a cada **2 minutos**. Se um ciclo falha, o intervalo **dobra** (2, 4, 8, 16 e no máximo **30 minutos**) e volta a 2 minutos ao primeiro sucesso. PC novo esperando aprovação tenta a cada 30 minutos. Revogado para de tentar até religar.
+- **Sincronizar agora** na tela roda um ciclo na hora e ignora o intervalo; se já há um ciclo em andamento, devolve o mesmo.
+- Nada muda para a ótica quando a nuvem falha: o app continua normal e o worker tenta de novo sozinho.
+
+O ciclo:
+
+1. Lê o contador (`sync_contador`) como **teto N** do ciclo: só entra o que tem `sync_rev <= N`, então linhas gravadas durante o ciclo ficam para o próximo.
+2. Para cada tabela, lê as linhas depois do cursor, **paginando por `(sync_rev, uuid)`** (lotes de 500; o desempate pelo uuid evita pular linhas que dividem a mesma revisão), troca `cliente_id` por `cliente_uuid` (e assim por diante), omite `colunasLocais` e as linhas de `filtroLocal`, e envia cada lote por upsert. Reenviar o mesmo lote não duplica nada.
+3. Envia as exclusões de `sync_exclusao` (apaga pelo uuid na nuvem).
+4. **Só depois de tudo confirmado** grava o novo cursor (= N) e limpa `sync_exclusao` até N. Internet caiu no meio: o cursor não andou, o próximo ciclo reenvia desde o cursor antigo.
+5. Por último envia o painel pronto. Se o painel falhar, as linhas já foram e o cursor já andou; só o painel é refeito no ciclo seguinte.
+
+Onde ficam as coisas no PC (pasta de dados do app, `userData`):
+
+| Item | Onde | Observação |
+|---|---|---|
+| Cursor de envio (último N confirmado) e fingerprint do computador | `nuvem-estado.json` | Arquivo, não o banco: assim um backup restaurado não traz um cursor de outra época. |
+| Identidade do PC: chave privada Ed25519 | `nuvem-chave.bin` | Cifrada com o `safeStorage` do Electron (DPAPI no Windows). A chave pública vai para a nuvem; a privada nunca sai do PC. Sem cofre do sistema disponível, a nuvem não liga. |
+| `dispositivo_id` | `configuracao.sync_dispositivo_id` | Chave local (não sincroniza). |
+| Nuvem ligada, consentimento (versão do termo, usuário, data) | `configuracao.nuvem_ligada` e `nuvem_consentimento` | Chaves locais (em `CHAVES_CONFIGURACAO_LOCAIS`). |
+
+**Backup restaurado x banco copiado para outro computador.** Os dois fazem o `sync_rev` voltar atrás ou repetir o `sync_dispositivo_id`, e o worker distingue pelo fingerprint e pela chave:
+
+- **Mesmo PC depois de restaurar um backup:** fingerprint e chave conferem, então o `dispositivo_id` é mantido. O ciclo vê que `cursor > N`, grava o cursor 0 no estado e faz um **reenvio total com varredura**: reenvia tudo com um `recebido_em` novo e, no fim, apaga na nuvem as linhas da loja com `recebido_em` anterior ao do ciclo, ou seja, o que o backup não tem mais. Gravar o cursor 0 antes garante que o próximo ciclo também varre se o contador voltar a passar do cursor antigo.
+- **Outro computador (fingerprint diferente, ou chave ausente):** gera chave nova e **identidade nova** (`dispositivo_id` novo). A `pc-token` responde **409** até o Administrador aprovar o PC novo no celular (a aprovação só existe a partir da N2/N3); a tela mostra "aguardando aprovação".
+
+**Exclusões** só saem de `sync_exclusao` depois do sucesso do ciclo. Na varredura as exclusões nem são enviadas: o que não veio some pela varredura.
+
+**Estados** (mostrados na tela "Nuvem e celular"):
+
+| Estado | Quando |
+|---|---|
+| `desligada` | `nuvem_ligada` não é "1". |
+| `nao_configurada` | Chave pública do Supabase ausente na build. |
+| `sem_licenca` | Sem licença liberada para a nuvem, ou a `pc-token` recusou a licença (vencida, inválida, sem o recurso). |
+| `aguardando` | Ligada, ainda sem resultado de ciclo. |
+| `sincronizando` | Ciclo em andamento. |
+| `ok` | Último ciclo concluído ("Em dia"). |
+| `sem_internet` | Sem rede, ou a nuvem recusou o envio ou está fora do ar. Tenta de novo com intervalo crescente. |
+| `aguardando_aprovacao` | PC novo; a `pc-token` respondeu 409. |
+| `revogado` | O Administrador desconectou este PC. O relógio para até religar. |
+| `erro` | Falha inesperada (detalhe só no log; a tela mostra mensagem genérica). |
+
+A tela também mostra o último envio e quantas alterações estão pendentes (N menos o cursor).
 
 ### Painel pronto
 
-A cada ciclo o PC calcula os indicadores com o `dashboardService` que já existe (hoje, mês, mês anterior, os avisos do painel) e envia o resultado pronto para `painel_snapshot`. A regra de cálculo (regime de caixa, rateio do desconto, custo da época) continua num lugar só. Listas simples (contas vencidas, OS atrasadas ou prontas, estoque baixo) o celular consulta direto na cópia.
+A cada ciclo bem-sucedido o PC calcula os indicadores com o `dashboardService` que já existe (`calcularResumo`, o mesmo código da tela) e grava quatro linhas em `painel_snapshot` por upsert: `hoje`, `mes`, `mes_anterior` e `avisos`. O cálculo roda **sem sessão** (como Administrador) e **sem completar recorrências**, porque o worker não pode escrever no banco; por isso `avisos` no celular pode omitir contas de recorrências ainda não materializadas. A regra de cálculo (regime de caixa, rateio do desconto, custo da época) continua num lugar só (nenhuma consulta foi reescrita em SQL do Postgres). Listas simples (contas vencidas, OS atrasadas ou prontas, estoque baixo) o celular consulta direto na cópia.
 
 ### Executor de pedidos
 
@@ -117,8 +163,9 @@ Na ativação da nuvem o PC gera um par de chaves, guardado com `safeStorage` do
 
 ### Migrações e tela
 
-- Migrações novas: `comando_executado`; coluna `origem` na auditoria (balcão ou celular); chaves locais em `configuracao` (cursor de envio, chaves do PC, celulares aprovados), todas acrescentadas a `CHAVES_CONFIGURACAO_LOCAIS`.
-- Tela **"Nuvem e celular"** em Configurações: ligar ou desligar, termo de consentimento (LGPD), último envio, "sincronizar agora", "conectar celular" (QR code), lista de celulares conectados com opção de revogar.
+- Migrações novas: `comando_executado`; coluna `origem` na auditoria (balcão ou celular); chaves locais em `configuracao` para o que ainda vier (celulares aprovados etc.), acrescentadas a `CHAVES_CONFIGURACAO_LOCAIS`. O cursor de envio e a chave do PC **não** ficam no banco: ficam em `nuvem-estado.json` e `nuvem-chave.bin` (ver Worker de envio).
+- Tela **"Nuvem e celular"** em Configurações. Na N1: ligar ou desligar, termo de consentimento (LGPD), estado, último envio, pendentes e "Sincronizar agora". Ficam para as fases seguintes "conectar celular" (QR code) e a lista de celulares com opção de revogar.
+- **Fora da N1: apagar os dados da nuvem pelo app.** Desligar só para o envio; o que já foi enviado fica na nuvem. O descarte (ver LGPD) é feito pela equipe.
 
 ## Na nuvem: estrutura (Supabase, schema `optialeph`)
 
@@ -150,9 +197,9 @@ Validade dos pedidos por tipo: liberação 5 minutos; reset de senha e desbloque
 
 | Função | O que faz |
 |---|---|
-| `pc-token` | Recebe a licença (assinada pela Central) e uma assinatura feita com a chave do PC; devolve um token de curta duração. |
+| `pc-token` | Recebe a licença (assinada pela Central) e uma assinatura feita com a chave do PC; devolve um token de curta duração (1 hora). Publicada. |
 | `parear` | Troca o código do QR code por um vínculo conta ↔ loja ↔ usuário local. |
-| `sync-push` | Recebe os lotes do worker e faz upsert por uuid. |
+| ~~`sync-push`~~ | **Não existe.** O PC grava direto no PostgREST com o token da `pc-token` (ver Worker de envio). |
 | `notificar` | Envia notificação ao celular quando nasce um pedido de liberação ou um pedido muda de situação. |
 
 ## Segurança e identidade
@@ -182,11 +229,26 @@ A receita óptica é **dado de saúde** (dado pessoal sensível). Para sincroniz
 
 ## Cuidados de implementação
 
-- **Backup restaurado ou banco copiado para outro computador** repete o `sync_dispositivo_id` e faz o `sync_rev` voltar atrás. O worker precisa detectar (o fingerprint da licença muda ou a revisão regride), gerar uma nova identidade e fazer um **reenvio total com varredura**: a nuvem apaga da cópia o que não veio.
+- **Backup restaurado ou banco copiado para outro computador** repete o `sync_dispositivo_id` e faz o `sync_rev` voltar atrás. Tratado na N1: ver "Backup restaurado x banco copiado para outro computador" no Worker de envio (mesmo PC mantém a identidade e faz reenvio total com varredura; outro PC ganha identidade nova e espera aprovação).
 - **Carga inicial**: todas as linhas existentes estão na revisão 1, então a primeira sincronização envia tudo (a ótica do cliente tem poucas milhares de linhas por tabela).
 - **Relógio do computador**: como só o PC grava, a hora local não decide conflito nenhum. Para a validade dos pedidos vale a hora do servidor.
 - **Dois PCs na mesma loja**: fora do escopo (multi-terminal é v2 no PRD). Cada loja tem um único PC executor.
 - **Tabelas novas** no schema: acrescentar em `tabelasSincronizaveis.ts` com `desdeMigracao` e gerar as peças na própria migração (nunca editar a 010).
+
+## Limites conhecidos da N1
+
+- Uma linha editada durante uma varredura volta no ciclo seguinte (cerca de 2 minutos): o teto N do ciclo a deixa de fora.
+- `ultimoEnvioEm` vive só na memória: depois de fechar e abrir o app a tela não mostra a data do último envio até o primeiro ciclo.
+- Com a licença vencida o usuário não consegue desligar a nuvem pela tela (o worker não envia nada nesse estado de qualquer forma).
+- Apagar os dados da nuvem pelo app não existe na N1.
+- `avisos` no celular pode omitir contas de recorrências ainda não materializadas (o painel é calculado sem completar recorrências).
+
+## Publicar e operar (supabase/)
+
+- Função: `npx supabase functions deploy pc-token --no-verify-jwt` (o PC não tem login do Supabase).
+- Segredos da função: `npx supabase secrets set PC_JWT_SECRET=<JWT secret legado do projeto>` e `npx supabase secrets set EXIGIR_RECURSO_NUVEM=false` (passa a `true` quando a Central emitir o recurso `nuvem`). A chave de serviço já existe dentro da função e nunca sai dela. Nunca registre chaves, senhas ou licenças em arquivos do repositório.
+- Migrações: **`npx supabase db push` precisa de `--remote` e `--project-ref <ref do projeto>`**; sem isso a CLI aplica no banco local (Docker) e não no projeto da nuvem.
+- Teste ao vivo do envio: `src/main/sync/envioNuvem.real.test.ts` só roda com as variáveis de ambiente definidas.
 
 ## Fases
 
@@ -194,8 +256,8 @@ Cada fase vira um plano de implementação próprio.
 
 | Fase | Entrega | Depende de |
 |---|---|---|
-| **N0 Fundação** | Projeto Supabase (São Paulo), schema `optialeph`, tabelas de controle, RLS, `pc-token`, DDL do espelho gerado. **Escrito e validado localmente** em `supabase/migrations/` (`0001_controle.sql` à mão, `0002_espelho.sql` gerado por `scripts/gerar-espelho-supabase.mjs`; um teste falha se o espelho ficar desatualizado). Aplicado no projeto `rywwncecmtmroixtypkm` (`db push` das migrações 0001 a 0003) e `pc-token` publicada (`supabase/functions/pc-token`; recusas conferidas na função publicada). Caminho feliz provado com licença real (`scripts/testar-pc-token.mjs`, 2026-11-24): o token é aceito, o PC grava e lê na própria loja e é recusado em outra. `parear`, `sync-push` e `notificar` ficam para as fases seguintes. Pendente: confirmar a região São Paulo antes de entrarem dados reais. | Projeto novo na região **São Paulo** (o primeiro foi criado em Ohio, EUA, e não serve para dados reais) e conector do Supabase autorizado |
-| **N1 Espelho** | Worker de envio, painel pronto, tela "Nuvem e celular", termo de consentimento. Testes com a internet caindo no meio do lote (retomar sem duplicar). | N0 |
+| **N0 Fundação** | Projeto Supabase (São Paulo), schema `optialeph`, tabelas de controle, RLS, `pc-token`, DDL do espelho gerado. **Escrito e validado localmente** em `supabase/migrations/` (`0001_controle.sql` à mão, `0002_espelho.sql` gerado por `scripts/gerar-espelho-supabase.mjs`; um teste falha se o espelho ficar desatualizado). Aplicado no projeto `rywwncecmtmroixtypkm` (`db push` das migrações 0001 a 0003; a 0004 está escrita e ainda precisa ser aplicada) e `pc-token` publicada (`supabase/functions/pc-token`; recusas conferidas na função publicada). Caminho feliz provado com licença real (`scripts/testar-pc-token.mjs`, 2026-11-24): o token é aceito, o PC grava e lê na própria loja e é recusado em outra. `parear` e `notificar` ficam para as fases seguintes. Pendente: confirmar a região São Paulo antes de entrarem dados reais. | Projeto novo na região **São Paulo** (o primeiro foi criado em Ohio, EUA, e não serve para dados reais) e conector do Supabase autorizado |
+| **N1 Espelho** | Worker de envio, painel pronto, tela "Nuvem e celular", termo de consentimento. **Implementada**, gravando direto no PostgREST com o token da `pc-token` (sem `sync-push`). Testada com falsos: `consultaEnvio`, `estadoNuvem`, `identidadePc`, `clienteNuvem`, `cicloEnvio`, `painelPronto`, `workerNuvem` e `nuvemService` (`*.test.ts`), incluindo internet caindo no meio do lote (retomar sem duplicar). **Provada ao vivo contra o projeto real em 2026-11-24 para as linhas**: primeiro ciclo envia tudo, o segundo não envia nada, e uma edição e uma exclusão chegam à nuvem. O teste ao vivo achou uma falha de permissão em `painel_snapshot`, corrigida pela migração `0004_painel_upsert.sql`: o upsert do PostgREST atribui todas as colunas, então era preciso UPDATE também em `loja_id` e `periodo` (o RLS `WITH CHECK` continua impedindo mover uma linha para outra loja). **Falta reexecutar o teste ao vivo depois de aplicar a 0004 no projeto** para provar a gravação do painel. Limites conhecidos na seção própria. | N0 |
 | **N2 Celular v1** (só leitura) | App Expo, login, pareamento por QR code, painéis e listas | N1 |
 | **N3 Fila de pedidos** | Sessão remota, executor, assinatura; pedidos de usuários (reset de senha cifrado, desbloquear, ativar ou desativar) e de configurações | N2 |
 | **N4 Liberação na hora** | Pedidos de liberação no balcão + notificação | N3 |
