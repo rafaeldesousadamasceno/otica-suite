@@ -168,10 +168,9 @@ export function criarWorker(d: DepsWorker): WorkerNuvem {
   function registrarFalha(e: unknown, inicio: number): void {
     const f = classificar(e)
     resultado = { estado: f.estado, erro: f.mensagem }
-    if (f.estado === 'revogado') {
-      parado = true
-      return
-    }
+    // Só 'revogado' para o relógio; qualquer outro resultado (mesmo de um envio manual) volta às tentativas automáticas.
+    parado = f.estado === 'revogado'
+    if (parado) return
     if (f.estado === 'aguardando_aprovacao') {
       falhasSeguidas = 0
       proximaEm = inicio + ESPERA_APROVACAO_MS
@@ -199,6 +198,7 @@ export function criarWorker(d: DepsWorker): WorkerNuvem {
       })
       ultimoEnvioEm = d.agora().toISOString()
       resultado = { estado: 'ok', erro: null }
+      parado = false
       falhasSeguidas = 0
       proximaEm = inicio + INTERVALO_BASE_MS
       await enviarPainel(c)

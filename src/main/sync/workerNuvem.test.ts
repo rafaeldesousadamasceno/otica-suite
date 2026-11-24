@@ -257,6 +257,48 @@ describe('workerNuvem', () => {
     expect(tentativas).toHaveLength(3)
   })
 
+  it('revogado e depois envio manual bem-sucedido: volta a tentar sozinho', async () => {
+    const { w, nuvem, tentativas } = montar()
+    nuvem.s.modo = new NuvemErro('DISPOSITIVO_REVOGADO', 403, 'A nuvem recusou a conexão deste computador (DISPOSITIVO_REVOGADO).')
+    ligarDireto()
+    w.iniciarWorkerNuvem()
+    await vi.advanceTimersByTimeAsync(30_000)
+    expect(w.obterStatusNuvem().estado).toBe('revogado')
+
+    // O dispositivo foi liberado na nuvem; o Administrador clica em "Sincronizar agora".
+    nuvem.s.modo = 'ok'
+    await w.sincronizarAgora()
+    expect(tentativas).toHaveLength(2)
+    expect(w.obterStatusNuvem().estado).toBe('ok')
+
+    novoCliente(banco.db!, 'Depois da volta')
+    nuvem.s.upserts = []
+    await vi.advanceTimersByTimeAsync(2 * MIN)
+    expect(tentativas).toHaveLength(3)
+    expect(nuvem.s.upserts.filter((u) => u.tabela === 'cliente').flatMap((u) => u.linhas.map((l) => l.nome))).toEqual(['Depois da volta'])
+    expect(w.obterStatusNuvem()).toMatchObject({ estado: 'ok', pendentes: 0 })
+  })
+
+  it('revogado e depois PC novo precisa de aprovação: volta a tentar a cada 30 minutos', async () => {
+    const { w, nuvem, tentativas } = montar()
+    nuvem.s.modo = new NuvemErro('DISPOSITIVO_REVOGADO', 403, 'A nuvem recusou a conexão deste computador (DISPOSITIVO_REVOGADO).')
+    ligarDireto()
+    w.iniciarWorkerNuvem()
+    await vi.advanceTimersByTimeAsync(30_000)
+    expect(w.obterStatusNuvem().estado).toBe('revogado')
+
+    nuvem.s.modo = new NuvemErro('PC_NOVO_PRECISA_APROVACAO', 409, 'A nuvem recusou a conexão deste computador (PC_NOVO_PRECISA_APROVACAO).')
+    await w.sincronizarAgora()
+    expect(tentativas).toHaveLength(2)
+    expect(w.obterStatusNuvem().estado).toBe('aguardando_aprovacao')
+
+    await vi.advanceTimersByTimeAsync(29 * MIN)
+    expect(tentativas).toHaveLength(2)
+    await vi.advanceTimersByTimeAsync(1 * MIN)
+    expect(tentativas).toHaveLength(3)
+    expect(intervalosEmMinutos(tentativas)).toEqual([0, 30])
+  })
+
   it('não roda dois ciclos ao mesmo tempo', async () => {
     const { w, nuvem, tentativas } = montar()
     ligarDireto()
