@@ -32,6 +32,35 @@ export interface ConfigCliente {
 const TIMEOUT_MS = 30_000
 const MARGEM_MS = 5 * 60_000
 const BLOCO_APAGAR = 100
+/** Quanto do corpo de erro da nuvem vai para o log. */
+const LIMITE_LOG_ERRO = 300
+
+/**
+ * A nuvem recusou de vez (4xx que não é 401, 408 nem 429): `NUVEM_RECUSOU`, que a tela mostra como erro.
+ * O resto (5xx, 408, 429, 401 repetido) é `NUVEM_HTTP`: passa sozinho, o worker tenta de novo mais tarde.
+ */
+function codigoDoStatus(status: number): 'NUVEM_RECUSOU' | 'NUVEM_HTTP' {
+  return status >= 400 && status < 500 && status !== 401 && status !== 408 && status !== 429 ? 'NUVEM_RECUSOU' : 'NUVEM_HTTP'
+}
+
+/** Código e mensagem do erro do PostgREST (`{ code, message }`), cortados; corpo que não é JSON vira só texto. */
+async function lerErro(r: Response): Promise<{ codigo: string | null; mensagem: string }> {
+  let texto = ''
+  try {
+    texto = await r.text()
+  } catch {
+    // sem corpo
+  }
+  try {
+    const j = JSON.parse(texto) as { code?: unknown; message?: unknown } | null
+    return {
+      codigo: typeof j?.code === 'string' ? j.code.slice(0, 20) : null,
+      mensagem: typeof j?.message === 'string' ? j.message.slice(0, LIMITE_LOG_ERRO) : ''
+    }
+  } catch {
+    return { codigo: null, mensagem: texto.slice(0, LIMITE_LOG_ERRO) }
+  }
+}
 
 export function criarClienteNuvem(c: ConfigCliente): ClienteNuvem {
   const f = c.fetch ?? fetch
@@ -63,12 +92,12 @@ export function criarClienteNuvem(c: ConfigCliente): ClienteNuvem {
       })
     })
     if (!r.ok) {
-      let codigo = 'NUVEM_HTTP'
+      let codigo: string = codigoDoStatus(r.status)
       try {
         const corpo = (await r.json()) as { erro?: { codigo?: unknown } }
         if (typeof corpo?.erro?.codigo === 'string') codigo = corpo.erro.codigo
       } catch {
-        // corpo ilegível: fica NUVEM_HTTP
+        // corpo ilegível: fica o código pelo status
       }
       throw new NuvemErro(codigo, r.status, `A nuvem recusou a conexão deste computador (${codigo}).`)
     }
@@ -105,7 +134,14 @@ export function criarClienteNuvem(c: ConfigCliente): ClienteNuvem {
         token = null
         continue
       }
-      throw new NuvemErro('NUVEM_HTTP', r.status, `A nuvem recusou a operação (HTTP ${r.status}).`)
+      // Diagnóstico só no log: tabela, status e código do PostgREST (nunca token, chave ou licença).
+      const erro = await lerErro(r)
+      const tabela = caminho.split('?')[0]
+      console.error(
+        `[nuvem] a nuvem recusou ${metodo} ${tabela} (HTTP ${r.status}${erro.codigo ? `, código ${erro.codigo}` : ''})`,
+        erro.mensagem
+      )
+      throw new NuvemErro(codigoDoStatus(r.status), r.status, `A nuvem recusou a operação (HTTP ${r.status}).`)
     }
   }
 

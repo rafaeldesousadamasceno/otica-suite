@@ -1,5 +1,5 @@
 import { generateKeyPairSync, sign } from 'node:crypto'
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { bytesParaBase64url, verificarProvaDoPc } from '../../../supabase/functions/pc-token/logica'
 import { criarClienteNuvem, NuvemErro, type ConfigCliente } from './clienteNuvem'
 import type { IdentidadePc } from './identidadePc'
@@ -40,6 +40,10 @@ function montar(opts: { tokenResp?: () => Response; restResp?: () => Response; f
   }
   return { cliente: criarClienteNuvem(config), chamadas, avancar: (ms: number) => { agora += ms }, agora: () => agora }
 }
+
+afterEach(() => {
+  vi.restoreAllMocks()
+})
 
 describe('clienteNuvem', () => {
   it('pede o token com a prova que a pc-token verifica', async () => {
@@ -115,12 +119,52 @@ describe('clienteNuvem', () => {
     expect(m.chamadas.filter((c) => c.url.endsWith('pc-token'))).toHaveLength(2)
     expect(m.chamadas.at(-1)!.headers.Authorization).toBe('Bearer tok2')
 
+    vi.spyOn(console, 'error').mockImplementation(() => {})
     const m2 = montar({ restResp: () => new Response('x', { status: 401 }) })
     const e = await m2.cliente.upsert('t', [{ uuid: 'a' }], 'x').catch((x) => x)
     expect(e).toBeInstanceOf(NuvemErro)
     expect(e.status).toBe(401)
     expect(e.codigo).toBe('NUVEM_HTTP')
     expect(m2.chamadas.filter((c) => !c.url.endsWith('pc-token'))).toHaveLength(2)
+  })
+
+  it.each([400, 403, 404, 409, 422])('HTTP %i do PostgREST: NuvemErro NUVEM_RECUSOU e log com tabela, status e código', async (status) => {
+    const log = vi.spyOn(console, 'error').mockImplementation(() => {})
+    const corpo = JSON.stringify({ code: '42501', message: 'new row violates row-level security policy for table "cliente"', details: null, hint: null })
+    const m = montar({ restResp: () => new Response(corpo, { status }) })
+    const e = await m.cliente.upsert('cliente', [{ uuid: 'a' }], 'x').catch((x) => x)
+    expect(e).toBeInstanceOf(NuvemErro)
+    expect(e.codigo).toBe('NUVEM_RECUSOU')
+    expect(e.status).toBe(status)
+    expect(e.message).not.toContain('row-level')
+    const texto = JSON.stringify(log.mock.calls)
+    expect(texto).toContain('cliente')
+    expect(texto).toContain(String(status))
+    expect(texto).toContain('42501')
+    for (const segredo of ['tok1', ANON, LICENCA]) expect(texto).not.toContain(segredo)
+  })
+
+  it.each([500, 502, 503, 408, 429])('HTTP %i do PostgREST: NuvemErro NUVEM_HTTP (tenta de novo mais tarde)', async (status) => {
+    vi.spyOn(console, 'error').mockImplementation(() => {})
+    const m = montar({ restResp: () => new Response('<html>erro</html>', { status }) })
+    const e = await m.cliente.apagar('venda', ['a']).catch((x) => x)
+    expect(e).toBeInstanceOf(NuvemErro)
+    expect(e.codigo).toBe('NUVEM_HTTP')
+    expect(e.status).toBe(status)
+  })
+
+  it('corpo de erro enorme: o log fica curto', async () => {
+    const log = vi.spyOn(console, 'error').mockImplementation(() => {})
+    const m = montar({ restResp: () => new Response('x'.repeat(100_000), { status: 400 }) })
+    await m.cliente.upsert('cliente', [{ uuid: 'a' }], 'x').catch(() => {})
+    expect(JSON.stringify(log.mock.calls).length).toBeLessThan(1_000)
+  })
+
+  it('pc-token com corpo ilegível: 4xx vira NUVEM_RECUSOU, 5xx vira NUVEM_HTTP', async () => {
+    const m404 = montar({ tokenResp: () => new Response('not found', { status: 404 }) })
+    expect((await m404.cliente.upsert('t', [{ uuid: 'a' }], 'x').catch((x) => x)).codigo).toBe('NUVEM_RECUSOU')
+    const m503 = montar({ tokenResp: () => new Response('indisponível', { status: 503 }) })
+    expect((await m503.cliente.upsert('t', [{ uuid: 'a' }], 'x').catch((x) => x)).codigo).toBe('NUVEM_HTTP')
   })
 
   it('erro da pc-token vira NuvemErro com o código do corpo', async () => {

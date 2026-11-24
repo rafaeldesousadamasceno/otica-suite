@@ -411,6 +411,26 @@ describe('workerNuvem', () => {
     }
   )
 
+  it.each([400, 403, 404])('nuvem recusou os dados (HTTP %i): status erro, sem texto da nuvem na tela', async (status) => {
+    const { w, nuvem } = montar()
+    nuvem.s.modo = new NuvemErro('NUVEM_RECUSOU', status, `A nuvem recusou a operação (HTTP ${status}).`)
+    ligarDireto()
+    await w.sincronizarAgora()
+    const st = w.obterStatusNuvem()
+    expect(st.estado).toBe('erro')
+    expect(st.ultimoErro).toContain(`HTTP ${status}`)
+    expect(st.ultimoErro).not.toContain('Sem conexão')
+  })
+
+  it.each([500, 429])('nuvem fora do ar (HTTP %i): continua sem_internet', async (status) => {
+    vi.spyOn(console, 'error').mockImplementation(() => {})
+    const { w, nuvem } = montar()
+    nuvem.s.modo = new NuvemErro('NUVEM_HTTP', status, `A nuvem recusou a operação (HTTP ${status}).`)
+    ligarDireto()
+    await w.sincronizarAgora()
+    expect(w.obterStatusNuvem().estado).toBe('sem_internet')
+  })
+
   it('licença recusada pela nuvem: status sem_licenca', async () => {
     const { w, nuvem } = montar()
     nuvem.s.modo = new NuvemErro('LICENCA_VENCIDA', 403, 'A nuvem recusou a conexão deste computador (LICENCA_VENCIDA).')

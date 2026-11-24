@@ -105,8 +105,15 @@ function classificar(e: unknown): Falha {
   if (e instanceof NuvemErro) {
     if (e.codigo === 'REDE') return { estado: 'sem_internet', mensagem: MSG_SEM_INTERNET }
     if (e.codigo === 'NUVEM_HTTP') {
-      console.error(`[nuvem] a nuvem recusou o envio (HTTP ${e.status})`, e.message)
+      // Nuvem fora do ar ou ocupada (5xx, 408, 429): passa sozinho. O detalhe já foi para o log no cliente.
+      console.error(`[nuvem] a nuvem não atendeu agora (HTTP ${e.status}); tenta de novo mais tarde`)
       return { estado: 'sem_internet', mensagem: MSG_SEM_INTERNET }
+    }
+    if (e.codigo === 'NUVEM_RECUSOU') {
+      return {
+        estado: 'erro',
+        mensagem: `A nuvem recusou o envio (HTTP ${e.status}). O sistema continua funcionando e tenta de novo mais tarde; se o aviso continuar, fale com o suporte.`
+      }
     }
     if (e.codigo === 'PC_NOVO_PRECISA_APROVACAO') return { estado: 'aguardando_aprovacao', mensagem: MSG_APROVACAO }
     if (e.codigo === 'DISPOSITIVO_REVOGADO') return { estado: 'revogado', mensagem: MSG_REVOGADO }
