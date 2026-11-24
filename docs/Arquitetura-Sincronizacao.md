@@ -104,13 +104,13 @@ Onde ficam as coisas no PC (pasta de dados do app, `userData`):
 |---|---|---|
 | Cursor de envio (último N confirmado) e fingerprint do computador | `nuvem-estado.json` | Arquivo, não o banco: assim um backup restaurado não traz um cursor de outra época. |
 | Identidade do PC: chave privada Ed25519 | `nuvem-chave.bin` | Cifrada com o `safeStorage` do Electron (DPAPI no Windows). A chave pública vai para a nuvem; a privada nunca sai do PC. Sem cofre do sistema disponível, a nuvem não liga. |
-| `dispositivo_id` | `configuracao.sync_dispositivo_id` | Chave local (não sincroniza). |
+| `dispositivo_id` | `nuvem-dispositivo.json`, ao lado da chave; cópia em `configuracao.sync_dispositivo_id` | O id anda com a chave e vale mais que o do banco: um backup que traga outro `sync_dispositivo_id` tem o banco corrigido. Sem chave, chave e id são sempre novos. A cópia no banco é chave local (não sincroniza). |
 | Nuvem ligada, consentimento (versão do termo, usuário, data) | `configuracao.nuvem_ligada` e `nuvem_consentimento` | Chaves locais (em `CHAVES_CONFIGURACAO_LOCAIS`). |
 
 **Backup restaurado x banco copiado para outro computador.** Os dois fazem o `sync_rev` voltar atrás ou repetir o `sync_dispositivo_id`, e o worker distingue pelo fingerprint e pela chave:
 
-- **Mesmo PC depois de restaurar um backup:** fingerprint e chave conferem, então o `dispositivo_id` é mantido. O ciclo vê que `cursor > N`, grava o cursor 0 no estado e faz um **reenvio total com varredura**: reenvia tudo com um `recebido_em` novo e, no fim, apaga na nuvem as linhas da loja com `recebido_em` anterior ao do ciclo, ou seja, o que o backup não tem mais. Gravar o cursor 0 antes garante que o próximo ciclo também varre se o contador voltar a passar do cursor antigo.
-- **Outro computador (fingerprint diferente, ou chave ausente):** gera chave nova e **identidade nova** (`dispositivo_id` novo). A `pc-token` responde **409** até o Administrador aprovar o PC novo no celular (a aprovação só existe a partir da N2/N3); a tela mostra "aguardando aprovação".
+- **Mesmo PC depois de restaurar um backup:** fingerprint e chave conferem, então o `dispositivo_id` (o de `nuvem-dispositivo.json`) é mantido. Restaurar com sucesso grava o cursor 0 no estado (`marcarReenvioTotal`), e o ciclo também grava o cursor 0 se vir `cursor > N` (reforço); o próximo ciclo faz um **reenvio total com varredura**: reenvia tudo com um `recebido_em` novo e, no fim, apaga na nuvem as linhas da loja com `recebido_em` anterior ao do ciclo, ou seja, o que o backup não tem mais. Gravar o cursor 0 antes garante que o próximo ciclo também varre se o contador voltar a passar do cursor antigo.
+- **Outro computador (fingerprint diferente, ou chave ausente):** gera chave nova e **identidade nova** (`dispositivo_id` novo), mesmo que o banco restaurado traga o `sync_dispositivo_id` do PC antigo. A `pc-token` responde **409** até o Administrador aprovar o PC novo no celular (a aprovação só existe a partir da N2/N3); a tela mostra "aguardando aprovação".
 
 **Exclusões** só saem de `sync_exclusao` depois do sucesso do ciclo. Na varredura as exclusões nem são enviadas: o que não veio some pela varredura.
 
@@ -118,16 +118,16 @@ Onde ficam as coisas no PC (pasta de dados do app, `userData`):
 
 | Estado | Quando |
 |---|---|
-| `desligada` | `nuvem_ligada` não é "1". |
+| `desligada` | `nuvem_ligada` não é "1". Desligar para o ciclo em andamento antes da próxima chamada à nuvem, sem gravar o cursor. |
 | `nao_configurada` | Chave pública do Supabase ausente na build. |
 | `sem_licenca` | Sem licença liberada para a nuvem, ou a `pc-token` recusou a licença (vencida, inválida, sem o recurso). |
 | `aguardando` | Ligada, ainda sem resultado de ciclo. |
 | `sincronizando` | Ciclo em andamento. |
 | `ok` | Último ciclo concluído ("Em dia"). Aparece também quando só o painel falhou: esse erro só vai para o log e o painel é refeito no ciclo seguinte. |
-| `sem_internet` | Sem rede, ou a nuvem recusou o envio ou está fora do ar. Tenta de novo com intervalo crescente. |
+| `sem_internet` | Sem rede, ou a nuvem fora do ar ou ocupada (HTTP 5xx, 408, 429). Tenta de novo com intervalo crescente. |
 | `aguardando_aprovacao` | PC novo; a `pc-token` respondeu 409. |
 | `revogado` | O Administrador desconectou este PC. O relógio para até religar. |
-| `erro` | Falha inesperada (detalhe só no log; a tela mostra mensagem genérica). |
+| `erro` | A nuvem recusou o envio (outro 4xx; a tela mostra o HTTP, o log mostra tabela e código do PostgREST), a `pc-token` recusou este PC de vez (a tela mostra o código para o suporte; `PROVA_EXPIRADA` pede para conferir data, hora e fuso) ou falha inesperada (detalhe só no log; mensagem genérica). Tenta de novo com intervalo crescente. |
 
 A tela também mostra o último envio e quantas alterações estão pendentes (N menos o cursor).
 
@@ -197,7 +197,7 @@ Validade dos pedidos por tipo: liberação 5 minutos; reset de senha e desbloque
 
 | Função | O que faz |
 |---|---|
-| `pc-token` | Recebe a licença (assinada pela Central) e uma assinatura feita com a chave do PC; devolve um token de curta duração (1 hora). Publicada. |
+| `pc-token` | Recebe a licença (assinada pela Central) e uma assinatura feita com a chave do PC; devolve um token de curta duração (1 hora). O `sub` do token é o UUID nulo, nunca o `dispositivo_id` (que o PC escolhe e poderia ser o id da conta de outra pessoa). Publicada; **precisa ser republicada** com a correção do `sub` e do CNPJ (só 14 dígitos, senão null). |
 | `parear` | Troca o código do QR code por um vínculo conta ↔ loja ↔ usuário local. |
 | ~~`sync-push`~~ | **Não existe.** O PC grava direto no PostgREST com o token da `pc-token` (ver Worker de envio). |
 | `notificar` | Envia notificação ao celular quando nasce um pedido de liberação ou um pedido muda de situação. |
