@@ -5,6 +5,7 @@ import { getDb, closeDb } from '@main/db/connection'
 import { MigrationError } from '@main/db/migrator'
 import { registerAllIpc } from '@main/ipc/registerIpc'
 import { iniciarAgendadorBackup } from '@main/services/backupService'
+import { iniciarWorkerNuvem } from '@main/sync/workerNuvem'
 // Icone do sistema (janela em dev, taskbar) - o instalador em si usa
 // resources/icon.png via electron-builder.yml, empacotado a parte.
 import icon from '../../resources/icon.png?asset'
@@ -85,6 +86,8 @@ app.whenReady().then(() => {
 
   registerAllIpc()
   iniciarAgendadorBackup()
+  // Envio para a nuvem em segundo plano: só age com a nuvem ligada; sem internet o app segue igual.
+  iniciarWorkerNuvem()
 
   createWindow()
 

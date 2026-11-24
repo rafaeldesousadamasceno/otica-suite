@@ -1,0 +1,341 @@
+import { randomUUID } from 'node:crypto'
+import { DatabaseSync } from 'node:sqlite'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { MIGRATIONS } from '@main/db/migrations'
+
+// O worker lê e grava configuracao e calcula o painel pela conexão global (getDb); aqui ela é um banco em memória trocável.
+const { banco } = vi.hoisted(() => ({ banco: { db: null as DatabaseSync | null } }))
+vi.mock('@main/db/connection', () => ({ getDb: () => banco.db }))
+vi.mock('electron', () => ({ app: { isPackaged: false, getPath: () => '' }, safeStorage: {} }))
+vi.mock('@main/license/service', () => ({ obterChaveParaNuvem: () => null }))
+
+import { configuracaoRepository } from '@main/repositories/configuracaoRepository'
+import { NuvemErro, type ClienteNuvem, type ConfigCliente } from './clienteNuvem'
+import type { EstadoNuvem } from './estadoNuvem'
+import type { IdentidadePc } from './identidadePc'
+import { criarWorker, type DepsWorker } from './workerNuvem'
+
+const MIN = 60_000
+
+function novoBanco(): DatabaseSync {
+  const db = new DatabaseSync(':memory:')
+  db.exec('PRAGMA foreign_keys = ON')
+  for (const m of MIGRATIONS) db.exec(m.sql)
+  db.prepare("INSERT INTO empresa (id, nome_fantasia, cnpj) VALUES (1, 'Ótica Teste', '12.345.678/0001-90')").run()
+  return db
+}
+
+const contador = (db: DatabaseSync): number => (db.prepare('SELECT valor FROM sync_contador WHERE id = 1').get() as { valor: number }).valor
+const novoCliente = (db: DatabaseSync, nome: string): void => {
+  db.prepare('INSERT INTO cliente (nome) VALUES (?)').run(nome)
+}
+const ligarDireto = (): void => configuracaoRepository.definir('nuvem_ligada', '1')
+
+/** Nuvem falsa: `modo` decide se cada chamada de envio passa ou lança; o painel tem chave própria. */
+function nuvemFalsa() {
+  const s = {
+    modo: 'ok' as 'ok' | Error,
+    falharPainel: false,
+    chamadas: 0,
+    upserts: [] as { tabela: string; linhas: Record<string, unknown>[] }[],
+    varreduras: 0,
+    paineis: [] as string[],
+    configs: [] as ConfigCliente[]
+  }
+  const passar = (): void => {
+    s.chamadas++
+    if (s.modo !== 'ok') throw s.modo
+  }
+  const cliente: ClienteNuvem = {
+    async upsert(tabela, linhas) {
+      passar()
+      s.upserts.push({ tabela, linhas })
+    },
+    async apagar() {
+      passar()
+    },
+    async varrer() {
+      passar()
+      s.varreduras++
+    },
+    async gravarPainel(periodo) {
+      s.chamadas++
+      if (s.falharPainel) throw new NuvemErro('NUVEM_HTTP', 500, 'A nuvem recusou a operação (HTTP 500).')
+      s.paineis.push(periodo)
+    }
+  }
+  return {
+    s,
+    criarCliente: (c: ConfigCliente): ClienteNuvem => {
+      s.configs.push(c)
+      return cliente
+    }
+  }
+}
+
+let atual: ReturnType<typeof criarWorker> | null = null
+
+function montar(o: { licenca?: string | null; configurada?: boolean; identidade?: () => IdentidadePc } = {}) {
+  const nuvem = nuvemFalsa()
+  const estado = { atual: null as EstadoNuvem | null }
+  /** Instante (ms) de cada ciclo iniciado: o ciclo carrega a identidade uma vez, logo no começo. */
+  const tentativas: number[] = []
+  const identidade: IdentidadePc = { dispositivoId: randomUUID(), chavePublica: 'chave-publica', assinar: () => 'assinatura', nova: false }
+  const deps: DepsWorker = {
+    getDb: () => banco.db!,
+    criarCliente: nuvem.criarCliente,
+    identidade: () => {
+      tentativas.push(Date.now())
+      return o.identidade ? o.identidade() : identidade
+    },
+    estado: {
+      ler: () => estado.atual,
+      gravar: (e) => {
+        estado.atual = e
+      }
+    },
+    fingerprint: () => 'fp',
+    obterLicenca: () => (o.licenca === undefined ? 'licenca-de-teste' : o.licenca),
+    nuvemConfigurada: () => o.configurada ?? true,
+    agora: () => new Date(),
+    timers: {
+      setInterval: (fn, ms) => setInterval(fn, ms),
+      clearInterval: (h) => clearInterval(h as ReturnType<typeof setInterval>),
+      setTimeout: (fn, ms) => setTimeout(fn, ms),
+      clearTimeout: (h) => clearTimeout(h as ReturnType<typeof setTimeout>)
+    }
+  }
+  const w = criarWorker(deps)
+  atual = w
+  return { w, nuvem, estado, tentativas }
+}
+
+const intervalosEmMinutos = (t: number[]): number[] => t.slice(1).map((x, i) => (x - t[i]) / MIN)
+
+beforeEach(() => {
+  vi.useFakeTimers()
+  vi.setSystemTime(new Date('2026-11-24T10:00:00'))
+  banco.db = novoBanco()
+})
+
+afterEach(() => {
+  atual?.pararWorkerNuvem()
+  atual = null
+  vi.useRealTimers()
+  vi.restoreAllMocks()
+})
+
+describe('workerNuvem', () => {
+  it('desligada: nunca chama a nuvem', async () => {
+    const { w, nuvem, tentativas } = montar()
+    w.iniciarWorkerNuvem()
+    await vi.advanceTimersByTimeAsync(60 * MIN)
+    await w.sincronizarAgora()
+    expect(tentativas).toHaveLength(0)
+    expect(nuvem.s.configs).toHaveLength(0)
+    expect(nuvem.s.chamadas).toBe(0)
+    expect(w.obterStatusNuvem()).toMatchObject({ estado: 'desligada', ligada: false, ultimoEnvioEm: null })
+  })
+
+  it('não configurada: não chama a nuvem e diz isso', async () => {
+    const { w, nuvem, tentativas } = montar({ configurada: false })
+    w.iniciarWorkerNuvem()
+    w.ligarNuvem({ versao: 1, usuarioId: 1 })
+    await w.sincronizarAgora()
+    await vi.advanceTimersByTimeAsync(10 * MIN)
+    expect(tentativas).toHaveLength(0)
+    expect(nuvem.s.chamadas).toBe(0)
+    expect(w.obterStatusNuvem()).toMatchObject({ estado: 'nao_configurada', ligada: true })
+  })
+
+  it('sem licença: não chama a nuvem', async () => {
+    const { w, nuvem, tentativas } = montar({ licenca: null })
+    w.iniciarWorkerNuvem()
+    w.ligarNuvem({ versao: 1, usuarioId: 1 })
+    await w.sincronizarAgora()
+    await vi.advanceTimersByTimeAsync(10 * MIN)
+    expect(tentativas).toHaveLength(0)
+    expect(nuvem.s.chamadas).toBe(0)
+    expect(w.obterStatusNuvem()).toMatchObject({ estado: 'sem_licenca', ligada: true })
+  })
+
+  it('ligar dispara o primeiro envio e o status vira ok', async () => {
+    const { w, nuvem, estado, tentativas } = montar()
+    w.ligarNuvem({ versao: 1, usuarioId: 7 })
+    expect(configuracaoRepository.obter('nuvem_ligada')).toBe('1')
+    expect(JSON.parse(configuracaoRepository.obter('nuvem_consentimento')!)).toMatchObject({ versao: 1, usuarioId: 7 })
+    expect(w.obterStatusNuvem().estado).toBe('sincronizando')
+
+    await w.sincronizarAgora() // devolve o ciclo que o ligar já começou
+    expect(tentativas).toHaveLength(1)
+    const agora = new Date().toISOString()
+    expect(w.obterStatusNuvem()).toEqual({
+      estado: 'ok',
+      ligada: true,
+      ultimoEnvioEm: agora,
+      ultimoErro: null,
+      pendentes: 0,
+      consentimentoEm: agora
+    })
+    expect(estado.atual).toEqual({ fingerprint: 'fp', cursor: contador(banco.db!) })
+    expect(nuvem.s.varreduras).toBe(1) // primeiro envio: tudo, com varredura
+    expect(nuvem.s.upserts.some((u) => u.tabela === 'empresa')).toBe(true)
+    expect([...nuvem.s.paineis].sort()).toEqual(['avisos', 'hoje', 'mes', 'mes_anterior'])
+    const empresa = banco.db!.prepare('SELECT uuid FROM empresa WHERE id = 1').get() as { uuid: string }
+    expect(nuvem.s.configs[0].loja).toEqual({ id: empresa.uuid, nome: 'Ótica Teste', cnpj: '12.345.678/0001-90' })
+    expect(nuvem.s.configs[0].obterLicenca()).toBe('licenca-de-teste')
+
+    // Alteração local depois do envio aparece como pendente.
+    novoCliente(banco.db!, 'Bia')
+    expect(w.obterStatusNuvem().pendentes).toBe(1)
+  })
+
+  it('sem internet: status sem_internet e intervalo dobra até 30 minutos', async () => {
+    const { w, nuvem, tentativas } = montar()
+    nuvem.s.modo = new NuvemErro('REDE', 0, 'Sem conexão com a nuvem.')
+    ligarDireto()
+    w.iniciarWorkerNuvem()
+    await vi.advanceTimersByTimeAsync(30_000) // primeiro ciclo ~30 s depois de abrir
+    expect(tentativas).toHaveLength(1)
+    await vi.advanceTimersByTimeAsync(91 * MIN)
+    expect(intervalosEmMinutos(tentativas)).toEqual([2, 4, 8, 16, 30, 30])
+    const st = w.obterStatusNuvem()
+    expect(st.estado).toBe('sem_internet')
+    expect(st.ultimoErro).toBeTruthy()
+    expect(st.ultimoEnvioEm).toBeNull()
+    expect(st.pendentes).toBe(contador(banco.db!))
+  })
+
+  it('sucesso depois de falha volta o intervalo para 2 minutos', async () => {
+    const { w, nuvem, tentativas } = montar()
+    nuvem.s.modo = new NuvemErro('NUVEM_HTTP', 503, 'A nuvem recusou a operação (HTTP 503).')
+    ligarDireto()
+    w.iniciarWorkerNuvem()
+    await vi.advanceTimersByTimeAsync(30_000 + 2 * MIN) // falhas em 0:30 e 2:30
+    expect(w.obterStatusNuvem().estado).toBe('sem_internet')
+    nuvem.s.modo = 'ok'
+    await vi.advanceTimersByTimeAsync(4 * MIN) // 6:30: volta a funcionar
+    expect(w.obterStatusNuvem()).toMatchObject({ estado: 'ok', ultimoErro: null })
+    await vi.advanceTimersByTimeAsync(4 * MIN)
+    expect(intervalosEmMinutos(tentativas)).toEqual([2, 4, 2, 2])
+  })
+
+  it('PC novo precisa de aprovação: status aguardando_aprovacao e só tenta de novo em 30 minutos', async () => {
+    const { w, nuvem, tentativas } = montar()
+    nuvem.s.modo = new NuvemErro('PC_NOVO_PRECISA_APROVACAO', 409, 'A nuvem recusou a conexão deste computador (PC_NOVO_PRECISA_APROVACAO).')
+    ligarDireto()
+    w.iniciarWorkerNuvem()
+    await vi.advanceTimersByTimeAsync(30_000)
+    expect(tentativas).toHaveLength(1)
+    expect(w.obterStatusNuvem().estado).toBe('aguardando_aprovacao')
+    await vi.advanceTimersByTimeAsync(29 * MIN)
+    expect(tentativas).toHaveLength(1)
+    await vi.advanceTimersByTimeAsync(1 * MIN)
+    expect(tentativas).toHaveLength(2)
+    await vi.advanceTimersByTimeAsync(30 * MIN)
+    expect(intervalosEmMinutos(tentativas)).toEqual([30, 30])
+    expect(w.obterStatusNuvem().estado).toBe('aguardando_aprovacao')
+  })
+
+  it('dispositivo revogado: para de tentar', async () => {
+    const { w, nuvem, tentativas } = montar()
+    nuvem.s.modo = new NuvemErro('DISPOSITIVO_REVOGADO', 403, 'A nuvem recusou a conexão deste computador (DISPOSITIVO_REVOGADO).')
+    ligarDireto()
+    w.iniciarWorkerNuvem()
+    await vi.advanceTimersByTimeAsync(30_000)
+    expect(w.obterStatusNuvem().estado).toBe('revogado')
+    await vi.advanceTimersByTimeAsync(5 * 60 * MIN)
+    expect(tentativas).toHaveLength(1)
+
+    // Religar volta a tentar.
+    nuvem.s.modo = 'ok'
+    w.ligarNuvem({ versao: 1, usuarioId: 1 })
+    await w.sincronizarAgora()
+    expect(tentativas).toHaveLength(2)
+    expect(w.obterStatusNuvem().estado).toBe('ok')
+    await vi.advanceTimersByTimeAsync(2 * MIN)
+    expect(tentativas).toHaveLength(3)
+  })
+
+  it('não roda dois ciclos ao mesmo tempo', async () => {
+    const { w, nuvem, tentativas } = montar()
+    ligarDireto()
+    await Promise.all([w.sincronizarAgora(), w.sincronizarAgora()])
+    expect(tentativas).toHaveLength(1)
+    expect(nuvem.s.varreduras).toBe(1)
+
+    await w.sincronizarAgora() // terminado o ciclo, o próximo roda normalmente
+    expect(tentativas).toHaveLength(2)
+  })
+
+  it('usa a conexão atual do banco a cada ciclo', async () => {
+    const { w, nuvem, estado } = montar()
+    for (const nome of ['A1', 'A2', 'A3', 'A4', 'A5']) novoCliente(banco.db!, nome)
+    ligarDireto()
+    await w.sincronizarAgora()
+    const nomesEnviados = (): string[] =>
+      nuvem.s.upserts.filter((u) => u.tabela === 'cliente').flatMap((u) => u.linhas.map((l) => String(l.nome)))
+    expect(nomesEnviados()).toEqual(['A1', 'A2', 'A3', 'A4', 'A5'])
+
+    // Backup restaurado: getDb() passa a devolver outra conexão.
+    const novo = novoBanco()
+    novoCliente(novo, 'Só no banco novo')
+    banco.db = novo
+    ligarDireto()
+    nuvem.s.upserts = []
+    await w.sincronizarAgora()
+    expect(nomesEnviados()).toEqual(['Só no banco novo'])
+    expect(estado.atual?.cursor).toBe(contador(novo))
+    expect(w.obterStatusNuvem().pendentes).toBe(0)
+  })
+
+  it('falha ao gravar o painel não desfaz o envio das linhas', async () => {
+    const erro = vi.spyOn(console, 'error').mockImplementation(() => {})
+    const { w, nuvem, estado } = montar()
+    nuvem.s.falharPainel = true
+    novoCliente(banco.db!, 'Ana')
+    ligarDireto()
+    await w.sincronizarAgora()
+    expect(nuvem.s.upserts.some((u) => u.tabela === 'cliente')).toBe(true)
+    expect(nuvem.s.paineis).toEqual([])
+    expect(estado.atual?.cursor).toBe(contador(banco.db!))
+    expect(w.obterStatusNuvem()).toMatchObject({ estado: 'ok', ultimoErro: null, pendentes: 0 })
+    expect(w.obterStatusNuvem().ultimoEnvioEm).not.toBeNull()
+    expect(erro).toHaveBeenCalled()
+  })
+
+  it('identidade ilegível: status erro com mensagem genérica, sem regenerar a identidade', async () => {
+    const erro = vi.spyOn(console, 'error').mockImplementation(() => {})
+    const { w, nuvem, tentativas } = montar({
+      identidade: () => {
+        throw new Error('Unsupported state or unable to authenticate data')
+      }
+    })
+    ligarDireto()
+    await w.sincronizarAgora()
+    expect(tentativas).toHaveLength(1)
+    expect(nuvem.s.configs).toHaveLength(0)
+    const st = w.obterStatusNuvem()
+    expect(st.estado).toBe('erro')
+    expect(st.ultimoErro).toBeTruthy()
+    expect(st.ultimoErro).not.toContain('Unsupported')
+    expect(erro).toHaveBeenCalled()
+  })
+
+  it('licença recusada pela nuvem: status sem_licenca', async () => {
+    const { w, nuvem } = montar()
+    nuvem.s.modo = new NuvemErro('LICENCA_VENCIDA', 403, 'A nuvem recusou a conexão deste computador (LICENCA_VENCIDA).')
+    ligarDireto()
+    await w.sincronizarAgora()
+    expect(w.obterStatusNuvem().estado).toBe('sem_licenca')
+  })
+
+  it('desligar grava a chave e o status volta a desligada', async () => {
+    const { w } = montar()
+    w.ligarNuvem({ versao: 1, usuarioId: 1 })
+    await w.sincronizarAgora()
+    w.desligarNuvem()
+    expect(configuracaoRepository.obter('nuvem_ligada')).toBe('0')
+    expect(w.obterStatusNuvem()).toMatchObject({ estado: 'desligada', ligada: false, consentimentoEm: null })
+  })
+})
