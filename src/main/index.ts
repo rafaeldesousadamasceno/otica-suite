@@ -5,7 +5,7 @@ import { getDb, closeDb } from '@main/db/connection'
 import { MigrationError } from '@main/db/migrator'
 import { registerAllIpc } from '@main/ipc/registerIpc'
 import { iniciarAgendadorBackup } from '@main/services/backupService'
-import { iniciarWorkerNuvem } from '@main/sync/workerNuvem'
+import { iniciarWorkerNuvem, pararWorkerNuvem } from '@main/sync/workerNuvem'
 // Icone do sistema (janela em dev, taskbar) - o instalador em si usa
 // resources/icon.png via electron-builder.yml, empacotado a parte.
 import icon from '../../resources/icon.png?asset'
@@ -97,6 +97,8 @@ app.whenReady().then(() => {
 })
 
 app.on('window-all-closed', () => {
+  // Primeiro os timers da nuvem: nenhum ciclo novo começa com o banco já fechado.
+  pararWorkerNuvem()
   closeDb()
   if (process.platform !== 'darwin') app.quit()
 })
