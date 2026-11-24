@@ -34,6 +34,8 @@ export async function executarCiclo(d: DepsCiclo): Promise<ResultadoCiclo> {
   const varredura = estado.cursor === 0 || estado.cursor > n
   const cursor = varredura ? 0 : estado.cursor
   const recebidoEm = d.agora().toISOString()
+  // Backup restaurado: lembra no estado (cursor 0) para o próximo ciclo varrer mesmo que o contador volte a passar do cursor antigo.
+  if (estado.cursor > n) d.gravarEstado({ fingerprint: d.fingerprint, cursor: 0 })
   let enviados = 0
   let excluidos = 0
 

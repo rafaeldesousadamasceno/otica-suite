@@ -132,6 +132,8 @@ describe('executarCiclo', () => {
     await expect(executarCiclo({ ...deps, cliente: ruim.cliente })).rejects.toThrow('sem internet')
     expect(estado.atual).toEqual(antes)
     expect(db.prepare('SELECT * FROM sync_exclusao').all()).toEqual(exclusoesAntes)
+    expect(estado.gravacoes).toBe(1)
+    expect(ruim.chamadas.every((c) => c.tipo === 'upsert')).toBe(true)
 
     const bom = clienteFalso()
     await executarCiclo({ ...deps, cliente: bom.cliente })
@@ -142,6 +144,49 @@ describe('executarCiclo', () => {
     expect(bom.chamadas.filter((c) => c.tipo === 'apagar')).toHaveLength(1)
     expect(estado.atual.cursor).toBe(contador(db))
     expect(qtdExclusoes(db)).toBe(0)
+  })
+
+  it('varredura que falha no meio: nada é gravado nem apagado, e retomar reenvia tudo e varre por último', async () => {
+    const db = banco()
+    for (let i = 0; i < 4; i++) novoCliente(db, `C${i}`)
+    db.prepare("DELETE FROM cliente WHERE nome = 'C0'").run()
+    const exclusoesAntes = db.prepare('SELECT * FROM sync_exclusao').all()
+    expect(exclusoesAntes.length).toBeGreaterThan(0)
+    const ruim = clienteFalso(2)
+    const { deps, estado } = montar(db, ruim.cliente, { fingerprint: 'fp', cursor: 0 }, { tamanhoLote: 2 })
+    await expect(executarCiclo(deps)).rejects.toThrow('sem internet')
+    expect(estado.atual).toEqual({ fingerprint: 'fp', cursor: 0 })
+    expect(estado.gravacoes).toBe(0)
+    expect(db.prepare('SELECT * FROM sync_exclusao').all()).toEqual(exclusoesAntes)
+    expect(ruim.chamadas.every((c) => c.tipo === 'upsert')).toBe(true)
+
+    const bom = clienteFalso()
+    const r = await executarCiclo({ ...deps, cliente: bom.cliente })
+    expect(r.varredura).toBe(true)
+    const chaves = upserts(bom.chamadas).map((c) => c.tabela)
+    expect(chaves.length).toBeGreaterThan(0)
+    const nomes = upserts(bom.chamadas, 'cliente').flatMap((c) => c.linhas.map((l) => String(l.nome)))
+    expect(nomes.sort()).toEqual(['C1', 'C2', 'C3'])
+    expect(bom.chamadas[bom.chamadas.length - 1].tipo).toBe('varrer')
+    expect(bom.chamadas.filter((c) => c.tipo === 'apagar')).toHaveLength(0)
+    expect(estado.atual.cursor).toBe(contador(db))
+    expect(qtdExclusoes(db)).toBe(0)
+  })
+
+  it('backup restaurado lembrado: cursor 0 gravado antes de enviar, e a próxima varredura acontece mesmo se o contador passar do cursor antigo', async () => {
+    const db = banco()
+    novoCliente(db, 'Ana')
+    const antigo = contador(db) + 5
+    const ruim = clienteFalso(1)
+    const { deps, estado } = montar(db, ruim.cliente, { fingerprint: 'fp', cursor: antigo })
+    await expect(executarCiclo(deps)).rejects.toThrow('sem internet')
+    expect(estado.atual.cursor).toBe(0)
+    while (contador(db) <= antigo) novoCliente(db, `X${contador(db)}`)
+    const bom = clienteFalso()
+    const r = await executarCiclo({ ...deps, cliente: bom.cliente })
+    expect(r.varredura).toBe(true)
+    expect(bom.chamadas.some((c) => c.tipo === 'varrer')).toBe(true)
+    expect(estado.atual.cursor).toBe(contador(db))
   })
 
   it('backup restaurado (cursor maior que o contador): reenvia tudo com varredura', async () => {
