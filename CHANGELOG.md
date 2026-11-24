@@ -2,6 +2,32 @@
 
 ## Próxima versão
 
+- Prescrição (antes "Receita"): novo layout com o olho Direito e o Esquerdo lado a lado. O Perto agora
+  é calculado (Longe + Adição de cada olho), a Adição é independente em cada olho, e há altura, prisma
+  com base, índice de refração, tipo de armação e as medidas da armação (com orientação de como medir).
+  A DNP é opcional. A DP (soma das DNPs) é sempre gravada e só aparece com "Exibir DP" ligado em
+  Configurações. Dá para imprimir a prescrição e excluí-la (o Administrador; não exclui se estiver numa OS
+  ou venda). Prescrições antigas continuam intactas; as que não seguem "Longe + Adição" aparecem como
+  "registrada no formato anterior".
+- Configurações: escolha digitar os graus no formato Decimal (1,25) ou Inteiro (125), por computador.
+- Laboratórios: cadastro novo (CNPJ, telefones, prazo, ativo). A OS passa a escolher o laboratório numa
+  lista e a ter o entregador (nome e contato). Os laboratórios que você já usava foram criados sozinhos.
+- Produtos: unidade de medida em lista com cadastro próprio; grau mínimo e máximo da lente com os botões
+  de 0,25 em 0,25.
+- Vendas: desconto em % ou R$; cadastros de Formas de Pagamento e de Bandeiras (taxas do cartão);
+  o cartão gera um único recebível da operadora (valor líquido); a promissória tem acréscimo explícito
+  no resumo; excluir venda (com confirmação e, nos casos de bloqueio, a senha do Administrador).
+  Antes de vender no cartão, cadastre as bandeiras e as taxas.
+- Contas a Pagar: despesas recorrentes com valor por período (reajustar, encerrar, editar "somente esta"
+  ou "esta e as próximas", excluir). Pagar uma conta recorrente não gera mais a próxima: o sistema mantém
+  12 meses à frente. As recorrentes que já existiam foram migradas como séries ativas: encerre as que
+  você não paga mais em "Despesas recorrentes".
+- Relacionamento: seção "Contatados" com o botão Desfazer, para corrigir um clique errado.
+- Aniversariantes: botão WhatsApp em cada cliente, com a mensagem de aniversário pronta, para felicitar
+  fora do dia.
+- Toda exclusão pede confirmação numa caixa própria (Cancelar vem selecionado).
+- Corrigido: cancelar uma venda parcelada dava "erro inesperado".
+
 - Receita óptica: os tratamentos da lente agora são caixinhas de marcar, e dá para
   escolher mais de um (ex.: antirreflexo e filtro azul). Receitas antigas com um
   tratamento só continuam iguais; um valor antigo que não está mais na lista
