@@ -1,6 +1,6 @@
 # Nuvem e app do Administrador no celular: arquitetura
 
-Status: **a fase N1 (espelho) está implementada**: o PC já envia a cópia da loja e o painel pronto para o Supabase quando a nuvem é ligada na tela "Nuvem e celular" (detalhes na tabela de fases). O app de celular e os pedidos (N2 em diante) ainda não existem. Este documento define como o resto será construído: o espelho da loja na nuvem, o app de celular do Administrador (plano Premium) e o backup online.
+Status: **a fase N1 (espelho) está implementada**: o PC já envia a cópia da loja para o Supabase quando a nuvem é ligada na tela "Nuvem e celular" (provado ao vivo em 2026-11-24 para as linhas). O envio do painel pronto está implementado, mas ainda depende de aplicar a migração 0004 no projeto e reexecutar o teste ao vivo (detalhes na tabela de fases). O app de celular e os pedidos (N2 em diante) ainda não existem. Este documento define como o resto será construído: o espelho da loja na nuvem, o app de celular do Administrador (plano Premium) e o backup online.
 
 ## Objetivo
 
@@ -123,7 +123,7 @@ Onde ficam as coisas no PC (pasta de dados do app, `userData`):
 | `sem_licenca` | Sem licença liberada para a nuvem, ou a `pc-token` recusou a licença (vencida, inválida, sem o recurso). |
 | `aguardando` | Ligada, ainda sem resultado de ciclo. |
 | `sincronizando` | Ciclo em andamento. |
-| `ok` | Último ciclo concluído ("Em dia"). |
+| `ok` | Último ciclo concluído ("Em dia"). Aparece também quando só o painel falhou: esse erro só vai para o log e o painel é refeito no ciclo seguinte. |
 | `sem_internet` | Sem rede, ou a nuvem recusou o envio ou está fora do ar. Tenta de novo com intervalo crescente. |
 | `aguardando_aprovacao` | PC novo; a `pc-token` respondeu 409. |
 | `revogado` | O Administrador desconectou este PC. O relógio para até religar. |
@@ -159,7 +159,7 @@ Hoje a sessão é uma variável única do processo main (`src/main/auth/session.
 
 ### Chaves do PC
 
-Na ativação da nuvem o PC gera um par de chaves, guardado com `safeStorage` do Electron; a chave pública vai para a nuvem. O celular cifra com ela o que é sensível (por exemplo, a nova senha num reset), então **a nuvem nunca vê senha**: só o PC consegue abrir.
+Na ativação da nuvem o PC gera um par de chaves, guardado com `safeStorage` do Electron (arquivo `nuvem-chave.bin`, ver Worker de envio); a chave pública vai para a nuvem. O celular cifra com ela o que é sensível (por exemplo, a nova senha num reset), então **a nuvem nunca vê senha**: só o PC consegue abrir.
 
 ### Migrações e tela
 
