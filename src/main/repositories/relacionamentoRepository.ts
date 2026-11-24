@@ -137,7 +137,22 @@ function montar(
 
 const CLIENTE_ATIVO_E_ACEITA = 'c.ativo = 1 AND c.aceita_contato = 1'
 
+export interface ClienteParaMensagem {
+  nome: string
+  celular: string | null
+  ativo: boolean
+  aceitaContato: boolean
+}
+
 export const relacionamentoRepository = {
+  /** Dados minimos de um cliente para montar uma mensagem avulsa (fora da lista "quem chamar hoje"). */
+  clienteParaMensagem(clienteId: number): ClienteParaMensagem | null {
+    const row = getDb()
+      .prepare('SELECT nome, celular, ativo, aceita_contato FROM cliente WHERE id = :id')
+      .get({ id: clienteId }) as { nome: string; celular: string | null; ativo: number; aceita_contato: number } | undefined
+    return row ? { nome: row.nome, celular: row.celular, ativo: row.ativo === 1, aceitaContato: row.aceita_contato === 1 } : null
+  },
+
   /**
    * Quem precisa de contato em `hoje`, sem quem ja foi contatado por aquela
    * OCORRENCIA nem quem pediu para nao ser chamado. Cada motivo devolve no

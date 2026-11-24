@@ -1,5 +1,5 @@
 import { DatabaseSync } from 'node:sqlite'
-import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import { MIGRATIONS } from '@main/db/migrations'
 import { AppError } from '@main/errors'
 
@@ -231,5 +231,48 @@ describe('relacionamentoService - contatados e desfazer', () => {
     const antes = contar()
     expect(codigoDoErro(() => relacionamentoService.desfazerContato({ id: 987654 }))).toBe('NAO_ENCONTRADO')
     expect(contar()).toEqual(antes)
+  })
+})
+
+describe('relacionamentoService.linkWhatsappAniversario (tela Aniversariantes)', () => {
+  // Os testes de antes deixam clientes marcados como "nao contatar": este bloco parte sempre do estado limpo.
+  beforeEach(() => {
+    db.prepare('UPDATE cliente SET aceita_contato = 1, ativo = 1').run()
+  })
+
+  it('monta o link com a mensagem de aniversário (primeiro nome e ótica), mesmo para quem NÃO está na lista de hoje', () => {
+    // Fábio e Gil não fazem aniversário hoje (sem data): o link não depende de estar pendente em Relacionamento.
+    const link = relacionamentoService.linkWhatsappAniversario(ids.gil)
+    expect(link.startsWith('https://wa.me/5511998765432?text=')).toBe(true)
+    const texto = textoDoLink(link)
+    expect(texto).toContain('Gil')
+    expect(texto).toContain('Ótica Sol')
+    expect(texto).not.toMatch(/\{\w+\}/)
+  })
+
+  it('usa a mensagem de aniversário editada pelo administrador', () => {
+    db.prepare("INSERT INTO configuracao (chave, valor) VALUES ('relacionamento_msg_aniversario', 'Parabéns, {nome}! Da {otica}.') ON CONFLICT(chave) DO UPDATE SET valor = excluded.valor").run()
+    expect(textoDoLink(relacionamentoService.linkWhatsappAniversario(ids.ana))).toBe('Parabéns, Ana! Da Ótica Sol.')
+  })
+
+  it('celular fixo ou inválido: erro de validação, nunca um link errado', () => {
+    expect(codigoDoErro(() => relacionamentoService.linkWhatsappAniversario(ids.fabio))).toBe('VALIDACAO')
+  })
+
+  it('quem pediu para não ser contatado não recebe link; cliente inexistente ou inativo dá NAO_ENCONTRADO', () => {
+    db.prepare('UPDATE cliente SET aceita_contato = 0 WHERE id = ?').run(ids.gil)
+    expect(codigoDoErro(() => relacionamentoService.linkWhatsappAniversario(ids.gil))).toBe('VALIDACAO')
+    db.prepare('UPDATE cliente SET aceita_contato = 1 WHERE id = ?').run(ids.gil)
+
+    expect(codigoDoErro(() => relacionamentoService.linkWhatsappAniversario(9999))).toBe('NAO_ENCONTRADO')
+    db.prepare('UPDATE cliente SET ativo = 0 WHERE id = ?').run(ids.gil)
+    expect(codigoDoErro(() => relacionamentoService.linkWhatsappAniversario(ids.gil))).toBe('NAO_ENCONTRADO')
+    db.prepare('UPDATE cliente SET ativo = 1 WHERE id = ?').run(ids.gil)
+  })
+
+  it('não registra contato nem mexe na lista de Relacionamento', () => {
+    const antes = (db.prepare('SELECT COUNT(*) AS n FROM contato').get() as { n: number }).n
+    relacionamentoService.linkWhatsappAniversario(ids.ana)
+    expect((db.prepare('SELECT COUNT(*) AS n FROM contato').get() as { n: number }).n).toBe(antes)
   })
 })

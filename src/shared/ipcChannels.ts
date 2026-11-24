@@ -220,6 +220,7 @@ export const IPC = {
     listar: 'relacionamento:listar',
     semContato: 'relacionamento:semContato',
     abrirWhatsapp: 'relacionamento:abrirWhatsapp',
+    abrirWhatsappAniversario: 'relacionamento:abrirWhatsappAniversario',
     marcarContatado: 'relacionamento:marcarContatado',
     contatados: 'relacionamento:contatados',
     desfazerContato: 'relacionamento:desfazerContato',

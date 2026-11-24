@@ -363,6 +363,7 @@ interface Api {
     semContato: () => Promise<ApiResult<ClienteSemContato[]>>
     resultados: (input: ResultadosRelacionamentoInput) => Promise<ApiResult<ResultadosRelacionamento>>
     abrirWhatsapp: (input: ContatoRefInput) => Promise<ApiResult<null>>
+    abrirWhatsappAniversario: (input: IdInput) => Promise<ApiResult<null>>
     marcarContatado: (input: ContatoMarcarInput) => Promise<ApiResult<null>>
     contatados: () => Promise<ApiResult<ContatoFeito[]>>
     desfazerContato: (input: ContatoDesfazerInput) => Promise<ApiResult<null>>

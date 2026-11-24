@@ -376,6 +376,11 @@ export const SECOES_AJUDA: SecaoAjuda[] = [
       {
         tipo: 'paragrafo',
         texto: 'Escolha o mês para ver os aniversariantes, com nascimento e celular. O botão de impressão gera o PDF da lista.'
+      },
+      {
+        tipo: 'dica',
+        titulo: 'Parabéns fora do dia',
+        texto: 'O botão "WhatsApp" de cada linha abre a conversa no seu WhatsApp com a mesma mensagem de aniversário do Relacionamento, já com o nome da pessoa e o da ótica. Serve para felicitar quem fez aniversário num dia em que a ótica estava fechada, mesmo com atraso. O sistema não envia nada sozinho: você confere e envia. Clientes sem celular válido aparecem como "sem celular", e quem pediu para não ser contatado não recebe o link.'
       }
     ]
   },
