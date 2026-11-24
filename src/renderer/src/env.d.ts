@@ -21,10 +21,15 @@ import type {
   AuditoriaEntrada,
   Fornecedor,
   Laboratorio,
+  FormaPagamento,
+  Bandeira,
+  PreviaExclusaoVenda,
   CompraResumo,
   CompraDetalhada,
   EstoqueItem,
   ContaPagar,
+  Recorrencia,
+  RecorrenciaAcaoResultado,
   ConfiguracaoOperacional,
   FluxoCaixaResultado,
   LucroPrejuizoResultado,
@@ -79,6 +84,7 @@ import type {
   ProdutosListQuery,
   VendaCreateInput,
   VendaCancelarInput,
+  VendaExcluirInput,
   VendasListQuery,
   ContasReceberListQuery,
   ContaReceberBaixarInput,
@@ -88,6 +94,16 @@ import type {
   LaboratorioSetAtivoInput,
   LaboratorioExcluirInput,
   LaboratoriosListQuery,
+  FormaPagamentoInput,
+  FormaPagamentoUpdateInput,
+  FormaPagamentoSetAtivoInput,
+  FormaPagamentoExcluirInput,
+  FormasPagamentoListQuery,
+  BandeiraInput,
+  BandeiraUpdateInput,
+  BandeiraSetAtivoInput,
+  BandeiraExcluirInput,
+  BandeirasListQuery,
   FornecedorUpdateInput,
   FornecedorSetAtivoInput,
   FornecedoresListQuery,
@@ -98,6 +114,10 @@ import type {
   EstoqueAjustarInput,
   ContaPagarCriarInput,
   ContaPagarPagarInput,
+  ContaPagarEditarInput,
+  ContaPagarExcluirInput,
+  RecorrenciaReajustarInput,
+  RecorrenciaEncerrarInput,
   ContasPagarListQuery,
   ConfiguracaoOperacionalInput,
   PeriodoQuery,
@@ -196,6 +216,8 @@ interface Api {
     create: (input: VendaCreateInput) => Promise<ApiResult<VendaDetalhada>>
     listByCliente: (input: ReceitaListByClienteInput) => Promise<ApiResult<VendaResumo[]>>
     cancelar: (input: VendaCancelarInput) => Promise<ApiResult<VendaDetalhada>>
+    exclusaoPrevia: (input: IdInput) => Promise<ApiResult<PreviaExclusaoVenda>>
+    excluir: (input: VendaExcluirInput) => Promise<ApiResult<void>>
   }
   contasReceber: {
     list: (input: ContasReceberListQuery) => Promise<ApiResult<ContaReceber[]>>
@@ -213,6 +235,20 @@ interface Api {
   }
   auditoria: {
     list: () => Promise<ApiResult<AuditoriaEntrada[]>>
+  }
+  formasPagamento: {
+    list: (input: FormasPagamentoListQuery) => Promise<ApiResult<FormaPagamento[]>>
+    create: (input: FormaPagamentoInput) => Promise<ApiResult<FormaPagamento>>
+    update: (input: FormaPagamentoUpdateInput) => Promise<ApiResult<FormaPagamento>>
+    setAtivo: (input: FormaPagamentoSetAtivoInput) => Promise<ApiResult<void>>
+    excluir: (input: FormaPagamentoExcluirInput) => Promise<ApiResult<void>>
+  }
+  bandeiras: {
+    list: (input: BandeirasListQuery) => Promise<ApiResult<Bandeira[]>>
+    create: (input: BandeiraInput) => Promise<ApiResult<Bandeira>>
+    update: (input: BandeiraUpdateInput) => Promise<ApiResult<Bandeira>>
+    setAtivo: (input: BandeiraSetAtivoInput) => Promise<ApiResult<void>>
+    excluir: (input: BandeiraExcluirInput) => Promise<ApiResult<void>>
   }
   laboratorios: {
     list: (input: LaboratoriosListQuery) => Promise<ApiResult<Laboratorio[]>>
@@ -243,6 +279,11 @@ interface Api {
     list: (input: ContasPagarListQuery) => Promise<ApiResult<ContaPagar[]>>
     criar: (input: ContaPagarCriarInput) => Promise<ApiResult<ContaPagar>>
     pagar: (input: ContaPagarPagarInput) => Promise<ApiResult<ContaPagar>>
+    editar: (input: ContaPagarEditarInput) => Promise<ApiResult<ContaPagar>>
+    excluir: (input: ContaPagarExcluirInput) => Promise<ApiResult<RecorrenciaAcaoResultado>>
+    recorrencias: () => Promise<ApiResult<Recorrencia[]>>
+    reajustarRecorrencia: (input: RecorrenciaReajustarInput) => Promise<ApiResult<RecorrenciaAcaoResultado>>
+    encerrarRecorrencia: (input: RecorrenciaEncerrarInput) => Promise<ApiResult<RecorrenciaAcaoResultado>>
   }
   configuracoes: {
     getOperacional: () => Promise<ApiResult<ConfiguracaoOperacional>>

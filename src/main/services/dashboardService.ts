@@ -1,4 +1,5 @@
 import { dashboardRepository } from '@main/repositories/dashboardRepository'
+import { recorrenciaService } from '@main/services/recorrenciaService'
 import { requireSessao } from '@main/auth/session'
 import { possuiPermissao } from '@shared/permissions'
 import { gerarInsights } from '@shared/insights'
@@ -72,6 +73,8 @@ export const dashboardService = {
 
     const podeVerEquipe = gerencial && vendedorId === null
     const podeVerPagar = possuiPermissao(perfil, 'contas_pagar', 'ver') && vendedorId === null
+    // As contas dos meses de hoje em diante precisam existir mesmo que ninguem abra Contas a Pagar.
+    if (podeVerPagar) recorrenciaService.completarHorizonte()
 
     const semInsights: Omit<DashboardResumo, 'insights'> = {
       escopo: vendedorId === null ? 'loja' : 'vendedor',

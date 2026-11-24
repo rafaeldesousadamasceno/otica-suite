@@ -23,13 +23,13 @@ export const comissaoRepository = {
   /**
    * RN-08: a comissao e provisionada na venda e liberada quando ela fica
    * quitada - a vista, isso ja acontece na criacao (venda sem nenhuma
-   * conta_receber em aberto); parcelada, so quando a ultima parcela e
-   * baixada. Chame sempre dentro da transacao de quem baixou a parcela
+   * parcela do CLIENTE em aberto; o recebivel da operadora do cartao nao conta,
+   * porque o cliente ja pagou); parcelada, so quando a ultima parcela e baixada. Chame sempre dentro da transacao de quem baixou a parcela
    * (ou criou a venda), nunca isolado.
    */
   liberarSeQuitada(db: DatabaseSync, vendaId: number): void {
     const pendente = db
-      .prepare("SELECT COUNT(*) AS n FROM conta_receber WHERE venda_id = :vendaId AND situacao = 'ABERTA'")
+      .prepare("SELECT COUNT(*) AS n FROM conta_receber WHERE venda_id = :vendaId AND situacao = 'ABERTA' AND tipo = 'CLIENTE'")
       .get({ vendaId }) as { n: number }
     if (pendente.n > 0) return
 

@@ -75,7 +75,9 @@ const api = {
     get: (input: unknown) => ipcRenderer.invoke(IPC.vendas.get, input),
     create: (input: unknown) => ipcRenderer.invoke(IPC.vendas.create, input),
     listByCliente: (input: unknown) => ipcRenderer.invoke(IPC.vendas.listByCliente, input),
-    cancelar: (input: unknown) => ipcRenderer.invoke(IPC.vendas.cancelar, input)
+    cancelar: (input: unknown) => ipcRenderer.invoke(IPC.vendas.cancelar, input),
+    exclusaoPrevia: (input: unknown) => ipcRenderer.invoke(IPC.vendas.exclusaoPrevia, input),
+    excluir: (input: unknown) => ipcRenderer.invoke(IPC.vendas.excluir, input)
   },
   contasReceber: {
     list: (input: unknown) => ipcRenderer.invoke(IPC.contasReceber.list, input),
@@ -93,6 +95,20 @@ const api = {
   },
   auditoria: {
     list: () => ipcRenderer.invoke(IPC.auditoria.list)
+  },
+  formasPagamento: {
+    list: (input: unknown) => ipcRenderer.invoke(IPC.formasPagamento.list, input),
+    create: (input: unknown) => ipcRenderer.invoke(IPC.formasPagamento.create, input),
+    update: (input: unknown) => ipcRenderer.invoke(IPC.formasPagamento.update, input),
+    setAtivo: (input: unknown) => ipcRenderer.invoke(IPC.formasPagamento.setAtivo, input),
+    excluir: (input: unknown) => ipcRenderer.invoke(IPC.formasPagamento.excluir, input)
+  },
+  bandeiras: {
+    list: (input: unknown) => ipcRenderer.invoke(IPC.bandeiras.list, input),
+    create: (input: unknown) => ipcRenderer.invoke(IPC.bandeiras.create, input),
+    update: (input: unknown) => ipcRenderer.invoke(IPC.bandeiras.update, input),
+    setAtivo: (input: unknown) => ipcRenderer.invoke(IPC.bandeiras.setAtivo, input),
+    excluir: (input: unknown) => ipcRenderer.invoke(IPC.bandeiras.excluir, input)
   },
   laboratorios: {
     list: (input: unknown) => ipcRenderer.invoke(IPC.laboratorios.list, input),
@@ -122,7 +138,12 @@ const api = {
   contasPagar: {
     list: (input: unknown) => ipcRenderer.invoke(IPC.contasPagar.list, input),
     criar: (input: unknown) => ipcRenderer.invoke(IPC.contasPagar.criar, input),
-    pagar: (input: unknown) => ipcRenderer.invoke(IPC.contasPagar.pagar, input)
+    pagar: (input: unknown) => ipcRenderer.invoke(IPC.contasPagar.pagar, input),
+    editar: (input: unknown) => ipcRenderer.invoke(IPC.contasPagar.editar, input),
+    excluir: (input: unknown) => ipcRenderer.invoke(IPC.contasPagar.excluir, input),
+    recorrencias: () => ipcRenderer.invoke(IPC.contasPagar.recorrencias),
+    reajustarRecorrencia: (input: unknown) => ipcRenderer.invoke(IPC.contasPagar.reajustarRecorrencia, input),
+    encerrarRecorrencia: (input: unknown) => ipcRenderer.invoke(IPC.contasPagar.encerrarRecorrencia, input)
   },
   configuracoes: {
     getOperacional: () => ipcRenderer.invoke(IPC.configuracoes.getOperacional),

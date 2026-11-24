@@ -10,6 +10,8 @@ import { registerVendasIpc } from './vendasIpc'
 import { registerContasReceberIpc } from './contasReceberIpc'
 import { registerFornecedoresIpc } from './fornecedoresIpc'
 import { registerLaboratoriosIpc } from './laboratoriosIpc'
+import { registerFormasPagamentoIpc } from './formasPagamentoIpc'
+import { registerBandeirasIpc } from './bandeirasIpc'
 import { registerComprasIpc } from './comprasIpc'
 import { registerEstoqueIpc } from './estoqueIpc'
 import { registerContasPagarIpc } from './contasPagarIpc'
@@ -41,6 +43,8 @@ export function registerAllIpc(): void {
   registerContasReceberIpc()
   registerFornecedoresIpc()
   registerLaboratoriosIpc()
+  registerFormasPagamentoIpc()
+  registerBandeirasIpc()
   registerComprasIpc()
   registerEstoqueIpc()
   registerContasPagarIpc()

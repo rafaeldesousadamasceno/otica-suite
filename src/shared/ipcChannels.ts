@@ -72,7 +72,9 @@ export const IPC = {
     get: 'vendas:get',
     create: 'vendas:create',
     listByCliente: 'vendas:listByCliente',
-    cancelar: 'vendas:cancelar'
+    cancelar: 'vendas:cancelar',
+    exclusaoPrevia: 'vendas:exclusaoPrevia',
+    excluir: 'vendas:excluir'
   },
   contasReceber: {
     list: 'contasReceber:list',
@@ -90,6 +92,20 @@ export const IPC = {
   },
   auditoria: {
     list: 'auditoria:list'
+  },
+  formasPagamento: {
+    list: 'formasPagamento:list',
+    create: 'formasPagamento:create',
+    update: 'formasPagamento:update',
+    setAtivo: 'formasPagamento:setAtivo',
+    excluir: 'formasPagamento:excluir'
+  },
+  bandeiras: {
+    list: 'bandeiras:list',
+    create: 'bandeiras:create',
+    update: 'bandeiras:update',
+    setAtivo: 'bandeiras:setAtivo',
+    excluir: 'bandeiras:excluir'
   },
   laboratorios: {
     list: 'laboratorios:list',
@@ -119,7 +135,12 @@ export const IPC = {
   contasPagar: {
     list: 'contasPagar:list',
     criar: 'contasPagar:criar',
-    pagar: 'contasPagar:pagar'
+    pagar: 'contasPagar:pagar',
+    editar: 'contasPagar:editar',
+    excluir: 'contasPagar:excluir',
+    recorrencias: 'contasPagar:recorrencias',
+    reajustarRecorrencia: 'contasPagar:reajustarRecorrencia',
+    encerrarRecorrencia: 'contasPagar:encerrarRecorrencia'
   },
   configuracoes: {
     getOperacional: 'configuracoes:getOperacional',

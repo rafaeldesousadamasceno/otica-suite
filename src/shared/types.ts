@@ -2,6 +2,13 @@
 // importa nada do processo main - so estes tipos e o contrato de IPC.
 
 import type { BasePrisma } from './prescricao'
+import type {
+  ComportamentoFinanceiro,
+  FaixaCredito,
+  TipoAcrescimo,
+  TipoDesconto,
+  TipoFormaPagamento
+} from './vendaCalculo'
 
 export type Perfil = 'admin' | 'vendedor'
 
@@ -245,9 +252,27 @@ export interface VendaItemDetalhe {
 
 export interface VendaPagamentoDetalhe {
   id: number
+  /** Texto da forma COMO FOI GRAVADO na venda (snapshot: renomear o cadastro nao muda vendas antigas). */
   formaPagamento: string
+  /** Parte do total da venda paga nesta linha (antes de acrescimo ou desconto da faixa). */
   valorCentavos: number
   parcelas: number
+  formaPagamentoId: number | null
+  formaTipo: TipoFormaPagamento | null
+  comportamento: ComportamentoFinanceiro | null
+  // Cartao (snapshot): a bandeira, a taxa aplicada e o que foi calculado na hora da venda.
+  bandeiraNome: string | null
+  taxaBp: number | null
+  descontoClienteBp: number
+  descontoClienteCentavos: number
+  brutoCentavos: number | null
+  liquidoCentavos: number | null
+  dataPrevista: string | null
+  // Promissoria (snapshot): acrescimo e intervalo usados.
+  acrescimoTipo: TipoAcrescimo | null
+  acrescimoValor: number
+  acrescimoCentavos: number
+  intervaloDias: number | null
 }
 
 export interface VendaResumo {
@@ -263,6 +288,12 @@ export interface VendaResumo {
 }
 
 export type SituacaoContaReceber = 'ABERTA' | 'PAGA' | 'CANCELADA'
+
+/**
+ * CLIENTE: parcela que o cliente deve (carne, cobranca, inadimplencia).
+ * OPERADORA: o que a maquininha ainda vai depositar (cartao) - NAO e divida do cliente.
+ */
+export type TipoContaReceber = 'CLIENTE' | 'OPERADORA'
 
 /**
  * `vendaNumero`, `clienteNome` e `vendedorNome` sao redundantes quando a
@@ -285,8 +316,14 @@ export interface ContaReceber {
   valorRecebidoCentavos: number
   vencimento: string
   situacao: SituacaoContaReceber
-  /** true quando `situacao === 'ABERTA'` e o vencimento ja passou. */
+  /** true quando `situacao === 'ABERTA'` e o vencimento ja passou. Sempre false no recebivel da operadora. */
   vencida: boolean
+  tipo: TipoContaReceber
+  /** Recebivel da operadora: `valorCentavos` e o LIQUIDO; estes sao o resto do snapshot do cartao. */
+  bandeiraNome: string | null
+  operadoraParcelas: number | null
+  taxaBp: number | null
+  brutoCentavos: number | null
 }
 
 export type SituacaoComissao = 'PROVISIONADA' | 'LIBERADA' | 'CANCELADA'
@@ -299,13 +336,26 @@ export interface ComissaoResumo {
 
 export interface VendaDetalhada extends VendaResumo {
   subtotalCentavos: number
+  /** Itens + adicional. */
   descontoCentavos: number
+  descontoAdicionalTipo: TipoDesconto
+  /** Centavos quando VALOR; pontos-base quando PERCENTUAL. */
+  descontoAdicionalValor: number
+  descontoAdicionalCentavos: number
+  /** Soma dos acrescimos das promissorias (snapshot). */
+  acrescimoCentavos: number
+  /** Soma dos descontos das faixas do cartao (snapshot). */
+  descontoClienteCentavos: number
+  /** O que o cliente paga de fato: total + acrescimo - desconto da faixa do cartao. */
+  totalClienteCentavos: number
   receitaOpticaId: number | null
   autorizadoPorNome: string | null
   itens: VendaItemDetalhe[]
   pagamentos: VendaPagamentoDetalhe[]
-  /** Vazio quando a venda foi paga inteiramente a vista (sem parcelamento). */
+  /** Parcelas DO CLIENTE (carne e cobranca). Vazio quando nada foi parcelado pelo cliente. */
   parcelas: ContaReceber[]
+  /** O que a maquininha ainda vai depositar (cartao): nao e divida do cliente. */
+  recebiveisOperadora: ContaReceber[]
   /** null quando a otica nao tem comissao configurada (RN-08). */
   comissao: ComissaoResumo | null
 }
@@ -393,9 +443,51 @@ export interface ContaPagar {
   valorPagoCentavos: number
   vencimento: string
   situacao: SituacaoContaPagar
+  /** true quando a conta e uma ocorrencia de uma recorrencia (`recorrenciaId` preenchido). */
   recorrente: boolean
+  /** Serie a que pertence (so contas recorrentes). */
+  recorrenciaId: number | null
+  /** Mes a que a ocorrencia se refere, AAAA-MM (so contas recorrentes). */
+  competencia: string | null
   /** true quando `situacao === 'ABERTA'` e o vencimento ja passou. */
   vencida: boolean
+}
+
+// Recorrencia de contas a pagar (documento de melhorias, secao 10): a serie (aluguel, energia...)
+// e os lancamentos (contas) que ela gera, um por competencia.
+export type FrequenciaRecorrencia = 'MENSAL' | 'ANUAL'
+export type StatusRecorrencia = 'ATIVA' | 'ENCERRADA'
+
+/** Uma vigencia de valor: vale da competencia `vigenteDesde` (AAAA-MM) ate a proxima vigencia. */
+export interface RecorrenciaValor {
+  vigenteDesde: string
+  valorCentavos: number
+}
+
+export interface Recorrencia {
+  id: number
+  descricao: string
+  categoria: string | null
+  fornecedorId: number | null
+  fornecedorNome: string | null
+  frequencia: FrequenciaRecorrencia
+  /** Dia do mes do vencimento (1 a 31; em mes mais curto vale o ultimo dia). */
+  diaVencimento: number
+  dataInicio: string
+  dataFim: string | null
+  status: StatusRecorrencia
+  /** Valor vigente hoje (vigencia mais recente ate a competencia atual). */
+  valorAtualCentavos: number
+  vigencias: RecorrenciaValor[]
+  /** Contas em aberto (nao excluidas) desta serie. */
+  abertas: number
+  /** Proximo vencimento em aberto, se houver. */
+  proximoVencimento: string | null
+}
+
+/** Resultado de reajustar/encerrar/excluir em serie: quantas contas foram alteradas ou removidas. */
+export interface RecorrenciaAcaoResultado {
+  afetadas: number
 }
 
 /**
@@ -878,4 +970,61 @@ export interface ResultadosRelacionamento {
   parcelasRecuperadas: number
   recuperadoCentavos: number
   porMotivo: ResultadoPorMotivo[]
+}
+
+// ---------------------------------------------------------------------
+// Formas de pagamento e bandeiras (Fase 5 - Vendas)
+// ---------------------------------------------------------------------
+
+/**
+ * Cadastro de forma de pagamento. O TIPO define o comportamento financeiro; Promissoria, Boleto e
+ * Cheque ainda tem maximo de parcelas, intervalo e acrescimo. RG-02: com vendas vinculadas so inativa.
+ */
+export interface FormaPagamento {
+  id: number
+  nome: string
+  tipo: TipoFormaPagamento
+  comportamento: ComportamentoFinanceiro
+  ordem: number
+  ativo: boolean
+  maxParcelas: number | null
+  intervaloDias: number
+  acrescimoTipo: TipoAcrescimo | null
+  /** Pontos-base quando PERCENTUAL (8,99% = 899); centavos quando VALOR. */
+  acrescimoValor: number
+  /** Quantos pagamentos de venda (de qualquer situacao) usam esta forma. */
+  vendasVinculadas: number
+}
+
+/** Bandeira de cartao (por maquininha, se quiser): taxa e prazo do debito e a tabela de faixas do credito. */
+export interface Bandeira {
+  id: number
+  nome: string
+  adquirente: string | null
+  aceitaDebito: boolean
+  aceitaCredito: boolean
+  /** Pontos-base (1,99% = 199). */
+  debitoTaxaBp: number | null
+  debitoPrazoDias: number | null
+  /** De 1x ate Nx, ordenadas. */
+  faixas: FaixaCredito[]
+  ativo: boolean
+  /** Quantos pagamentos de venda (de qualquer situacao) usam esta bandeira. */
+  vendasVinculadas: number
+}
+
+/** O que impede (ou so avisa) a exclusao de uma venda. */
+export interface BloqueioExclusaoVenda {
+  tipo: 'PARCELA_PAGA' | 'RECEBIVEL_BAIXADO' | 'PAGAMENTO_A_VISTA' | 'ORDEM_SERVICO'
+  /** Frase pronta para a tela listar. */
+  descricao: string
+}
+
+export interface PreviaExclusaoVenda {
+  vendaId: number
+  numero: string
+  clienteNome: string
+  totalCentavos: number
+  situacao: SituacaoVenda
+  bloqueios: BloqueioExclusaoVenda[]
 }

@@ -15,6 +15,8 @@ export type ConfirmacaoExcluir = {
   detalhe?: string
   /** Troca o texto do botao ("Excluir" por padrao). */
   rotuloConfirmar?: string
+  /** Mostra o campo "Motivo (opcional)" na caixa (ex.: excluir venda). */
+  pedirMotivo?: boolean
 }
 
 export type ConfirmacaoPadrao = {
@@ -36,6 +38,8 @@ export interface ConfirmacaoMontada {
   rotuloConfirmar: string
   rotuloCancelar: string
   destrutiva: boolean
+  /** So aparece (true) quando a caixa pede o motivo. */
+  pedirMotivo?: boolean
 }
 
 export function montarConfirmacao(opcoes: OpcoesConfirmacao): ConfirmacaoMontada {
@@ -46,7 +50,8 @@ export function montarConfirmacao(opcoes: OpcoesConfirmacao): ConfirmacaoMontada
       aviso: AVISO_IRREVERSIVEL,
       rotuloConfirmar: opcoes.rotuloConfirmar ?? 'Excluir',
       rotuloCancelar: 'Cancelar',
-      destrutiva: true
+      destrutiva: true,
+      ...(opcoes.pedirMotivo ? { pedirMotivo: true } : {})
     }
   }
   return {

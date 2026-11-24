@@ -3,6 +3,7 @@ import {
   IPC,
   vendaCreateSchema,
   vendaCancelarSchema,
+  vendaExcluirSchema,
   vendasListQuerySchema,
   receitaListByClienteSchema,
   idSchema
@@ -17,4 +18,6 @@ export function registerVendasIpc(): void {
     vendaService.listarPorCliente(input.clienteId)
   )
   handleIpc(IPC.vendas.cancelar, vendaCancelarSchema, (input) => vendaService.cancelar(input))
+  handleIpc(IPC.vendas.exclusaoPrevia, idSchema, (input) => vendaService.exclusaoPrevia(input.id))
+  handleIpc(IPC.vendas.excluir, vendaExcluirSchema, (input) => vendaService.excluir(input))
 }

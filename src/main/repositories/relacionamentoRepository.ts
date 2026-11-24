@@ -204,11 +204,11 @@ export const relacionamentoRepository = {
                 )) AS restante,
                 MIN(cr.vencimento) AS mais_antiga,
                 (SELECT cr2.id FROM conta_receber cr2
-                 WHERE cr2.cliente_id = c.id AND cr2.situacao = 'ABERTA' AND cr2.vencimento < :hoje
+                 WHERE cr2.cliente_id = c.id AND cr2.situacao = 'ABERTA' AND cr2.tipo = 'CLIENTE' AND cr2.vencimento < :hoje
                  ORDER BY cr2.vencimento, cr2.id LIMIT 1) AS parcela_ref
          FROM conta_receber cr
          INNER JOIN cliente c ON c.id = cr.cliente_id
-         WHERE cr.situacao = 'ABERTA' AND cr.vencimento < :hoje AND ${CLIENTE_ATIVO_E_ACEITA}
+         WHERE cr.situacao = 'ABERTA' AND cr.tipo = 'CLIENTE' AND cr.vencimento < :hoje AND ${CLIENTE_ATIVO_E_ACEITA}
          GROUP BY c.id, c.nome, c.celular, c.telefone`
       )
       .all({ hoje }) as unknown as (ClienteBase & {
@@ -399,7 +399,7 @@ export const relacionamentoRepository = {
         `SELECT r.id, r.conta_receber_id, substr(r.data, 1, 10) AS data, r.valor_centavos, cr.cliente_id, cr.vencimento
          FROM recebimento r
          INNER JOIN conta_receber cr ON cr.id = r.conta_receber_id
-         WHERE cr.situacao != 'CANCELADA' AND cr.cliente_id IS NOT NULL AND substr(r.data, 1, 10) >= :desde`
+         WHERE cr.situacao != 'CANCELADA' AND cr.tipo = 'CLIENTE' AND cr.cliente_id IS NOT NULL AND substr(r.data, 1, 10) >= :desde`
       )
       .all({ desde }) as unknown as {
       id: number
