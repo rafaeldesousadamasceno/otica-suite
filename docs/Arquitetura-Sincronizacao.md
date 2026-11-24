@@ -194,7 +194,7 @@ Cada fase vira um plano de implementação próprio.
 
 | Fase | Entrega | Depende de |
 |---|---|---|
-| **N0 Fundação** | Projeto Supabase (São Paulo), schema `optialeph`, tabelas de controle, RLS, `pc-token`, DDL do espelho gerado | Autorizar o conector do Supabase na conta |
+| **N0 Fundação** | Projeto Supabase (São Paulo), schema `optialeph`, tabelas de controle, RLS, `pc-token`, DDL do espelho gerado. **Escrito e validado localmente** em `supabase/migrations/` (`0001_controle.sql` à mão, `0002_espelho.sql` gerado por `scripts/gerar-espelho-supabase.mjs`; um teste falha se o espelho ficar desatualizado). Falta aplicar na nuvem, criar o `pc-token` e as demais Edge Functions. | Projeto novo na região **São Paulo** (o primeiro foi criado em Ohio, EUA, e não serve para dados reais) e conector do Supabase autorizado |
 | **N1 Espelho** | Worker de envio, painel pronto, tela "Nuvem e celular", termo de consentimento. Testes com a internet caindo no meio do lote (retomar sem duplicar). | N0 |
 | **N2 Celular v1** (só leitura) | App Expo, login, pareamento por QR code, painéis e listas | N1 |
 | **N3 Fila de pedidos** | Sessão remota, executor, assinatura; pedidos de usuários (reset de senha cifrado, desbloquear, ativar ou desativar) e de configurações | N2 |
