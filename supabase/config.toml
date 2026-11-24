@@ -1,0 +1,8 @@
+# Configuração do Supabase CLI (npx supabase link / db push / functions deploy).
+# O ref do projeto NÃO fica aqui: é passado em `npx supabase link --project-ref <ref>`.
+project_id = "optialeph"
+
+[functions.pc-token]
+# O PC da loja não tem login do Supabase: ele se identifica com a licença + prova de posse da chave
+# (verificadas dentro da função). Por isso a verificação de JWT do gateway fica desligada só nesta função.
+verify_jwt = false
