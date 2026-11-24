@@ -192,7 +192,7 @@ describe('workerNuvem', () => {
     expect(nuvem.s.upserts.some((u) => u.tabela === 'empresa')).toBe(true)
     expect([...nuvem.s.paineis].sort()).toEqual(['avisos', 'hoje', 'mes', 'mes_anterior'])
     const empresa = banco.db!.prepare('SELECT uuid FROM empresa WHERE id = 1').get() as { uuid: string }
-    expect(nuvem.s.configs[0].loja).toEqual({ id: empresa.uuid, nome: 'Ótica Teste', cnpj: '12.345.678/0001-90' })
+    expect(nuvem.s.configs[0].loja).toEqual({ id: empresa.uuid, nome: 'Ótica Teste', cnpj: '12345678000190' })
     expect(nuvem.s.configs[0].obterLicenca()).toBe('licenca-de-teste')
 
     // Alteração local depois do envio aparece como pendente.
@@ -372,6 +372,15 @@ describe('workerNuvem', () => {
     expect(st.ultimoErro).toBeTruthy()
     expect(st.ultimoErro).not.toContain('Unsupported')
     expect(erro).toHaveBeenCalled()
+  })
+
+  it.each(['', '12.345.678/', '   '])('CNPJ %j (vazio ou pela metade) vai como null para a nuvem', async (cnpj) => {
+    banco.db!.prepare('UPDATE empresa SET cnpj = ? WHERE id = 1').run(cnpj)
+    const { w, nuvem } = montar()
+    ligarDireto()
+    await w.sincronizarAgora()
+    expect(nuvem.s.configs[0].loja.cnpj).toBeNull()
+    expect(w.obterStatusNuvem().estado).toBe('ok')
   })
 
   it('licença recusada pela nuvem: status sem_licenca', async () => {

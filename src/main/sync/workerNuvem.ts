@@ -8,6 +8,7 @@ import { paths } from '@main/paths'
 import { configuracaoRepository } from '@main/repositories/configuracaoRepository'
 import { dataLocalISO } from '@shared/data'
 import type { NuvemEstado, NuvemStatus } from '@shared/types'
+import { normalizarCnpj } from '../../../supabase/functions/pc-token/logica'
 import { executarCiclo } from './cicloEnvio'
 import { criarClienteNuvem, NuvemErro, type ClienteNuvem, type ConfigCliente } from './clienteNuvem'
 import { gravarEstado, lerEstado, type EstadoNuvem } from './estadoNuvem'
@@ -86,7 +87,8 @@ function lerLoja(db: DatabaseSync): Loja {
     | { uuid: string | null; nome_fantasia: string; cnpj: string | null }
     | undefined
   if (!r?.uuid) throw new Error('Cadastro da empresa ausente: não há loja para enviar à nuvem.')
-  return { id: r.uuid, nome: r.nome_fantasia.slice(0, 200), cnpj: r.cnpj }
+  // CNPJ vazio ou digitado pela metade vai como null: a nuvem só aceita 14 dígitos.
+  return { id: r.uuid, nome: r.nome_fantasia.slice(0, 200), cnpj: normalizarCnpj(r.cnpj) }
 }
 
 /** Traduz a falha de um ciclo em estado + mensagem para a tela; detalhe técnico só no log. */

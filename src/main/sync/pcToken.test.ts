@@ -5,6 +5,7 @@ import {
   bytesParaBase64url,
   licencaLiberaNuvem,
   montarJwtDoPc,
+  normalizarCnpj,
   textoDaProva,
   verificarLicenca,
   verificarProvaDoPc
@@ -86,6 +87,18 @@ describe('pc-token: prova de posse da chave do PC', () => {
 
   it('chave pública malformada vira recusa, não exceção', async () => {
     expect(await verificarProvaDoPc('nao-e-chave', LOJA, DISP, ts, prova(ts), agora)).toBe('PROVA_INVALIDA')
+  })
+})
+
+describe('pc-token: CNPJ da loja', () => {
+  it('só aceita CNPJ com exatamente 14 dígitos; manda só os dígitos', () => {
+    expect(normalizarCnpj('12.345.678/0001-90')).toBe('12345678000190')
+    expect(normalizarCnpj('12345678000190')).toBe('12345678000190')
+  })
+  it('vazio, pela metade, longo demais ou que não é texto vira null', () => {
+    for (const v of ['', '   ', '12.345', '12.345.678/0001', '123456780001901', 'abc', null, undefined, 12345678000190, {}]) {
+      expect(normalizarCnpj(v), String(v)).toBeNull()
+    }
   })
 })
 

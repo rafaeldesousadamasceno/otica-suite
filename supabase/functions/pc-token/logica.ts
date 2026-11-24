@@ -20,6 +20,16 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 
 export const ehUuid = (v: unknown): v is string => typeof v === 'string' && UUID.test(v)
 
+/**
+ * CNPJ da loja para `optialeph.loja.cnpj`: só os dígitos, e só com exatamente 14; qualquer outra coisa (vazio,
+ * digitado pela metade) vira null. Sem isso o insert da loja viola o CHECK de tamanho e a loja nunca é criada.
+ */
+export function normalizarCnpj(v: unknown): string | null {
+  if (typeof v !== 'string') return null
+  const digitos = v.replace(/\D/g, '')
+  return digitos.length === 14 ? digitos : null
+}
+
 export function base64urlParaBytes(texto: string): Uint8Array {
   const b64 = texto.replace(/-/g, '+').replace(/_/g, '/')
   const bin = atob(b64 + '='.repeat((4 - (b64.length % 4)) % 4))

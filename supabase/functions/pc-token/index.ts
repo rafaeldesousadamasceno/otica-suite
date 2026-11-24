@@ -8,7 +8,7 @@
 //            npx supabase secrets set EXIGIR_RECURSO_NUVEM=false      (true quando a Central emitir 'nuvem')
 // SUPABASE_URL e SUPABASE_SERVICE_ROLE_KEY já existem dentro da função: a chave de serviço NUNCA sai daqui.
 import { createClient } from 'npm:@supabase/supabase-js@2'
-import { ehUuid, licencaLiberaNuvem, montarJwtDoPc, verificarLicenca, verificarProvaDoPc } from './logica.ts'
+import { ehUuid, licencaLiberaNuvem, montarJwtDoPc, normalizarCnpj, verificarLicenca, verificarProvaDoPc } from './logica.ts'
 
 // Chave PÚBLICA do produto (a mesma de src/main/license/chavePublica.ts). Só verifica; não emite licença.
 const CHAVE_PUBLICA_PEM = `-----BEGIN PUBLIC KEY-----
@@ -42,7 +42,7 @@ Deno.serve(async (req) => {
   ) {
     return recusa(400, 'DADOS_INVALIDOS', 'Dados incompletos ou inválidos.')
   }
-  const cnpj = typeof loja.cnpj === 'string' && loja.cnpj.length <= 18 ? loja.cnpj : null
+  const cnpj = normalizarCnpj(loja.cnpj) // inválido vira null em vez de 500 no insert da loja
 
   // 1) Licença assinada pela Central, em dia, com o recurso de nuvem (quando exigido).
   const lic = await verificarLicenca(licenca, CHAVE_PUBLICA_PEM)
