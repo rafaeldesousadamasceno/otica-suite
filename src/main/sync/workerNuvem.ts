@@ -40,6 +40,15 @@ const MSG_APROVACAO = 'Este computador precisa ser aprovado pelo Administrador n
 const MSG_REVOGADO = 'Este computador foi desconectado da nuvem pelo Administrador.'
 const MSG_LICENCA = 'A licença não permite usar a nuvem agora (vencida, inválida ou sem o recurso).'
 const MSG_ERRO = 'Não foi possível enviar os dados para a nuvem. O sistema continua funcionando e tenta de novo mais tarde.'
+const MSG_RELOGIO = 'Confira a data, a hora e o fuso horário deste computador.'
+/** Recusas da pc-token que não passam sozinhas: a tela mostra uma frase curta e o código, para o suporte. */
+const RECUSAS_PERMANENTES = new Map<string, string>([
+  ['SINCRONIZACAO_DESLIGADA', 'A sincronização desta loja está desligada na nuvem.'],
+  ['LOJA_DE_OUTRA_LICENCA', 'Esta loja está ligada a outra licença na nuvem.'],
+  ['DISPOSITIVO_NAO_CONFERE', 'A nuvem não reconheceu este computador.'],
+  ['DADOS_INVALIDOS', 'A nuvem recusou os dados deste computador.'],
+  ['PROVA_INVALIDA', 'A nuvem não reconheceu este computador.']
+])
 
 export interface TimersWorker {
   setInterval(fn: () => void, ms: number): unknown
@@ -103,6 +112,15 @@ function classificar(e: unknown): Falha {
     if (e.codigo === 'DISPOSITIVO_REVOGADO') return { estado: 'revogado', mensagem: MSG_REVOGADO }
     if (e.codigo.startsWith('LICENCA_') || e.codigo === 'SEM_RECURSO_NUVEM') {
       return { estado: 'sem_licenca', mensagem: MSG_LICENCA }
+    }
+    if (e.codigo === 'PROVA_EXPIRADA') {
+      console.error('[nuvem] a nuvem recusou a prova do PC (PROVA_EXPIRADA): relógio ou fuso do computador errado')
+      return { estado: 'erro', mensagem: MSG_RELOGIO }
+    }
+    const frase = RECUSAS_PERMANENTES.get(e.codigo)
+    if (frase) {
+      console.error(`[nuvem] a nuvem recusou este computador (${e.codigo}, HTTP ${e.status})`)
+      return { estado: 'erro', mensagem: `${frase} Fale com o suporte e informe o código ${e.codigo}.` }
     }
   }
   console.error('[nuvem] falha no ciclo de envio', e)

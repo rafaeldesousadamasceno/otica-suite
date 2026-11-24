@@ -383,6 +383,34 @@ describe('workerNuvem', () => {
     expect(w.obterStatusNuvem().estado).toBe('ok')
   })
 
+  it('prova expirada (data, hora ou fuso errados no PC): status erro pedindo para conferir o relógio', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {})
+    const { w, nuvem } = montar()
+    nuvem.s.modo = new NuvemErro('PROVA_EXPIRADA', 403, 'A nuvem recusou a conexão deste computador (PROVA_EXPIRADA).')
+    ligarDireto()
+    await w.sincronizarAgora()
+    expect(w.obterStatusNuvem()).toMatchObject({
+      estado: 'erro',
+      ultimoErro: 'Confira a data, a hora e o fuso horário deste computador.'
+    })
+  })
+
+  it.each(['SINCRONIZACAO_DESLIGADA', 'LOJA_DE_OUTRA_LICENCA', 'DISPOSITIVO_NAO_CONFERE', 'DADOS_INVALIDOS', 'PROVA_INVALIDA'])(
+    'recusa permanente da pc-token %s: status erro com o código na mensagem para o suporte',
+    async (codigo) => {
+      vi.spyOn(console, 'error').mockImplementation(() => {})
+      const { w, nuvem } = montar()
+      nuvem.s.modo = new NuvemErro(codigo, 403, `A nuvem recusou a conexão deste computador (${codigo}).`)
+      ligarDireto()
+      await w.sincronizarAgora()
+      const st = w.obterStatusNuvem()
+      expect(st.estado).toBe('erro')
+      expect(st.ultimoErro).toContain(codigo)
+      expect(st.ultimoErro).toMatch(/suporte/)
+      expect(st.ultimoErro).not.toContain('recusou a conexão deste computador')
+    }
+  )
+
   it('licença recusada pela nuvem: status sem_licenca', async () => {
     const { w, nuvem } = montar()
     nuvem.s.modo = new NuvemErro('LICENCA_VENCIDA', 403, 'A nuvem recusou a conexão deste computador (LICENCA_VENCIDA).')
