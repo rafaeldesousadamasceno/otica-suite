@@ -44,6 +44,7 @@ describe('menu lateral em grupos', () => {
   it('o administrador tem o grupo Administração, recolhível e com a Licença (que pede atenção)', () => {
     const adm = NAV_GRUPOS.admin.find((g) => g.titulo === 'Administração')
     expect(adm?.recolhivel).toBe(true)
+    expect(adm?.icone, 'precisa de ícone para o menu recolhido').toBeDefined()
     expect(adm?.itens.some((i) => i.path === '/licenca' && i.alertaLicenca)).toBe(true)
     // Os demais grupos ficam sempre abertos.
     for (const g of NAV_GRUPOS.admin) if (g !== adm) expect(g.recolhivel ?? false).toBe(false)
