@@ -2,6 +2,12 @@
 
 ## Próxima versão
 
+- Menu lateral: as telas agora ficam em grupos com título (Atendimento, Estoque e compras,
+  Financeiro, Gestão e Administração). A Administração (usuários, formas de pagamento,
+  bandeiras, auditoria, backup, licença e importação) começa fechada e abre sozinha quando
+  você entra numa tela dela; se a licença pedir atenção, o ponto vermelho aparece no título
+  do grupo mesmo fechado. Configurações e Ajuda ficam fixas no pé do menu, sempre à vista.
+
 - Receita óptica: os tratamentos da lente agora são caixinhas de marcar, e dá para
   escolher mais de um (ex.: antirreflexo e filtro azul). Receitas antigas com um
   tratamento só continuam iguais; um valor antigo que não está mais na lista
