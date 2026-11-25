@@ -2,6 +2,12 @@
 
 ## Próxima versão
 
+- Configurações: tela reorganizada em blocos centralizados, cada um com o seu botão de
+  salvar (Identidade visual, Dados da ótica, Endereço e contato, Regras operacionais). O
+  botão só habilita quando há alteração e salva apenas o seu bloco. O tema (claro, escuro
+  ou automático) passou para a Identidade visual, e "Preferências deste computador"
+  virou "Formato de números e impressões", com a indicação de que vale só neste computador.
+
 - Receita óptica: os tratamentos da lente agora são caixinhas de marcar, e dá para
   escolher mais de um (ex.: antirreflexo e filtro azul). Receitas antigas com um
   tratamento só continuam iguais; um valor antigo que não está mais na lista
