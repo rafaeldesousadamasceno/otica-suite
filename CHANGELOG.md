@@ -2,6 +2,12 @@
 
 ## Próxima versão
 
+- Configurações: tela reorganizada em blocos centralizados, cada um com o seu botão de
+  salvar (Identidade visual, Dados da ótica, Endereço e contato, Regras operacionais). O
+  botão só habilita quando há alteração e salva apenas o seu bloco. O tema (claro, escuro
+  ou automático) passou para a Identidade visual, e "Preferências deste computador"
+  virou "Formato de números e impressões", com a indicação de que vale só neste computador.
+
 - Menu lateral: novo botão "Recolher menu" no pé da barra. Recolhido, o menu mostra só os
   ícones (o nome aparece ao passar o mouse), com um traço fino separando os grupos, e libera
   espaço para as telas. A Administração vira um ícone que abre e fecha a lista. A escolha

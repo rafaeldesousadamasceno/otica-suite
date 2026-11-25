@@ -183,7 +183,7 @@ export const SECOES_AJUDA: SecaoAjuda[] = [
       {
         tipo: 'paragrafo',
         texto:
-          'Os campos de grau têm os botões ▼ e ▲ (e as setas do teclado) de 0,25 em 0,25; se você digitar outro valor, ele é arredondado ao sair do campo. Em Configurações, "Preferências deste computador", dá para escolher digitar no formato Decimal (1,25) ou Inteiro (125).'
+          'Os campos de grau têm os botões ▼ e ▲ (e as setas do teclado) de 0,25 em 0,25; se você digitar outro valor, ele é arredondado ao sair do campo. Em Configurações, "Formato de números e impressões", dá para escolher digitar no formato Decimal (1,25) ou Inteiro (125).'
       },
       {
         tipo: 'paragrafo',
@@ -715,18 +715,19 @@ export const SECOES_AJUDA: SecaoAjuda[] = [
     titulo: 'Configurações da ótica',
     rotas: ['/configuracoes'],
     soAdmin: true,
-    resumo: 'Identidade visual, dados da ótica e regras de funcionamento.',
+    resumo: 'Identidade visual, dados da ótica, endereço, regras de funcionamento e formato dos números. Cada bloco tem o seu próprio botão de salvar.',
     blocos: [
       {
         tipo: 'lista',
         itens: [
-          'Identidade visual: logo (PNG, JPG ou SVG, até 3 MB) e a cor de destaque, usada no sistema e no cabeçalho dos relatórios.',
-          'Dados da ótica: nome fantasia, razão social, CNPJ, inscrição estadual e tema claro, escuro ou automático.',
+          'Identidade visual: logo (PNG, JPG ou SVG, até 3 MB, enviada na hora), cor de destaque, usada no sistema e no cabeçalho dos relatórios, e o tema claro, escuro ou automático.',
+          'Dados da ótica: nome fantasia, razão social, CNPJ e inscrição estadual.',
           'Endereço e contato: aparecem no cabeçalho dos relatórios.',
-          'Preferências deste computador: formato dos graus, Decimal (+1,25) ou Inteiro (+125, sem a vírgula). Só muda como o número aparece e é digitado neste computador; o que fica gravado é igual nos dois.'
+          'Regras operacionais: limites e prazos que valem para toda a ótica (tabela abaixo).',
+          'Formato de números e impressões: formato dos graus, Decimal (+1,25) ou Inteiro (+125, sem a vírgula), e se a DP aparece na prescrição e nas impressões. Vale só neste computador, na hora, sem botão de salvar; o que fica gravado é igual nos dois formatos.'
         ]
       },
-      { tipo: 'paragrafo', texto: 'Regras operacionais, que valem para todos:' },
+      { tipo: 'paragrafo', texto: 'Cada bloco com botão de salvar mostra "Tudo salvo" ou avisa quando há alterações pendentes; o botão só habilita quando algo mudou, e salva apenas aquele bloco. As regras operacionais valem para todos:' },
       {
         tipo: 'tabela',
         colunas: ['Campo', 'Para que serve'],
