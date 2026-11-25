@@ -2,6 +2,11 @@
 
 ## Próxima versão
 
+- Menu lateral: novo botão "Recolher menu" no pé da barra. Recolhido, o menu mostra só os
+  ícones (o nome aparece ao passar o mouse), com um traço fino separando os grupos, e libera
+  espaço para as telas. A Administração vira um ícone que abre e fecha a lista. A escolha
+  fica guardada neste computador e continua ao reabrir o programa.
+
 - Menu lateral: as telas agora ficam em grupos com título (Atendimento, Estoque e compras,
   Financeiro, Gestão e Administração). A Administração (usuários, formas de pagamento,
   bandeiras, auditoria, backup, licença e importação) começa fechada e abre sozinha quando

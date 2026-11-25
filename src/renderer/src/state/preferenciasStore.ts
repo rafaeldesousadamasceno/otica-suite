@@ -12,16 +12,19 @@ interface Preferencias {
   formatoNumero: FormatoNumero
   /** Mostrar a DP (distancia pupilar) na prescricao e nas impressoes. Desligado por padrao: ela e sempre gravada. */
   exibirDp: boolean
+  /** Menu lateral recolhido (so os icones). Aberto por padrao. */
+  menuRecolhido: boolean
 }
 
-const PADRAO: Preferencias = { formatoNumero: FORMATO_NUMERO_PADRAO, exibirDp: false }
+const PADRAO: Preferencias = { formatoNumero: FORMATO_NUMERO_PADRAO, exibirDp: false, menuRecolhido: false }
 
 function ler(): Preferencias {
   try {
     const bruto = JSON.parse(localStorage.getItem(CHAVE) ?? '{}') as Partial<Preferencias>
     return {
       formatoNumero: bruto.formatoNumero === 'inteiro' ? 'inteiro' : PADRAO.formatoNumero,
-      exibirDp: bruto.exibirDp === true
+      exibirDp: bruto.exibirDp === true,
+      menuRecolhido: bruto.menuRecolhido === true
     }
   } catch {
     return PADRAO
@@ -31,6 +34,7 @@ function ler(): Preferencias {
 interface PreferenciasState extends Preferencias {
   setFormatoNumero: (formato: FormatoNumero) => void
   setExibirDp: (exibir: boolean) => void
+  setMenuRecolhido: (recolhido: boolean) => void
 }
 
 function gravar(p: Preferencias): void {
@@ -41,14 +45,21 @@ function gravar(p: Preferencias): void {
   }
 }
 
-export const usePreferenciasStore = create<PreferenciasState>((set, get) => ({
-  ...ler(),
-  setFormatoNumero: (formatoNumero) => {
-    set({ formatoNumero })
-    gravar({ formatoNumero, exibirDp: get().exibirDp })
-  },
-  setExibirDp: (exibirDp) => {
-    set({ exibirDp })
-    gravar({ formatoNumero: get().formatoNumero, exibirDp })
+export const usePreferenciasStore = create<PreferenciasState>((set, get) => {
+  const atuais = (): Preferencias => ({ formatoNumero: get().formatoNumero, exibirDp: get().exibirDp, menuRecolhido: get().menuRecolhido })
+  return {
+    ...ler(),
+    setFormatoNumero: (formatoNumero) => {
+      set({ formatoNumero })
+      gravar(atuais())
+    },
+    setExibirDp: (exibirDp) => {
+      set({ exibirDp })
+      gravar(atuais())
+    },
+    setMenuRecolhido: (menuRecolhido) => {
+      set({ menuRecolhido })
+      gravar(atuais())
+    }
   }
-}))
+})

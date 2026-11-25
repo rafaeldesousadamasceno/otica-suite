@@ -8,8 +8,10 @@ import { GrupoMenu } from './Sidebar'
 const administracao = NAV_GRUPOS.admin.find((g) => g.titulo === 'Administração')!
 const atendimento = NAV_GRUPOS.admin.find((g) => g.titulo === 'Atendimento')!
 
-function html(grupo: typeof administracao, rota: string, licencaAlerta = false): string {
-  return renderToStaticMarkup(createElement(MemoryRouter, { initialEntries: [rota] }, createElement(GrupoMenu, { grupo, licencaAlerta })))
+function html(grupo: typeof administracao, rota: string, licencaAlerta = false, recolhido = false): string {
+  return renderToStaticMarkup(
+    createElement(MemoryRouter, { initialEntries: [rota] }, createElement(GrupoMenu, { grupo, licencaAlerta, recolhido }))
+  )
 }
 
 describe('grupo Administração do menu', () => {
@@ -46,5 +48,43 @@ describe('grupos que não recolhem', () => {
     expect(h).not.toContain('aria-expanded')
     expect(h).not.toContain('hidden=""')
     expect(h).toContain('Vendas')
+  })
+})
+
+describe('menu recolhido (só ícones)', () => {
+  it('cada tela mostra só o ícone, com o nome na dica e no nome acessível', () => {
+    const h = html(atendimento, '/vendas', false, true)
+    expect(h).toContain('title="Vendas"')
+    expect(h).toContain('aria-label="Vendas"')
+    expect(h).not.toContain('>Vendas<')
+  })
+
+  it('aberto, o nome continua aparecendo como texto', () => {
+    const h = html(atendimento, '/vendas', false, false)
+    expect(h).toContain('>Vendas<')
+    expect(h).not.toContain('title="Vendas"')
+  })
+
+  it('o título de um grupo fixo some e vira um traço divisor', () => {
+    const h = html(atendimento, '/vendas', false, true)
+    expect(h).not.toContain('>Atendimento<')
+    expect(h).toContain('aria-label="Atendimento"') // o grupo continua anunciado para leitores de tela
+    expect(h).toContain('border-t')
+  })
+
+  it('a Administração vira um botão de ícone com nome acessível e continua abrindo sozinha numa tela dela', () => {
+    const fechado = html(administracao, '/clientes', false, true)
+    expect(fechado).toContain('aria-label="Administração"')
+    expect(fechado).toContain('aria-expanded="false"')
+    expect(fechado).toContain('hidden=""')
+    const aberto = html(administracao, '/usuarios', false, true)
+    expect(aberto).toContain('aria-expanded="true"')
+    expect(aberto).not.toContain('hidden=""')
+  })
+
+  it('o ponto de atenção da licença continua aparecendo, no canto do ícone', () => {
+    const h = html(administracao, '/clientes', true, true)
+    expect(h).toContain('A licença precisa de atenção')
+    expect(h).toContain('absolute')
   })
 })

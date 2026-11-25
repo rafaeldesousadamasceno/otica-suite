@@ -26,7 +26,8 @@ import {
   Landmark,
   FileText,
   MessageCircle,
-  CircleHelp
+  CircleHelp,
+  ShieldCheck
 } from 'lucide-react'
 import type { Perfil } from '@shared/types'
 
@@ -43,6 +44,8 @@ export interface NavGrupo {
   titulo?: string
   /** Grupo que abre e fecha (de uso raro): comeca fechado e abre sozinho quando a tela atual e uma das dele. */
   recolhivel?: boolean
+  /** Icone do grupo quando o menu esta recolhido (so icones): o botao que abre e fecha o grupo. */
+  icone?: ComponentType<{ className?: string }>
   itens: NavItem[]
 }
 
@@ -98,6 +101,7 @@ export const NAV_GRUPOS: Record<Perfil, NavGrupo[]> = {
     {
       titulo: 'Administração',
       recolhivel: true,
+      icone: ShieldCheck,
       itens: [
         { label: 'Usuários', path: '/usuarios', icon: UserCog },
         { label: 'Formas de Pagamento', path: '/formas-pagamento', icon: Banknote },
