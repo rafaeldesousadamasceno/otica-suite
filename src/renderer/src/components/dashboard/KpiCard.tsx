@@ -43,8 +43,10 @@ function Variacao({
 
   if (pct === null) {
     return (
-      <p className="flex items-center gap-1 text-xs text-[var(--ink-3)]">
-        <Minus className="size-3" /> Sem base: antes {formatar(comparado.anterior)}
+      <p className="flex flex-wrap items-center gap-x-1 text-xs text-[var(--ink-3)]">
+        <Minus className="size-3 shrink-0" />
+        <span>Sem base: antes</span>
+        <span className="whitespace-nowrap">{formatar(comparado.anterior)}</span>
       </p>
     )
   }
@@ -55,27 +57,38 @@ function Variacao({
   const Seta = igual ? Minus : subiu ? ArrowUp : ArrowDown
 
   return (
-    <p className={`flex items-center gap-1 text-xs ${cor}`}>
-      <Seta className="size-3" aria-hidden />
-      <span className="font-semibold">{igual ? '0%' : pctTexto(pct)}</span>
-      <span className="text-[var(--ink-3)]">antes {formatar(comparado.anterior)}</span>
+    <p className={`flex flex-wrap items-center gap-x-1 text-xs ${cor}`}>
+      <Seta className="size-3 shrink-0" aria-hidden />
+      <span className="whitespace-nowrap font-semibold">{igual ? '0%' : pctTexto(pct)}</span>
+      <span className="text-[var(--ink-3)]">
+        antes <span className="whitespace-nowrap">{formatar(comparado.anterior)}</span>
+      </span>
     </p>
   )
 }
 
+/**
+ * O cartão é um "container": o tamanho da fonte do valor acompanha a largura dele (11% da largura menos 4px, entre 16px
+ * e 24px), para um valor de até ~15 caracteres (R$ 1.234.567,89) caber mesmo numa janela estreita. O ícone fica na
+ * linha do título, para o valor poder usar a largura toda, e o valor nunca quebra linha (nem no sinal de menos).
+ */
 export function KpiCard({ icone, rotulo, valor, comparado, formatar, maisEBom = true, explicacao, extra, tom = 'neutro' }: Props): ReactNode {
   return (
-    <Card>
-      <CardBody className="flex items-start gap-3.5">
-        <div className={`flex size-10 shrink-0 items-center justify-center rounded-full ${TOM_ICONE[tom]}`}>{icone}</div>
-        <div className="min-w-0 flex-1">
-          <p className="flex items-center gap-1.5 text-sm text-[var(--ink-3)]">
-            {rotulo}
-            <span title={explicacao} aria-label={explicacao} role="img" className="cursor-help text-[var(--ink-3)]">
+    <Card className="@container">
+      <CardBody className="flex flex-col gap-2">
+        <div className="flex items-center gap-2.5">
+          <div className={`flex size-8 shrink-0 items-center justify-center rounded-full ${TOM_ICONE[tom]}`}>{icone}</div>
+          <p className="flex min-w-0 items-center gap-1.5 text-sm text-[var(--ink-3)]">
+            <span className="min-w-0">{rotulo}</span>
+            <span title={explicacao} aria-label={explicacao} role="img" className="shrink-0 cursor-help text-[var(--ink-3)]">
               <Info className="size-3.5" />
             </span>
           </p>
-          <p className="font-mono-tab text-2xl font-semibold text-[var(--ink)]">{valor}</p>
+        </div>
+        <div className="min-w-0">
+          <p className="font-mono-tab whitespace-nowrap text-[length:clamp(1rem,calc(11cqw_-_4px),1.5rem)] font-semibold leading-tight text-[var(--ink)]">
+            {valor}
+          </p>
           {comparado && formatar && <Variacao comparado={comparado} formatar={formatar} maisEBom={maisEBom} />}
           {extra}
         </div>

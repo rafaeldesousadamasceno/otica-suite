@@ -122,6 +122,10 @@
   quando a ótica tem mais de 500 itens cadastrados.
 - Com a janela baixa, só o menu lateral rola, e não a tela inteira.
 
+- Painel: os cartões de indicadores (Recebido, Despesas pagas, Resultado de caixa e os
+  demais) não estouram mais a caixa nem quebram o sinal de menos em janelas estreitas. O
+  valor usa a largura toda do cartão e a fonte se ajusta ao tamanho dele.
+
 ## 0.1.0
 
 Primeira versão do sistema, substituindo o MD Óculos (Java Swing + MySQL).
