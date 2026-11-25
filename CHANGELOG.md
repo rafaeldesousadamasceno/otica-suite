@@ -2,13 +2,17 @@
 
 ## Próxima versão
 
-- Nuvem: nova tela "Nuvem e celular" (só Administrador) para ligar o envio de uma
-  cópia dos dados da ótica para um servidor seguro no Brasil. Ao ligar, é preciso ler
-  e aceitar o termo de consentimento, porque receitas são dados de saúde. O envio
-  roda sozinho em segundo plano, sem atrapalhar o uso: sem internet, o sistema
-  continua normal e tenta de novo depois. A tela mostra a situação, o último envio e
-  o que ainda falta enviar. O acesso pelo celular ainda não está disponível, e a
-  nuvem não substitui o backup do computador.
+- Menu lateral: novo botão "Recolher menu" no pé da barra. Recolhido, o menu mostra só os
+  ícones (o nome aparece ao passar o mouse), com um traço fino separando os grupos, e libera
+  espaço para as telas. A Administração vira um ícone que abre e fecha a lista. A escolha
+  fica guardada neste computador e continua ao reabrir o programa.
+
+- Menu lateral: as telas agora ficam em grupos com título (Atendimento, Estoque e compras,
+  Financeiro, Gestão e Administração). A Administração (usuários, formas de pagamento,
+  bandeiras, auditoria, backup, licença e importação) começa fechada e abre sozinha quando
+  você entra numa tela dela; se a licença pedir atenção, o ponto vermelho aparece no título
+  do grupo mesmo fechado. Configurações e Ajuda ficam fixas no pé do menu, sempre à vista.
+
 - Receita óptica: os tratamentos da lente agora são caixinhas de marcar, e dá para
   escolher mais de um (ex.: antirreflexo e filtro azul). Receitas antigas com um
   tratamento só continuam iguais; um valor antigo que não está mais na lista
@@ -105,6 +109,13 @@
   único e um número de alteração, e as exclusões ficam registradas. Nada é
   enviado ainda; o plano (Supabase e app de celular) está em
   docs/Arquitetura-Sincronizacao.md.
+- Nuvem: nova tela "Nuvem e celular" (só Administrador) para ligar o envio de uma
+  cópia dos dados da ótica para um servidor seguro no Brasil. Ao ligar, é preciso ler
+  e aceitar o termo de consentimento, porque receitas são dados de saúde. O envio
+  roda sozinho em segundo plano, sem atrapalhar o uso: sem internet, o sistema
+  continua normal e tenta de novo depois. A tela mostra a situação, o último envio e
+  o que ainda falta enviar. O acesso pelo celular ainda não está disponível, e a
+  nuvem não substitui o backup do computador.
 - Com a tela baixa, textos só para leitor de tela não esticam mais a página.
 - Inadimplência mostra os dias em atraso; vendas por vendedor mostram ticket
   médio e participação.
