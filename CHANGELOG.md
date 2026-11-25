@@ -115,6 +115,13 @@
   único e um número de alteração, e as exclusões ficam registradas. Nada é
   enviado ainda; o plano (Supabase e app de celular) está em
   docs/Arquitetura-Sincronizacao.md.
+- Nuvem: nova tela "Nuvem e celular" (só Administrador) para ligar o envio de uma
+  cópia dos dados da ótica para um servidor seguro no Brasil. Ao ligar, é preciso ler
+  e aceitar o termo de consentimento, porque receitas são dados de saúde. O envio
+  roda sozinho em segundo plano, sem atrapalhar o uso: sem internet, o sistema
+  continua normal e tenta de novo depois. A tela mostra a situação, o último envio e
+  o que ainda falta enviar. O acesso pelo celular ainda não está disponível, e a
+  nuvem não substitui o backup do computador.
 - Com a tela baixa, textos só para leitor de tela não esticam mais a página.
 - Inadimplência mostra os dias em atraso; vendas por vendedor mostram ticket
   médio e participação.

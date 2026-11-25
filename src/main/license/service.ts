@@ -92,24 +92,29 @@ function gravarEstadoLocal(novo: EstadoLocal, arquivo: Partial<EstadoLocal> | nu
 
 // ---- Chave instalada ----
 
-function lerChaveInstalada(): { licenca: LicencaPayload | null; recusada: MotivoChaveRecusada | null } {
-  if (!existsSync(arquivoChave())) return { licenca: null, recusada: null }
+function lerChaveInstalada(): {
+  licenca: LicencaPayload | null
+  recusada: MotivoChaveRecusada | null
+  /** Texto da chave (sem espaços) — só quando `licenca` foi validada. */
+  texto: string | null
+} {
+  if (!existsSync(arquivoChave())) return { licenca: null, recusada: null, texto: null }
 
   let texto: string
   try {
     texto = readFileSync(arquivoChave(), 'utf8')
   } catch {
-    return { licenca: null, recusada: null }
+    return { licenca: null, recusada: null, texto: null }
   }
 
   // Chave corrompida, adulterada ou de outra máquina: nunca apaga o arquivo nem
   // os dados do cliente — só deixa de reconhecer a licença (e explica por quê).
   const payload = verificarChave(texto, chavePublicaEmUso())
-  if (!payload) return { licenca: null, recusada: 'invalida' }
+  if (!payload) return { licenca: null, recusada: 'invalida', texto: null }
   if (normalizarFingerprint(payload.fingerprint) !== obterFingerprint()) {
-    return { licenca: null, recusada: 'outra_maquina' }
+    return { licenca: null, recusada: 'outra_maquina', texto: null }
   }
-  return { licenca: payload, recusada: null }
+  return { licenca: payload, recusada: null, texto: texto.replace(/\s+/g, '') }
 }
 
 // ---- API do módulo ----
@@ -197,6 +202,20 @@ export function ativarLicenca(chave: string): LicencaInfo {
   writeFileSync(arquivoChave(), chave.replace(/\s+/g, ''), 'utf8')
   cache = null
   return obterLicencaInfo()
+}
+
+/**
+ * Chave que o worker da nuvem apresenta à `pc-token` (que reverifica tudo do lado dela).
+ * Só sai a chave instalada cuja assinatura e fingerprint desta máquina conferem e cuja
+ * validade não passou — sem carência: a nuvem só atende licença em dia. Em desenvolvimento
+ * (cobrança desligada) o app nunca lê a chave, então devolve null.
+ */
+export function obterChaveParaNuvem(): string | null {
+  if (cobrancaDesligada()) return null
+  const { licenca, texto } = lerChaveInstalada()
+  if (!licenca || !texto) return null
+  if (licenca.validade !== null && licenca.validade < hojeLocalIso()) return null
+  return texto
 }
 
 /** Atalho usado por `requirePermissao`: true quando o main deve recusar qualquer escrita. */

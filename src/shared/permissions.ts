@@ -42,6 +42,7 @@ export type Recurso =
   | 'usuarios'
   | 'configuracoes'
   | 'backup'
+  | 'nuvem'
   | 'licenca'
   | 'migracao'
   | 'auditoria'
@@ -84,6 +85,7 @@ export const PERMISSOES: MatrizPermissoes = {
     usuarios: TUDO,
     configuracoes: TUDO,
     backup: TUDO,
+    nuvem: TUDO,
     licenca: TUDO,
     migracao: TUDO,
     auditoria: SO_VER
@@ -131,6 +133,7 @@ export const RECURSOS_POR_MODULO: Record<Perfil, Recurso[]> = {
     'usuarios',
     'configuracoes',
     'backup',
+    'nuvem',
     'auditoria'
   ],
   vendedor: ['clientes', 'relacionamento', 'receitas_opticas', 'ordens_servico', 'vendas', 'contas_receber', 'estoque']

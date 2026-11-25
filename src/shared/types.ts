@@ -757,6 +757,36 @@ export interface LicencaInfo {
   somenteLeitura: boolean
 }
 
+// ---------------------------------------------------------------------
+// Nuvem (sincronizacao N1)
+// ---------------------------------------------------------------------
+
+/** Situacao do envio para a nuvem, calculada no main pelo worker; o renderer so exibe. */
+export type NuvemEstado =
+  | 'desligada'
+  | 'nao_configurada'
+  | 'sem_licenca'
+  | 'aguardando'
+  | 'sincronizando'
+  | 'ok'
+  | 'sem_internet'
+  | 'aguardando_aprovacao'
+  | 'revogado'
+  | 'erro'
+
+export interface NuvemStatus {
+  estado: NuvemEstado
+  ligada: boolean
+  /** ISO do ultimo envio completo nesta sessao do app; null antes do primeiro. */
+  ultimoEnvioEm: string | null
+  /** Mensagem em portugues, sem detalhe tecnico; null depois de um envio bem-sucedido. */
+  ultimoErro: string | null
+  /** Alteracoes locais ainda nao enviadas (contador de revisoes menos o cursor). */
+  pendentes: number
+  /** ISO de quando o termo foi aceito ao ligar; null com a nuvem desligada. */
+  consentimentoEm: string | null
+}
+
 /** RF-16: versao instalada e notas de versao (CHANGELOG.md empacotado com o app). */
 export interface SistemaInfo {
   versao: string

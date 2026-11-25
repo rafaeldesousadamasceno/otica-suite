@@ -36,6 +36,7 @@ import type {
   DashboardResumo,
   PdfVisualizacao,
   BackupStatus,
+  NuvemStatus,
   LicencaInfo,
   CaixaAberto,
   CaixaResumo,
@@ -122,6 +123,7 @@ import type {
   ConfiguracaoOperacionalInput,
   PeriodoQuery,
   BackupRestaurarInput,
+  NuvemLigarInput,
   ContatoRefInput,
   ContatoMarcarInput,
   ContatoDesfazerInput,
@@ -295,6 +297,12 @@ interface Api {
   }
   dashboard: {
     get: (input: DashboardQuery) => Promise<ApiResult<DashboardResumo>>
+  }
+  nuvem: {
+    status: () => Promise<ApiResult<NuvemStatus>>
+    ligar: (input: NuvemLigarInput) => Promise<ApiResult<void>>
+    desligar: () => Promise<ApiResult<void>>
+    sincronizarAgora: () => Promise<ApiResult<void>>
   }
   backup: {
     status: () => Promise<ApiResult<BackupStatus>>

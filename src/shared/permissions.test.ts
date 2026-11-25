@@ -54,4 +54,14 @@ describe('matriz de permissoes (PRD secao 7.4)', () => {
     expect(possuiPermissao('vendedor', 'usuarios', 'ver')).toBe(false)
     expect(possuiPermissao('vendedor', 'auditoria', 'ver')).toBe(false)
   })
+
+  it('vendedor não vê nem edita a nuvem', () => {
+    expect(possuiPermissao('vendedor', 'nuvem', 'ver')).toBe(false)
+    expect(possuiPermissao('vendedor', 'nuvem', 'editar')).toBe(false)
+  })
+
+  it('admin vê e edita a nuvem', () => {
+    expect(possuiPermissao('admin', 'nuvem', 'ver')).toBe(true)
+    expect(possuiPermissao('admin', 'nuvem', 'editar')).toBe(true)
+  })
 })

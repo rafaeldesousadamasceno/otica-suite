@@ -27,7 +27,7 @@ export interface TabelaSync {
 }
 
 /** Chaves de `configuracao` que pertencem a este computador e não podem viajar. */
-export const CHAVES_CONFIGURACAO_LOCAIS = ['licenca_local', 'sync_dispositivo_id'] as const
+export const CHAVES_CONFIGURACAO_LOCAIS = ['licenca_local', 'sync_dispositivo_id', 'nuvem_ligada', 'nuvem_consentimento'] as const
 
 export const TABELAS_SINCRONIZAVEIS: TabelaSync[] = [
   // Cadastros básicos

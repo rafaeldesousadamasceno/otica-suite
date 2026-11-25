@@ -156,6 +156,12 @@ const api = {
   dashboard: {
     get: (input: unknown) => ipcRenderer.invoke(IPC.dashboard.get, input)
   },
+  nuvem: {
+    status: () => ipcRenderer.invoke(IPC.nuvem.status),
+    ligar: (input: unknown) => ipcRenderer.invoke(IPC.nuvem.ligar, input),
+    desligar: () => ipcRenderer.invoke(IPC.nuvem.desligar),
+    sincronizarAgora: () => ipcRenderer.invoke(IPC.nuvem.sincronizarAgora)
+  },
   backup: {
     status: () => ipcRenderer.invoke(IPC.backup.status),
     criar: () => ipcRenderer.invoke(IPC.backup.criar),

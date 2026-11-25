@@ -27,7 +27,8 @@ import {
   FileText,
   MessageCircle,
   CircleHelp,
-  ShieldCheck
+  ShieldCheck,
+  Cloud
 } from 'lucide-react'
 import type { Perfil } from '@shared/types'
 
@@ -108,6 +109,7 @@ export const NAV_GRUPOS: Record<Perfil, NavGrupo[]> = {
         { label: 'Bandeiras', path: '/bandeiras', icon: CreditCard },
         { label: 'Auditoria', path: '/auditoria', icon: ScrollText },
         { label: 'Backup', path: '/backup', icon: DatabaseBackup },
+        { label: 'Nuvem e celular', path: '/nuvem', icon: Cloud },
         { label: 'Licença', path: '/licenca', icon: KeyRound, alertaLicenca: true },
         { label: 'Importar Dados', path: '/importar-dados', icon: DatabaseZap },
         { label: 'Pendências da Importação', path: '/pendencias-importacao', icon: ListChecks }

@@ -3,6 +3,7 @@ import { auditoriaRepository } from '@main/repositories/auditoriaRepository'
 import { requirePermissao } from '@main/auth/session'
 import { Errors } from '@main/errors'
 import { paths } from '@main/paths'
+import { marcarReenvioTotal } from '@main/sync/workerNuvem'
 import type { BackupStatus } from '@shared/types'
 import type { BackupRestaurarInput } from '@shared/ipc'
 
@@ -68,6 +69,9 @@ export const backupService = {
       console.error('[backup] falha ao restaurar', err)
       throw Errors.validacao('Não foi possível restaurar o backup selecionado. Verifique se o arquivo é válido.')
     }
+
+    // O banco voltou no tempo: a nuvem recebe tudo de novo e apaga o que o backup não tem mais.
+    marcarReenvioTotal()
 
     auditoriaRepository.registrar({
       usuarioId: sessao.usuario.id,
