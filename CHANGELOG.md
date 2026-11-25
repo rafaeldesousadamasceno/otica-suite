@@ -2,9 +2,16 @@
 
 ## Próxima versão
 
-- Painel: os cartões de indicadores (Recebido, Despesas pagas, Resultado de caixa e os
-  demais) não estouram mais a caixa nem quebram o sinal de menos em janelas estreitas. O
-  valor usa a largura toda do cartão e a fonte se ajusta ao tamanho dele.
+- Menu lateral: novo botão "Recolher menu" no pé da barra. Recolhido, o menu mostra só os
+  ícones (o nome aparece ao passar o mouse), com um traço fino separando os grupos, e libera
+  espaço para as telas. A Administração vira um ícone que abre e fecha a lista. A escolha
+  fica guardada neste computador e continua ao reabrir o programa.
+
+- Menu lateral: as telas agora ficam em grupos com título (Atendimento, Estoque e compras,
+  Financeiro, Gestão e Administração). A Administração (usuários, formas de pagamento,
+  bandeiras, auditoria, backup, licença e importação) começa fechada e abre sozinha quando
+  você entra numa tela dela; se a licença pedir atenção, o ponto vermelho aparece no título
+  do grupo mesmo fechado. Configurações e Ajuda ficam fixas no pé do menu, sempre à vista.
 
 - Receita óptica: os tratamentos da lente agora são caixinhas de marcar, e dá para
   escolher mais de um (ex.: antirreflexo e filtro azul). Receitas antigas com um
@@ -108,6 +115,10 @@
 - O relatório de produtos abaixo do mínimo não deixa mais produtos de fora
   quando a ótica tem mais de 500 itens cadastrados.
 - Com a janela baixa, só o menu lateral rola, e não a tela inteira.
+
+- Painel: os cartões de indicadores (Recebido, Despesas pagas, Resultado de caixa e os
+  demais) não estouram mais a caixa nem quebram o sinal de menos em janelas estreitas. O
+  valor usa a largura toda do cartão e a fonte se ajusta ao tamanho dele.
 
 ## 0.1.0
 
