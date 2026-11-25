@@ -2,6 +2,10 @@
 
 ## Próxima versão
 
+- Painel: os cartões de indicadores (Recebido, Despesas pagas, Resultado de caixa e os
+  demais) não estouram mais a caixa nem quebram o sinal de menos em janelas estreitas. O
+  valor usa a largura toda do cartão e a fonte se ajusta ao tamanho dele.
+
 - Receita óptica: os tratamentos da lente agora são caixinhas de marcar, e dá para
   escolher mais de um (ex.: antirreflexo e filtro azul). Receitas antigas com um
   tratamento só continuam iguais; um valor antigo que não está mais na lista
